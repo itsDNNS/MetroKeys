@@ -1,0 +1,513 @@
+{
+ "schema": "metrokeys.metrics/1",
+ "units": "px at the 1080 px wide portrait reference; multiply by s = width/1080 (see 02-visual.md §2)",
+ "keyboard": {
+  "portrait": {
+   "width": 1080,
+   "height": 756
+  },
+  "landscape": {
+   "width": 1596,
+   "height": 576
+  },
+  "keyInset": [
+   7,
+   7,
+   7,
+   7
+  ],
+  "rowsDefault": 4,
+  "overflowAbove": 330,
+  "labelInsetScalesWithKeyboardHeight": false
+ },
+ "candidateBar": {
+  "height": 126,
+  "itemOuterPadding": [
+   4,
+   11,
+   4,
+   5
+  ],
+  "itemInnerPadding": [
+   42,
+   16,
+   42,
+   14
+  ],
+  "emojiItemOuterPadding": [
+   4,
+   11,
+   4,
+   0
+  ],
+  "emojiItemInnerPadding": [
+   42,
+   0,
+   42,
+   0
+  ],
+  "addWordItemMargin": [
+   0,
+   11,
+   0,
+   5
+  ],
+  "addWordPlusPadding": [
+   47,
+   23,
+   5,
+   0
+  ],
+  "addWordTextPadding": [
+   0,
+   35,
+   47,
+   0
+  ],
+  "pasteButton": {
+   "padding": [
+    42,
+    0,
+    47,
+    0
+   ],
+   "iconBox": 108,
+   "circleRadius": 50,
+   "ringWidth": 5,
+   "disabledOpacity": 0.5,
+   "halfHiddenFraction": 0.5,
+   "hiddenFraction": 1.0
+  },
+  "extraButtonWidth": 190,
+  "highContrastTopLine": 1,
+  "pressedHighlight": {
+   "area": "fullCell",
+   "note": "item width incl. outer padding, full strip height, no inset (02 §5.8.3)"
+  },
+  "historyButtonSelectedLook": false,
+  "clipboardChip": {
+   "slotMargin": [
+    12,
+    0,
+    12,
+    0
+   ],
+   "boxHeightFractionOfStrip": 0.64,
+   "boxCornerRadius": 0,
+   "boxColorRole": "key face",
+   "pictogramSlotWidth": 54,
+   "pictogramLeftPadding": 12,
+   "pictogramInk": [
+    30,
+    43
+   ],
+   "pictogramStroke": 5,
+   "textGapAfterPictogram": 10,
+   "textSizeFactorOfCandidate": 0.8,
+   "textMaxWidthFractionOfStrip": 0.45,
+   "rightPadding": 24
+  }
+ },
+ "popup": {
+  "content": {
+   "portrait": [
+    131,
+    203
+   ],
+   "landscape": [
+    171,
+    207
+   ]
+  },
+  "contentLarge": {
+   "portrait": [
+    203,
+    203
+   ],
+   "landscape": [
+    234,
+    203
+   ]
+  },
+  "contentLanguage": {
+   "portrait": [
+    153,
+    203
+   ],
+   "landscape": [
+    207,
+    207
+   ]
+  },
+  "largeWhenLabelLongerThan": 3,
+  "frame": 9,
+  "bottomAboveKeyBottomFraction": 0.98,
+  "languageLabelInsetWithSubLabel": [
+   0,
+   56,
+   0,
+   -9
+  ],
+  "languageLabelInsetWithIcon": [
+   0,
+   41,
+   0,
+   -41
+  ],
+  "languageLabelInsetAlone": [
+   0,
+   -45,
+   0,
+   0
+  ],
+  "highContrastOutline": 2
+ },
+ "accentPicker": {
+  "cellSameAsPopup": true,
+  "frame": 9,
+  "cellSpacing": -9,
+  "maxRows": 2,
+  "dimmerOpacity": 0.5
+ },
+ "emoji": {
+  "gridMargin": {
+   "portrait": [
+    7,
+    2,
+    -56,
+    7
+   ],
+   "landscape": [
+    2,
+    2,
+    -60,
+    7
+   ]
+  },
+  "cell": {
+   "portrait": [
+    173,
+    155
+   ],
+   "landscape": [
+    195,
+    155
+   ]
+  },
+  "emojiPadding": [
+   0,
+   0,
+   0,
+   27
+  ],
+  "textEmoticonPadding": [
+   0,
+   0,
+   0,
+   18
+  ],
+  "emptyMessageMargin": {
+   "portrait": [
+    113,
+    90,
+    113,
+    0
+   ],
+   "landscape": [
+    113,
+    45,
+    113,
+    0
+   ]
+  }
+ },
+ "dialpad": {
+  "digitLeftPadding": {
+   "portrait": 56,
+   "landscape": 124
+  },
+  "hintGap": {
+   "portrait": 18,
+   "landscape": 18
+  }
+ },
+ "appBar": {
+  "height": 126,
+  "buttonCount": 3,
+  "buttonRadius": 41,
+  "ringWidth": 6,
+  "buttonPitch": 148,
+  "moreDots": {
+   "diameter": 8,
+   "pitch": 18,
+   "rightToLastCentre": 46,
+   "topToCentre": 26
+  },
+  "expanded": {
+   "labelRowHeight": 48,
+   "labelSize": 26,
+   "menuItemHeight": 96,
+   "menuTextSize": 42,
+   "menuTextLeft": 32,
+   "menuPadding": 24,
+   "labelAlign": "top",
+   "labelGlyphTopBelowBar": 3,
+   "menuPaddingAbove": 12,
+   "menuPaddingBelow": 12,
+   "disabledLabelUsesDisabledColor": true
+  },
+  "icons": {
+   "emoji": {
+    "ink": [
+     36,
+     35
+    ],
+    "stroke": 3.5
+   },
+   "send": {
+    "ink": [
+     40,
+     28
+    ],
+    "stroke": 5,
+    "tail": "lower right",
+    "motionBars": 3
+   },
+   "microphone": {
+    "ink": [
+     28,
+     39
+    ],
+    "stroke": 5,
+    "foot": false
+   },
+   "otherStroke": 5
+  }
+ },
+ "textStyles": {
+  "letter": {
+   "weight": "semibold",
+   "size": 60.0,
+   "lowercase": {
+    "weight": "semibold",
+    "size": 66.0
+   },
+   "popup": {
+    "weight": "semibold",
+    "size": 102.0
+   }
+  },
+  "multichar": {
+   "weight": "semibold",
+   "size": 48.0,
+   "popup": {
+    "weight": "semibold",
+    "size": 69.0
+   }
+  },
+  "punctuation-large": {
+   "weight": "semilight",
+   "size": 114.0,
+   "popup": {
+    "weight": "semibold",
+    "size": 105.0
+   }
+  },
+  "icon": {
+   "weight": "icon",
+   "size": 60.0,
+   "popup": {
+    "weight": "icon",
+    "size": 102.0
+   }
+  },
+  "numeric": {
+   "weight": "regular",
+   "size": 96.0,
+   "hint": {
+    "weight": "regular",
+    "size": 42.0
+   }
+  },
+  "numeric-zero": {
+   "weight": "regular",
+   "size": 96.0,
+   "hint": {
+    "weight": "regular",
+    "size": 63.0
+   }
+  },
+  "language": {
+   "weight": "semibold",
+   "size": 42.0,
+   "popup": {
+    "weight": "semibold",
+    "size": 54.0
+   }
+  },
+  "emoji-category": {
+   "weight": "regular",
+   "size": 78.0
+  },
+  "at": {
+   "weight": "semibold",
+   "size": 66.0,
+   "popup": {
+    "weight": "semibold",
+    "size": 96.0
+   }
+  },
+  "dialpad-punctuation": {
+   "weight": "regular",
+   "size": 144.0,
+   "popup": {
+    "weight": "semibold",
+    "size": 105.0
+   }
+  },
+  "dialpad-star": {
+   "weight": "semilight",
+   "size": 198.0
+  },
+  "dialpad-hash": {
+   "weight": "regular",
+   "size": 108.0
+  },
+  "space-medium": {
+   "weight": "semibold",
+   "size": 51.0
+  },
+  "popup-fallback": {
+   "weight": "semibold",
+   "size": 102.0
+  },
+  "language-sublabel": {
+   "weight": "semibold",
+   "size": 48.0
+  },
+  "candidate": {
+   "weight": "regular",
+   "size": 49.14
+  },
+  "candidate-autocorrect": {
+   "weight": "bold",
+   "size": 49.14
+  },
+  "candidate-plus": {
+   "weight": "bold",
+   "size": 70.2
+  },
+  "candidate-emoji": {
+   "weight": "regular",
+   "size": 79.56
+  },
+  "emoji-item": {
+   "weight": "regular",
+   "size": 108.0
+  },
+  "emoji-item-text": {
+   "weight": "regular",
+   "size": 66.0
+  },
+  "emoji-empty-message": {
+   "weight": "regular",
+   "size": 54.0
+  },
+  "function-text": {
+   "weight": "regular",
+   "size": 57.0
+  },
+  "small-text": {
+   "weight": "regular",
+   "size": 39.0
+  }
+ },
+ "timing": {
+  "longPressMs": 450,
+  "longPressShortMs": 200,
+  "popupHideDelayMs": 75,
+  "pickerHoldMs": 100,
+  "pickerSlideEndMs": 300,
+  "pickerStayAfterReleaseMs": 1000,
+  "autocorrectFlashMs": 300
+ },
+ "animations": {
+  "curves": "f(t) per 02-visual.md §7.1; weight w",
+  "keyboardSlideIn": {
+   "ms": 300,
+   "curve": "logarithmic",
+   "weight": 150.0
+  },
+  "keyboardSlideOut": {
+   "ms": 200,
+   "curve": "exponential",
+   "weight": 150.0
+  },
+  "barOnlySlideIn": {
+   "ms": 200,
+   "curve": "logarithmic",
+   "weight": 150.0
+  },
+  "barOnlySlideOut": {
+   "ms": 200,
+   "curve": "exponential",
+   "weight": 150.0
+  },
+  "candidateScroll": {
+   "ms": 400,
+   "curve": "s-curve",
+   "weight": 10.0
+  },
+  "pickerSlide": {
+   "holdMs": 100,
+   "endMs": 300,
+   "curve": "linear"
+  }
+ },
+ "scrolling": {
+  "velocityDecayPerSecond": 0.2,
+  "minimumSpeed": 192,
+  "maximumSpeed": 9600,
+  "compressPivotDistance": 4320,
+  "compressLimit": 300,
+  "edgeBrake": {
+   "kSlow": 7500.0,
+   "kFast": 32000.0,
+   "cSlow": 1.4,
+   "cFast": 0.85
+  },
+  "returnAfterDragSeconds": 0.2,
+  "returnAfterFlickFactor": 2.25,
+  "returnCurvePoints": [
+   1.0,
+   0.5,
+   0.2,
+   0.0
+  ],
+  "dragStartMillimetres": 2.077
+ },
+ "trace": {
+  "bitmapPixelBudget": 161280,
+  "ringRadius": {
+   "light": 5,
+   "dark": 6
+  },
+  "opacity": {
+   "light": 0.745,
+   "dark": 0.851
+  },
+  "blur": {
+   "kernelRadius": 2,
+   "sigma": 1.5
+  },
+  "frameMs": 28,
+  "fullMs": 250,
+  "goneMs": 450
+ },
+ "clipboardPanel": {
+  "rowHeight": 150,
+  "bottomRowLabelSize": 57,
+  "hintSize": 39,
+  "bottomRowTextScalesWithKeyboardHeight": true
+ }
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window background = page colour until the first frame (spec 07 §8); dark theme, no white flash. -->
+    <style name="Theme.MetroKeys.Settings" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>

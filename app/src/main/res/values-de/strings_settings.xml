@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Texte der Einstellungs-App (Spezifikation 07 §11.2). Normale deutsche Rechtschreibung, „du“. -->
+<resources>
+    <string name="main_title">Einstellungen</string>
+    <string name="on">Ein</string>
+    <string name="off">Aus</string>
+    <string name="on_lc">ein</string>
+    <string name="off_lc">aus</string>
+
+    <string name="setup_header">Tastatur einrichten</string>
+    <string name="setup_step1">„MetroKeys“ in den Android-Tastatureinstellungen einschalten</string>
+    <string name="setup_step1_button">Einschalten</string>
+    <string name="setup_step2">MetroKeys als Tastatur wählen</string>
+    <string name="setup_step2_button">Auswählen</string>
+    <string name="setup_ready_title">Tastatur</string>
+    <string name="setup_ready_summary">MetroKeys ist aktiv – tippen zum Wechseln</string>
+    <string name="try_header">Ausprobieren</string>
+    <string name="try_hint">Hier tippen und losschreiben</string>
+
+    <string name="page_languages">Sprachen</string>
+    <string name="page_suggestions">Vorschläge</string>
+    <string name="page_typing">Eingabe</string>
+    <string name="page_layout">Layout</string>
+    <string name="page_sound">Töne+Vibration</string>
+    <string name="page_theme">Design</string>
+    <string name="page_appbar_buttons">Tasten der App-Leiste</string>
+    <string name="page_data">Daten+Info</string>
+    <string name="sum_multilingual">, mehrsprachig</string>
+    <string name="sum_suggestions">Vorschläge</string>
+    <string name="sum_autocorrect">Autokorrektur</string>
+    <string name="sum_shape">Wischen</string>
+    <string name="sum_history">Zwischenablage-Verlauf</string>
+    <string name="sum_compact">kompakt</string>
+    <string name="sum_sounds">Tastentöne</string>
+    <string name="sum_vibration">Vibration</string>
+    <string name="sum_data">Gelernte Wörter, Lizenzen, Info</string>
+
+    <string name="app_language">Sprache der App</string>
+    <string name="app_language_system">Wie System</string>
+    <string name="app_language_note">Gilt für diese Einstellungen und die Texte der Tastatur, nicht für die Tastatursprachen.</string>
+    <string name="languages_intro">Sobald mehr als eine Sprache aktiv ist, zeigt die Tastatur eine Sprachtaste.</string>
+    <string name="languages_header">Tastatursprachen</string>
+    <string name="languages_min">Eine Sprache muss aktiv bleiben</string>
+    <string name="multilingual">In mehreren Sprachen tippen</string>
+    <string name="multilingual_note">Vorschläge kommen aus allen gewählten Sprachen; korrigiert wird in der Sprache des Satzes.</string>
+    <string name="multilingual_off">Verfügbar ab zwei Tastatursprachen</string>
+    <string name="comma_key">Kommataste bei mehreren Sprachen</string>
+    <string name="comma_key_note">Behält die Kommataste neben der Leertaste, wenn die Tastatur eine Sprachtaste zeigt.</string>
+
+    <string name="suggestions">Wortvorschläge beim Tippen zeigen</string>
+    <string name="autocorrect">Tippfehler automatisch korrigieren</string>
+    <string name="space_after">Nach einem gewählten Vorschlag ein Leerzeichen setzen</string>
+    <string name="auto_caps">Satzanfänge automatisch großschreiben</string>
+    <string name="double_space">Zwei Leerzeichen hintereinander ergeben einen Punkt</string>
+    <string name="shape_writing">Wörter durch Wischen über die Buchstaben schreiben</string>
+    <string name="spelling_underline">Unbekannte Wörter unterstreichen</string>
+    <string name="spelling_underline_note">Markiert unbekannte und automatisch korrigierte Wörter im Textfeld. Tippen auf ein markiertes Wort zeigt Alternativen, wenn die App das unterstützt.</string>
+    <string name="contacts">Namen aus meinen Kontakten vorschlagen</string>
+    <string name="contacts_note">Namen deiner Kontakte erscheinen als Vorschläge und gelten als richtig geschrieben.</string>
+    <string name="contacts_box_title">Zugriff auf Kontakte</string>
+    <string name="contacts_box_text">Dafür liest die Tastatur nur Vornamen, Nachnamen und Spitznamen deiner Kontakte. Sie bleiben im Arbeitsspeicher der Tastatur und werden weder gespeichert noch gesichert oder weitergegeben. Du kannst das jederzeit wieder ausschalten.</string>
+    <string name="contacts_continue">Weiter</string>
+    <string name="contacts_denied">Ohne Zugriff auf deine Kontakte bleibt diese Einstellung aus.</string>
+    <string name="contacts_open_settings">Einstellungen</string>
+    <string name="autoswitch_emoji">Nach einem Emoji zurück zu den Buchstaben</string>
+    <string name="autoswitch_emoji_note">Nach jedem Emoji wechselt die Tastatur wieder zur Buchstabenseite.</string>
+
+    <string name="clip_history">Zwischenablage-Verlauf</string>
+    <string name="clip_history_note">Kopierte Texte bleiben eine Stunde verfügbar, angeheftete dauerhaft. Als vertraulich markierte Inhalte wie Passwörter werden nie gespeichert. Ausschalten löscht den Verlauf.</string>
+    <string name="autofill">Vorschläge von Passwortmanagern</string>
+    <string name="autofill_note">Autofill-Vorschläge erscheinen direkt in der Vorschlagsleiste (ab Android 11).</string>
+    <string name="autofill_unavailable">Benötigt Android 11 oder neuer</string>
+
+    <string name="key_sounds">Tastentöne</string>
+    <string name="key_sounds_note">Nur wenn das Telefon nicht auf lautlos oder Vibration steht</string>
+    <string name="key_sound_volume">Lautstärke der Tastentöne</string>
+    <string name="key_sound_volume_note">Im Verhältnis zur Systemlautstärke. Beim Loslassen hörst du eine Probe.</string>
+    <string name="percent">%1$d %%</string>
+    <string name="vibration">Beim Tippen vibrieren</string>
+    <string name="sound_pack">Tonpaket</string>
+    <string name="sound_source_system">Android-Systemklänge</string>
+    <string name="sound_source_custom">Eigene Töne</string>
+    <string name="sound_intro">MetroKeys verwendet die Klicktöne von Android. Wenn du eigene Tondateien (WAV) hast, kannst du sie hier verwenden: je einen Ton für Buchstabentasten, Leertaste, Funktionstasten, die Auswahl von Alternativen, das Wählen eines Vorschlags und das Hinzufügen zum Wörterbuch. Die Dateien bleiben nur auf diesem Gerät und kommen nicht ins Backup. Importiere nur Dateien, die du verwenden darfst.</string>
+    <string name="source">Quelle</string>
+    <string name="sound_import">Töne importieren</string>
+    <string name="remove">Entfernen</string>
+    <string name="sound_slots">Töne</string>
+    <string name="sound_slots_note">Fehlt ein Ton, klingt die Taste wie eine Buchstabentaste oder wie Android. Tippen wählt eine Datei, Halten spielt den Ton ab.</string>
+    <string name="slot_letter">Buchstabentaste</string>
+    <string name="slot_space">Leertaste</string>
+    <string name="slot_function">Funktionstaste</string>
+    <string name="slot_picker">Auswahl von Alternativen</string>
+    <string name="slot_candidate">Vorschlag gewählt</string>
+    <string name="slot_dictionary">Zum Wörterbuch hinzugefügt</string>
+    <string name="asset_present">Importiert</string>
+    <string name="asset_missing">Nicht importiert</string>
+    <plurals name="import_ok">
+        <item quantity="one">%1$d Datei übernommen.</item>
+        <item quantity="other">%1$d Dateien übernommen.</item>
+    </plurals>
+    <string name="import_rejected">Nicht verwendet: %1$s</string>
+
+    <string name="theme_intro">Hintergrund und Akzentfarbe gelten für die Tastatur, die Farbe der App für diese Einstellungen.</string>
+    <string name="background">Hintergrund</string>
+    <string name="theme_system">Wie System</string>
+    <string name="theme_light">Hell</string>
+    <string name="theme_dark">Dunkel</string>
+    <string name="accent">Akzentfarbe</string>
+    <string name="accent_default">Kobalt (Standard)</string>
+    <string name="accent_grid_title">Akzentfarben</string>
+    <string name="app_color">Farbe der App</string>
+    <string name="app_color_keyboard">Wie die Tastatur</string>
+    <string name="app_color_system">Systemfarben (Hintergrundbild)</string>
+    <string name="app_color_custom">Eigene Farbe</string>
+    <string name="high_contrast">Hoher Kontrast</string>
+    <string name="high_contrast_system">Wie System (kontrastreicher Text)</string>
+    <string name="high_contrast_on">Ein</string>
+    <string name="high_contrast_off">Aus</string>
+    <string name="keyboard_height">Tastaturhöhe</string>
+    <string name="keyboard_height_note">%1$d %% der normalen Höhe – die Tasten werden niedriger, nicht schmaler</string>
+    <string name="font">Schrift</string>
+    <string name="font_source_bundled">Selawik (mitgeliefert)</string>
+    <string name="font_source_custom">Eigene Schriften</string>
+    <string name="font_intro">MetroKeys bringt die freie Schrift Selawik mit. Eigene Schriftdateien (TrueType oder OpenType) kannst du hier importieren; der Schnitt wird aus der Datei erkannt. Die Dateien bleiben nur auf diesem Gerät und kommen nicht ins Backup. Importiere nur Schriften, die du verwenden darfst.</string>
+    <string name="font_import">Schriften importieren</string>
+    <string name="font_weights">Schnitte</string>
+    <string name="font_weights_note">Der Schnitt wird aus der Datei gelesen, nicht aus ihrem Namen. Fehlende Schnitte bleiben Selawik.</string>
+    <string name="font_slot_regular">Normal (Vorschläge, Ziffern)</string>
+    <string name="font_slot_semilight">Semilight (große Satzzeichen)</string>
+    <string name="font_slot_semibold">Semibold (Tastenbeschriftung)</string>
+    <string name="font_slot_bold">Bold (Autokorrektur)</string>
+    <string name="font_slot_light">Light (derzeit ungenutzt)</string>
+    <string name="font_slot_emoji">Emoji (Emoji-Seite, Emoji-Vorschläge)</string>
+
+    <string-array name="accent_names">
+        <item>Limette</item>
+        <item>Grün</item>
+        <item>Smaragd</item>
+        <item>Petrol</item>
+        <item>Cyan</item>
+        <item>Kobalt</item>
+        <item>Indigo</item>
+        <item>Violett</item>
+        <item>Pink</item>
+        <item>Magenta</item>
+        <item>Karmesin</item>
+        <item>Rot</item>
+        <item>Orange</item>
+        <item>Bernstein</item>
+        <item>Gelb</item>
+        <item>Braun</item>
+        <item>Oliv</item>
+        <item>Stahl</item>
+        <item>Mauve</item>
+        <item>Taupe</item>
+    </string-array>
+
+    <string name="nav_mode">Unter der Tastatur</string>
+    <string name="nav_mode_appbar">App-Leiste</string>
+    <string name="nav_mode_compact">Kompakt: Ausblenden und Wechseln neben dem Gestenbalken (nur Gestensteuerung)</string>
+    <string name="nav_mode_off">Nichts</string>
+    <string name="nav_left">Linker Knopf</string>
+    <string name="nav_center">Mittlerer Knopf</string>
+    <string name="nav_right">Rechter Knopf</string>
+    <string name="nav_tap">Tippen</string>
+    <string name="nav_hold">Halten</string>
+    <string name="appbar_buttons_intro">Tippe in der Vorschau auf eine Taste und wähle, was sie beim Tippen oder Halten tut. „…“ zeigt immer die Beschriftungen und das Menü.</string>
+    <string name="nav_pick_app">App wählen</string>
+    <string name="nav_app_named">App öffnen: %1$s</string>
+    <string name="nav_app_missing">App öffnen (nicht mehr installiert)</string>
+    <string name="nav_no_mic">Ohne Mikrofonberechtigung nutzt die Spracheingabe die Spracheingabe des Systems.</string>
+    <string name="action_editor">Aktion des Textfelds (Senden, Suchen …)</string>
+    <string name="action_editor_short">Aktion des Textfelds</string>
+    <string name="action_hide">Tastatur ausblenden</string>
+    <string name="action_switch">Tastatur wechseln</string>
+    <string name="action_home">Startbildschirm</string>
+    <string name="action_search">Websuche</string>
+    <string name="action_emoji">Emoji</string>
+    <string name="action_clipboard">Zwischenablage-Verlauf</string>
+    <string name="action_language">Tastatursprache wechseln</string>
+    <string name="action_left">Cursor nach links</string>
+    <string name="action_right">Cursor nach rechts</string>
+    <string name="action_undo">Rückgängig</string>
+    <string name="action_voice">Spracheingabe</string>
+    <string name="action_settings">Tastatureinstellungen</string>
+    <string name="action_app">App öffnen …</string>
+    <string name="action_none">Nichts</string>
+
+    <string name="dictionary_header">Wörterbuch</string>
+    <string name="clear_button">Gelernte Wörter löschen</string>
+    <string name="clear_text">Entfernt alle Wörter, die die Tastatur von dir gelernt hat, und den Emoji-Verlauf. Das mitgelieferte Wörterbuch bleibt erhalten.</string>
+    <string name="clear_box_title">Gelernte Wörter löschen?</string>
+    <string name="clear_box_text">Alle gelernten Wörter und der Emoji-Verlauf werden gelöscht. Das lässt sich nicht rückgängig machen.</string>
+    <string name="delete">Löschen</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="done">Fertig</string>
+    <string name="cleared">Gelernte Wörter gelöscht</string>
+    <string name="licenses">Lizenzen</string>
+    <string name="licenses_summary">Schrift, Wörterbücher, Bibliotheken</string>
+    <string name="about_header">Info</string>
+    <string name="about_copyright">© 2026 Dennis Braun. Freie Open-Source-Software unter der GNU GPL v3.</string>
+    <string name="about_trademark">Nicht mit Microsoft verbunden. Windows Phone ist eine Marke der Microsoft Corporation.</string>
+    <string name="about_link">Quellcode, Updates und Feedback</string>
+    <string name="about_no_browser">Kein Browser zum Öffnen des Links gefunden.</string>
+    <string name="learned_words">Gelernte Wörter</string>
+    <plurals name="learned_words_count">
+        <item quantity="one">%1$d Wort</item>
+        <item quantity="other">%1$d Wörter</item>
+    </plurals>
+    <plurals name="learned_used">
+        <item quantity="one">einmal verwendet</item>
+        <item quantity="other">%1$d-mal verwendet</item>
+    </plurals>
+    <string name="learned_intro">Diese Wörter stehen in keinem Wörterbuch; die Tastatur hat sie von dir gelernt. Tippe auf ein Wort, um es zu vergessen. Das geht auch, indem du es in der Vorschlagsleiste gedrückt hältst.</string>
+    <string name="learned_words_empty">Noch keine gelernten Wörter.</string>
+    <string name="forget_box_title">„%1$s“ vergessen?</string>
+    <string name="forget_box_text">Die Tastatur behandelt das Wort dann wieder als unbekannt: Sie schlägt es nicht mehr vor und korrigiert es unter Umständen.</string>
+    <string name="forget_confirm">Vergessen</string>
+</resources>

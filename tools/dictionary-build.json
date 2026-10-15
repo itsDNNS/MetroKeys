@@ -1,0 +1,43 @@
+{
+ "de-DE": {
+  "S": 16.357883368212075,
+  "corpusTokens": 156169536,
+  "forms": 241914,
+  "keys": 236559,
+  "maxCount": 5890279,
+  "pairPrevWords": 53004,
+  "pairs": 561563,
+  "pairsFile": {
+   "bytes": 1863133,
+   "sha256": "01baac8fd1b798ca0d353148193ce3255866aa61dc988e9bd91ece3130889713"
+  },
+  "wordsFile": {
+   "bytes": 967409,
+   "sha256": "5905c250567ccb2720536ce77debb1dc19786df26f097728389f55f908db7c0c"
+  },
+  "wordsPayloadSha256": "c51a843fb307779f82b6146f62c22a7d13009e30d050e8124653cab87c8637ad"
+ },
+ "en-US": {
+  "S": 14.976348489676644,
+  "corpusTokens": 695682540,
+  "forms": 164040,
+  "keys": 163405,
+  "maxCount": 24812233,
+  "pairPrevWords": 42124,
+  "pairs": 590533,
+  "pairsFile": {
+   "bytes": 1927135,
+   "sha256": "2dde9255fc17e317a7bec8ad1aa7f24ceb6c0b66379299c1ae25472518457e91"
+  },
+  "wordsFile": {
+   "bytes": 519514,
+   "sha256": "0d0595b450b30387511006ce39691e8c248e5d7175041f50d65899bb2e5b1f9b"
+  },
+  "wordsPayloadSha256": "ceac596ecd3265aeeaf9f22f5844706f57cf0b9a775cdf1764fea6e5ec3fb43f"
+ },
+ "en-US-extra": {
+  "aliasKeys": 79,
+  "aliasKeysReplacingAWord": 11,
+  "possessiveForms": 34855
+ }
+}

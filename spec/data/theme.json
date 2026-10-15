@@ -1,0 +1,270 @@
+{
+ "schema": "metrokeys.theme/1",
+ "colorFormat": "#RRGGBB opaque, #AARRGGBB with alpha; \"accent\" = the selected accent colour",
+ "defaultTheme": "system",
+ "defaultAccent": "Cobalt",
+ "themes": {
+  "dark": {
+   "keyboardBackground": "#1F1F1F",
+   "keyBackground": "#474747",
+   "keyLabel": "#FFFFFF",
+   "keyLabelDisabled": "#73FFFFFF",
+   "keyHint": "#99FFFFFF",
+   "keyPressedBackground": "accent",
+   "keyPressedLabel": "#FFFFFF",
+   "keyPressedHint": "#FFFFFF",
+   "emphasizedKeyBackground": "#FFFFFF",
+   "emphasizedKeyLabel": "#000000",
+   "emphasizedKeyPressedBackground": "accent",
+   "emphasizedKeyPressedLabel": "#FFFFFF",
+   "popupFrame": "#1F1F1F",
+   "popupBackground": "accent",
+   "popupLabel": "#FFFFFF",
+   "popupOutline": null,
+   "pickerFrame": "#1F1F1F",
+   "pickerItem": "#99FFFFFF",
+   "pickerItemOpaque": "#A5A5A5",
+   "pickerItemLabel": "#000000",
+   "pickerHighlight": "accent",
+   "pickerHighlightLabel": "#FFFFFF",
+   "pickerHighlightOutline": null,
+   "dimmer": "#000000",
+   "dimmerOpacity": 0.5,
+   "candidateBarBackground": "#1F1F1F",
+   "candidateText": "#FFFFFF",
+   "candidatePressedBackground": "#FFFFFF",
+   "candidatePressedText": "#000000",
+   "candidateFlashBackground": "#FFFFFF",
+   "candidateFlashText": "#000000",
+   "candidateTopLine": null,
+   "pasteButton": "#FFFFFF",
+   "appBarBackground": "#1F1F1F",
+   "appBarIcon": "#FFFFFF",
+   "appBarIconDisabled": "#7C7C7C",
+   "trace": "accent",
+   "traceOpacity": 0.851
+  },
+  "light": {
+   "keyboardBackground": "#DDDDDD",
+   "keyBackground": "#FFFFFF",
+   "keyLabel": "#DE000000",
+   "keyLabelDisabled": "#40000000",
+   "keyHint": "#73000000",
+   "keyPressedBackground": "accent",
+   "keyPressedLabel": "#FFFFFF",
+   "keyPressedHint": "#FFFFFF",
+   "emphasizedKeyBackground": "#000000",
+   "emphasizedKeyLabel": "#FFFFFF",
+   "emphasizedKeyPressedBackground": "accent",
+   "emphasizedKeyPressedLabel": "#FFFFFF",
+   "popupFrame": "#DDDDDD",
+   "popupBackground": "accent",
+   "popupLabel": "#FFFFFF",
+   "popupOutline": null,
+   "pickerFrame": "#DDDDDD",
+   "pickerItem": "#73000000",
+   "pickerItemOpaque": "#797979",
+   "pickerItemLabel": "#FFFFFF",
+   "pickerHighlight": "accent",
+   "pickerHighlightLabel": "#FFFFFF",
+   "pickerHighlightOutline": null,
+   "dimmer": "#FFFFFF",
+   "dimmerOpacity": 0.5,
+   "candidateBarBackground": "#DDDDDD",
+   "candidateText": "#000000",
+   "candidatePressedBackground": "#000000",
+   "candidatePressedText": "#FFFFFF",
+   "candidateFlashBackground": "#000000",
+   "candidateFlashText": "#FFFFFF",
+   "candidateTopLine": null,
+   "pasteButton": "#000000",
+   "appBarBackground": "#DDDDDD",
+   "appBarIcon": "#DE000000",
+   "appBarIconDisabled": "#818181",
+   "trace": "accent",
+   "traceOpacity": 0.745
+  },
+  "highContrastDark": {
+   "keyboardBackground": "#000000",
+   "keyBackground": "#FFFFFF",
+   "keyLabel": "#000000",
+   "keyLabelDisabled": "#737373",
+   "keyHint": "#000000",
+   "keyPressedBackground": "#000000",
+   "keyPressedLabel": "#FFFFFF",
+   "keyPressedHint": "#FFFFFF",
+   "emphasizedKeyBackground": "#000000",
+   "emphasizedKeyLabel": "#FFFFFF",
+   "emphasizedKeyPressedBackground": "#FFFFFF",
+   "emphasizedKeyPressedLabel": "#000000",
+   "popupFrame": "#000000",
+   "popupBackground": "#000000",
+   "popupLabel": "#FFFFFF",
+   "popupOutline": "#FFFFFF",
+   "pickerFrame": "#000000",
+   "pickerItem": "#FFFFFF",
+   "pickerItemOpaque": "#FFFFFF",
+   "pickerItemLabel": "#000000",
+   "pickerHighlight": "#000000",
+   "pickerHighlightLabel": "#FFFFFF",
+   "pickerHighlightOutline": "#FFFFFF",
+   "dimmer": "#000000",
+   "dimmerOpacity": 0.5,
+   "candidateBarBackground": "#000000",
+   "candidateText": "#FFFFFF",
+   "candidatePressedBackground": "#FFFFFF",
+   "candidatePressedText": "#000000",
+   "candidateFlashBackground": "#FFFFFF",
+   "candidateFlashText": "#000000",
+   "candidateTopLine": "#FFFFFF",
+   "pasteButton": "#FFFFFF",
+   "appBarBackground": "#000000",
+   "appBarIcon": "#FFFFFF",
+   "appBarIconDisabled": "#737373",
+   "trace": "#000000",
+   "traceOpacity": 0.745
+  },
+  "highContrastLight": {
+   "keyboardBackground": "#FFFFFF",
+   "keyBackground": "#000000",
+   "keyLabel": "#FFFFFF",
+   "keyLabelDisabled": "#BFBFBF",
+   "keyHint": "#FFFFFF",
+   "keyPressedBackground": "#FFFFFF",
+   "keyPressedLabel": "#000000",
+   "keyPressedHint": "#000000",
+   "emphasizedKeyBackground": "#FFFFFF",
+   "emphasizedKeyLabel": "#000000",
+   "emphasizedKeyPressedBackground": "#000000",
+   "emphasizedKeyPressedLabel": "#FFFFFF",
+   "popupFrame": "#FFFFFF",
+   "popupBackground": "#FFFFFF",
+   "popupLabel": "#000000",
+   "popupOutline": "#000000",
+   "pickerFrame": "#FFFFFF",
+   "pickerItem": "#000000",
+   "pickerItemOpaque": "#000000",
+   "pickerItemLabel": "#FFFFFF",
+   "pickerHighlight": "#FFFFFF",
+   "pickerHighlightLabel": "#000000",
+   "pickerHighlightOutline": "#000000",
+   "dimmer": "#FFFFFF",
+   "dimmerOpacity": 0.5,
+   "candidateBarBackground": "#FFFFFF",
+   "candidateText": "#000000",
+   "candidatePressedBackground": "#000000",
+   "candidatePressedText": "#FFFFFF",
+   "candidateFlashBackground": "#000000",
+   "candidateFlashText": "#FFFFFF",
+   "candidateTopLine": "#000000",
+   "pasteButton": "#000000",
+   "appBarBackground": "#FFFFFF",
+   "appBarIcon": "#000000",
+   "appBarIconDisabled": "#BFBFBF",
+   "trace": "#FFFFFF",
+   "traceOpacity": 0.745
+  }
+ },
+ "accents": [
+  {
+   "index": 0,
+   "name": "Lime",
+   "color": "#A4C400"
+  },
+  {
+   "index": 1,
+   "name": "Green",
+   "color": "#60A917"
+  },
+  {
+   "index": 2,
+   "name": "Emerald",
+   "color": "#008A00"
+  },
+  {
+   "index": 3,
+   "name": "Teal",
+   "color": "#00ABA9"
+  },
+  {
+   "index": 4,
+   "name": "Cyan",
+   "color": "#1BA1E2"
+  },
+  {
+   "index": 5,
+   "name": "Cobalt",
+   "color": "#3E65FF"
+  },
+  {
+   "index": 6,
+   "name": "Indigo",
+   "color": "#6A00FF"
+  },
+  {
+   "index": 7,
+   "name": "Violet",
+   "color": "#AA00FF"
+  },
+  {
+   "index": 8,
+   "name": "Pink",
+   "color": "#F472D0"
+  },
+  {
+   "index": 9,
+   "name": "Magenta",
+   "color": "#D80073"
+  },
+  {
+   "index": 10,
+   "name": "Crimson",
+   "color": "#A20025"
+  },
+  {
+   "index": 11,
+   "name": "Red",
+   "color": "#E51400"
+  },
+  {
+   "index": 12,
+   "name": "Orange",
+   "color": "#FA6800"
+  },
+  {
+   "index": 13,
+   "name": "Amber",
+   "color": "#F0A30A"
+  },
+  {
+   "index": 14,
+   "name": "Yellow",
+   "color": "#E3C800"
+  },
+  {
+   "index": 15,
+   "name": "Brown",
+   "color": "#825A2C"
+  },
+  {
+   "index": 16,
+   "name": "Olive",
+   "color": "#6D8764"
+  },
+  {
+   "index": 17,
+   "name": "Steel",
+   "color": "#647687"
+  },
+  {
+   "index": 18,
+   "name": "Mauve",
+   "color": "#76608A"
+  },
+  {
+   "index": 19,
+   "name": "Taupe",
+   "color": "#87794E"
+  }
+ ]
+}

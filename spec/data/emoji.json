@@ -1,0 +1,269 @@
+{
+ "schema": "metrokeys.emoji/1",
+ "grid": {
+  "columns": {
+   "portrait": 6,
+   "landscape": 8
+  },
+  "recentRows": {
+   "portrait": 3,
+   "landscape": 2
+  }
+ },
+ "openCategory": "recent",
+ "categories": [
+  {
+   "id": "recent",
+   "tabLabel": "♥",
+   "dynamic": true
+  },
+  {
+   "id": "emoticons",
+   "tabLabel": ":)",
+   "source": {
+    "kind": "text-emoticons",
+    "note": "plain ASCII text smileys, shown in this order",
+    "items": [
+     ";)",
+     ":)",
+     ":/",
+     ":|",
+     ":(",
+     ":'(",
+     ":D",
+     ":P",
+     "<3",
+     ":S",
+     ":-(",
+     "):",
+     ":-)",
+     ";-)",
+     ":-D",
+     ":-P",
+     ":-/",
+     ":-|",
+     ":'-(",
+     ":O",
+     ":-O",
+     ":*",
+     ":-*",
+     "B)",
+     "B-)",
+     "8)",
+     ":$",
+     ":@",
+     ">:(",
+     "XD",
+     "xD",
+     ":3",
+     "^^",
+     "^_^",
+     "-_-",
+     "o_O",
+     "O_o",
+     "T_T",
+     ">_<",
+     ":>",
+     ":<",
+     "=)",
+     "=(",
+     "=D",
+     "=P",
+     "(:",
+     ";(",
+     ":]",
+     ":[",
+     "</3",
+     "\\o/",
+     ":-S",
+     ";P",
+     ":p",
+     ":o",
+     "<_<",
+     ">.<",
+     "^.^",
+     "*_*",
+     ":X"
+    ]
+   }
+  },
+  {
+   "id": "people",
+   "tabLabel": "😃",
+   "source": {
+    "kind": "unicode-emoji-test",
+    "groups": [
+     {
+      "group": "Smileys & Emotion",
+      "subgroup": "*"
+     },
+     {
+      "group": "People & Body",
+      "subgroup": "hand-fingers-open"
+     },
+     {
+      "group": "People & Body",
+      "subgroup": "hand-fingers-partial"
+     },
+     {
+      "group": "People & Body",
+      "subgroup": "hand-single-finger"
+     },
+     {
+      "group": "People & Body",
+      "subgroup": "hand-fingers-closed"
+     },
+     {
+      "group": "People & Body",
+      "subgroup": "hands"
+     },
+     {
+      "group": "People & Body",
+      "subgroup": "person"
+     },
+     {
+      "group": "People & Body",
+      "subgroup": "person-gesture"
+     },
+     {
+      "group": "People & Body",
+      "subgroup": "family"
+     }
+    ],
+    "status": "fully-qualified",
+    "maxVersion": null
+   }
+  },
+  {
+   "id": "activities",
+   "tabLabel": "🎈",
+   "source": {
+    "kind": "unicode-emoji-test",
+    "groups": [
+     {
+      "group": "Activities",
+      "subgroup": "*"
+     },
+     {
+      "group": "People & Body",
+      "subgroup": "person-sport"
+     },
+     {
+      "group": "People & Body",
+      "subgroup": "person-activity"
+     }
+    ],
+    "status": "fully-qualified",
+    "maxVersion": null
+   }
+  },
+  {
+   "id": "food-objects",
+   "tabLabel": "🍕",
+   "source": {
+    "kind": "unicode-emoji-test",
+    "groups": [
+     {
+      "group": "Food & Drink",
+      "subgroup": "*"
+     },
+     {
+      "group": "Objects",
+      "subgroup": "*"
+     }
+    ],
+    "status": "fully-qualified",
+    "maxVersion": null
+   }
+  },
+  {
+   "id": "travel",
+   "tabLabel": "✈",
+   "source": {
+    "kind": "unicode-emoji-test",
+    "groups": [
+     {
+      "group": "Travel & Places",
+      "subgroup": "transport-ground"
+     },
+     {
+      "group": "Travel & Places",
+      "subgroup": "transport-water"
+     },
+     {
+      "group": "Travel & Places",
+      "subgroup": "transport-air"
+     },
+     {
+      "group": "Travel & Places",
+      "subgroup": "place-map"
+     },
+     {
+      "group": "Travel & Places",
+      "subgroup": "place-geographic"
+     },
+     {
+      "group": "Travel & Places",
+      "subgroup": "place-building"
+     },
+     {
+      "group": "Travel & Places",
+      "subgroup": "place-religious"
+     },
+     {
+      "group": "Travel & Places",
+      "subgroup": "place-other"
+     },
+     {
+      "group": "Travel & Places",
+      "subgroup": "hotel"
+     },
+     {
+      "group": "Travel & Places",
+      "subgroup": "time"
+     }
+    ],
+    "status": "fully-qualified",
+    "maxVersion": null
+   }
+  },
+  {
+   "id": "nature-weather",
+   "tabLabel": "⛅",
+   "source": {
+    "kind": "unicode-emoji-test",
+    "groups": [
+     {
+      "group": "Animals & Nature",
+      "subgroup": "*"
+     },
+     {
+      "group": "Travel & Places",
+      "subgroup": "sky & weather"
+     }
+    ],
+    "status": "fully-qualified",
+    "maxVersion": null
+   }
+  },
+  {
+   "id": "symbols",
+   "tabLabel": "⁉",
+   "source": {
+    "kind": "unicode-emoji-test",
+    "groups": [
+     {
+      "group": "Symbols",
+      "subgroup": "*"
+     },
+     {
+      "group": "Flags",
+      "subgroup": "*"
+     }
+    ],
+    "status": "fully-qualified",
+    "maxVersion": null
+   }
+  }
+ ]
+}

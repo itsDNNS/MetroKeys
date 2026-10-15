@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher icon foreground and monochrome layer (spec 08 §3.3): a white block with a knocked-out "M"
+     (Selawik Semibold outline, SIL OFL 1.1) in front of an outlined keyboard with four keys and a space bar. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M30,32H56V58H30Z M35.32,38H39.24L42.32,46.26L42.52,46.95Q42.59,47.2,42.74,47.7Q42.89,48.2,42.98,48.54H43.04L43.7,46.24 L46.89,38H50.71V52H48.21V43.57Q48.21,41.46,48.25,40.35H48.21Q48.05,41.15,47.84,41.74L43.92,52H41.93 L37.97,41.78Q37.8,41.4,37.64,40.47H37.6Q37.65,41.03,37.65,43.65V52H35.32Z" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="butt"
+        android:strokeLineJoin="miter"
+        android:pathData="M60,44.5H78.5V71.5H44.5V62" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M61,49h5v5h-5z M69,49h5v5h-5z M61,56h5v5h-5z M69,56h5v5h-5z M50,64h24v4h-24z" />
+</vector>

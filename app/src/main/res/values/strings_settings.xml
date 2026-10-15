@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Texts of the settings app (spec 07 §11.2). English casing: page titles, list items, buttons, picker entries and
+     summaries lower case; headers, labels, notes and body text sentence case. -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="main_title">settings</string>
+    <string name="on">On</string>
+    <string name="off">Off</string>
+    <string name="on_lc">on</string>
+    <string name="off_lc">off</string>
+    <string name="state_pair" translatable="false">%1$s %2$s</string>
+
+    <!-- setup and try-it (07 §9.3, §9.4) -->
+    <string name="setup_header">Set up the keyboard</string>
+    <string name="setup_step1">Turn on MetroKeys in the Android keyboard settings</string>
+    <string name="setup_step1_button">turn on</string>
+    <string name="setup_step2">Choose MetroKeys as your keyboard</string>
+    <string name="setup_step2_button">choose</string>
+    <string name="setup_step_number" translatable="false">%1$d. %2$s</string>
+    <string name="setup_done" translatable="false">%1$s ✓</string>
+    <string name="setup_ready_title">keyboard</string>
+    <string name="setup_ready_summary">MetroKeys is active – tap to switch</string>
+    <string name="try_header">Try it</string>
+    <string name="try_hint">Tap here and start typing</string>
+
+    <!-- main list (07 §9.2) -->
+    <string name="page_languages">languages</string>
+    <string name="page_suggestions">suggestions</string>
+    <string name="page_typing">typing</string>
+    <string name="page_layout">layout</string>
+    <string name="page_sound">sounds+vibration</string>
+    <string name="page_theme">theme</string>
+    <string name="page_appbar_buttons">app bar buttons</string>
+    <string name="page_data">data+info</string>
+    <string name="sum_multilingual">, multilingual</string>
+    <string name="sum_suggestions">suggestions</string>
+    <string name="sum_autocorrect">autocorrect</string>
+    <string name="sum_shape">shape writing</string>
+    <string name="sum_history">clipboard history</string>
+    <string name="sum_compact">compact</string>
+    <string name="sum_layout" translatable="false">%1$s, %2$s</string>
+    <string name="sum_sounds">key sounds</string>
+    <string name="sum_vibration">vibration</string>
+    <string name="sum_data">learned words, licenses, about</string>
+
+    <!-- languages (07 §9.5) -->
+    <string name="app_language">App language</string>
+    <string name="app_language_system">same as system</string>
+    <string name="app_language_de" translatable="false">Deutsch</string>
+    <string name="app_language_en" translatable="false">English</string>
+    <string name="app_language_note">Applies to these settings and the keyboard’s own texts, not to the keyboard languages.</string>
+    <string name="languages_intro">With more than one language, the keyboard shows a language key.</string>
+    <string name="languages_header">Keyboard languages</string>
+    <string name="languages_min">One language must stay on</string>
+    <string name="multilingual">Type in several languages</string>
+    <string name="multilingual_note">Suggestions come from all chosen languages; corrections follow the language of the sentence.</string>
+    <string name="multilingual_off">Available with two or more keyboard languages</string>
+    <string name="comma_key">Comma key with several languages</string>
+    <string name="comma_key_note">Keeps the comma key next to the space bar when the keyboard shows a language key.</string>
+
+    <!-- typing (07 §9.6) -->
+    <string name="suggestions">Show word suggestions while typing</string>
+    <string name="autocorrect">Fix typos automatically</string>
+    <string name="space_after">Add a space after a chosen suggestion</string>
+    <string name="auto_caps">Start sentences with a capital letter</string>
+    <string name="double_space">Two spaces in a row make a period</string>
+    <string name="shape_writing">Write words by sliding across the letters</string>
+    <string name="spelling_underline">Underline unknown words</string>
+    <string name="spelling_underline_note">Marks unknown and autocorrected words in the text field. Tapping a marked word shows alternatives if the app supports it.</string>
+    <string name="contacts">Suggest names from my contacts</string>
+    <string name="contacts_note">Your contacts’ names appear as suggestions and count as correctly spelled.</string>
+    <string name="contacts_box_title">Access to contacts</string>
+    <string name="contacts_box_text">For this the keyboard reads only first names, last names and nicknames of your contacts. They stay in the keyboard’s memory and are never saved, backed up or shared. You can turn this off at any time.</string>
+    <string name="contacts_continue">continue</string>
+    <string name="contacts_denied">Without access to your contacts, this setting stays off.</string>
+    <string name="contacts_open_settings">settings</string>
+    <string name="autoswitch_emoji">Back to letters after an emoji</string>
+    <string name="autoswitch_emoji_note">After each emoji, the keyboard returns to the letters page.</string>
+
+    <!-- clipboard+autofill (07 §9.7) -->
+    <string name="clip_history">Clipboard history</string>
+    <string name="clip_history_note">Copied text stays available for an hour, pinned items until you remove them. Content marked as sensitive, such as passwords, is never saved. Turning this off clears the history.</string>
+    <string name="autofill">Password manager suggestions</string>
+    <string name="autofill_note">Autofill suggestions appear right in the suggestion bar (Android 11 and later).</string>
+    <string name="autofill_unavailable">Needs Android 11 or later</string>
+
+    <!-- sounds+vibration (07 §9.8, §9.9) -->
+    <string name="key_sounds">Key sounds</string>
+    <string name="key_sounds_note">Only when the phone isn’t set to silent or vibrate</string>
+    <string name="key_sound_volume">Key sound volume</string>
+    <string name="key_sound_volume_note">Relative to the system volume. You hear a sample when you let go.</string>
+    <string name="percent">%1$d%%</string>
+    <string name="vibration">Vibrate on key press</string>
+    <string name="sound_pack">sound pack</string>
+    <string name="sound_source_system">Android system sounds</string>
+    <string name="sound_source_custom">my own sounds</string>
+    <string name="sound_intro">MetroKeys uses Android’s click sounds. If you have your own sound files (WAV), you can use them here: one each for letter keys, the space bar, function keys, the alternates picker, choosing a suggestion and adding to the dictionary. The files stay on this device only and aren’t backed up. Only import files you’re allowed to use.</string>
+    <string name="source">Source</string>
+    <string name="sound_import">import sounds</string>
+    <string name="remove">remove</string>
+    <string name="sound_slots">Sounds</string>
+    <string name="sound_slots_note">If a sound is missing, the key sounds like a letter key or like Android. Tap to choose a file, hold to play the sound.</string>
+    <string name="slot_letter">letter key</string>
+    <string name="slot_space">space bar</string>
+    <string name="slot_function">function key</string>
+    <string name="slot_picker">alternates picker</string>
+    <string name="slot_candidate">suggestion chosen</string>
+    <string name="slot_dictionary">added to dictionary</string>
+    <string name="asset_present">imported</string>
+    <string name="asset_missing">not imported</string>
+    <plurals name="import_ok">
+        <item quantity="one">%1$d file imported.</item>
+        <item quantity="other">%1$d files imported.</item>
+    </plurals>
+    <string name="import_rejected">Not used: %1$s</string>
+
+    <!-- theme (07 §9.10, §9.11) -->
+    <string name="theme_intro">Background and accent color apply to the keyboard; the app color applies to these settings.</string>
+    <string name="background">Background</string>
+    <string name="theme_system">same as system</string>
+    <string name="theme_light">light</string>
+    <string name="theme_dark">dark</string>
+    <string name="accent">Accent color</string>
+    <string name="accent_default">cobalt (default)</string>
+    <string name="accent_grid_title">accent colors</string>
+    <string name="app_color">App color</string>
+    <string name="app_color_keyboard">same as keyboard</string>
+    <string name="app_color_system">system colors (wallpaper)</string>
+    <string name="app_color_custom">custom color</string>
+    <string name="high_contrast">High contrast</string>
+    <string name="high_contrast_system">same as system (high contrast text)</string>
+    <string name="high_contrast_on">on</string>
+    <string name="high_contrast_off">off</string>
+    <string name="keyboard_height">Keyboard height</string>
+    <string name="keyboard_height_note">%1$d%% of the normal height – keys get shorter, not narrower</string>
+    <string name="font">font</string>
+    <string name="font_source_bundled">Selawik (included)</string>
+    <string name="font_source_custom">my own fonts</string>
+    <string name="font_intro">MetroKeys comes with the free font Selawik. You can import your own font files (TrueType or OpenType) here; the weight is detected from the file. The files stay on this device only and aren’t backed up. Only import fonts you’re allowed to use.</string>
+    <string name="font_import">import fonts</string>
+    <string name="font_weights">Font weights</string>
+    <string name="font_weights_note">The weight is read from the file, not its name. Missing weights stay Selawik.</string>
+    <string name="font_slot_regular">Regular (suggestions, numbers)</string>
+    <string name="font_slot_semilight">Semilight (large punctuation)</string>
+    <string name="font_slot_semibold">Semibold (key labels)</string>
+    <string name="font_slot_bold">Bold (autocorrection)</string>
+    <string name="font_slot_light">Light (not used yet)</string>
+    <string name="font_slot_emoji">Emoji (emoji page and suggestions)</string>
+    <string name="font_sample" translatable="false">Aa Ää Öö ß 123 qwertz</string>
+    <string name="font_sample_emoji" translatable="false">😀 ❤️ 👍 🎉</string>
+
+    <!-- accent colours (07 §10) -->
+    <string-array name="accent_names">
+        <item>lime</item>
+        <item>green</item>
+        <item>emerald</item>
+        <item>teal</item>
+        <item>cyan</item>
+        <item>cobalt</item>
+        <item>indigo</item>
+        <item>violet</item>
+        <item>pink</item>
+        <item>magenta</item>
+        <item>crimson</item>
+        <item>red</item>
+        <item>orange</item>
+        <item>amber</item>
+        <item>yellow</item>
+        <item>brown</item>
+        <item>olive</item>
+        <item>steel</item>
+        <item>mauve</item>
+        <item>taupe</item>
+    </string-array>
+
+    <!-- layout and app bar buttons (07 §9.12, §9.12.1) -->
+    <string name="nav_mode">Below the keyboard</string>
+    <string name="nav_mode_appbar">app bar</string>
+    <string name="nav_mode_compact">compact: hide and switch next to the gesture handle (gesture navigation only)</string>
+    <string name="nav_mode_off">nothing</string>
+    <string name="nav_left">left button</string>
+    <string name="nav_center">middle button</string>
+    <string name="nav_right">right button</string>
+    <string name="nav_tap">tap</string>
+    <string name="nav_hold">hold</string>
+    <string name="appbar_buttons_intro">Tap a button in the preview, then choose what it does when tapped or held. “…” always shows the labels and the menu.</string>
+    <string name="appbar_grid_header" translatable="false">%1$s – %2$s</string>
+    <string name="appbar_none_label" translatable="false">–</string>
+    <string name="nav_pick_app">choose an app</string>
+    <string name="nav_app_named">open app: %1$s</string>
+    <string name="nav_app_missing">open app (no longer installed)</string>
+    <string name="nav_no_mic">Without microphone permission, voice input uses the system’s voice input.</string>
+    <string name="action_editor">text field action (send, search…)</string>
+    <string name="action_editor_short">text field action</string>
+    <string name="action_hide">hide keyboard</string>
+    <string name="action_switch">switch keyboard</string>
+    <string name="action_home">start screen</string>
+    <string name="action_search">web search</string>
+    <string name="action_emoji">emoji</string>
+    <string name="action_clipboard">clipboard history</string>
+    <string name="action_language">switch keyboard language</string>
+    <string name="action_left">cursor left</string>
+    <string name="action_right">cursor right</string>
+    <string name="action_undo">undo</string>
+    <string name="action_voice">voice input</string>
+    <string name="action_settings">keyboard settings</string>
+    <string name="action_app">open app…</string>
+    <string name="action_none">nothing</string>
+
+    <!-- data+info (07 §9.13, §9.14) -->
+    <string name="dictionary_header">Dictionary</string>
+    <string name="clear_button">clear learned words</string>
+    <string name="clear_text">Removes every word the keyboard has learned from you and the emoji history. The built-in dictionary stays.</string>
+    <string name="clear_box_title">Clear learned words?</string>
+    <string name="clear_box_text">All learned words and the emoji history will be deleted. This can’t be undone.</string>
+    <string name="delete">delete</string>
+    <string name="cancel" tools:ignore="ButtonCase">cancel</string>
+    <string name="done">done</string>
+    <string name="cleared">Learned words cleared</string>
+    <string name="licenses">licenses</string>
+    <string name="licenses_summary">font, dictionaries, libraries</string>
+    <string name="about_header">About</string>
+    <string name="about_version" translatable="false">MetroKeys %1$s</string>
+    <string name="about_copyright">© 2026 Dennis Braun. Free and open-source software under the GNU GPL v3.</string>
+    <string name="about_trademark">Not affiliated with Microsoft. Windows Phone is a trademark of Microsoft Corporation.</string>
+    <string name="about_link">source code, updates and feedback</string>
+    <string name="about_link_url" translatable="false">https://github.com/itsDNNS/MetroKeys</string>
+    <string name="about_no_browser">No app found to open the link.</string>
+    <string name="learned_words">learned words</string>
+    <plurals name="learned_words_count">
+        <item quantity="one">%1$d word</item>
+        <item quantity="other">%1$d words</item>
+    </plurals>
+    <plurals name="learned_used">
+        <item quantity="one">used once</item>
+        <item quantity="other">used %1$d times</item>
+    </plurals>
+    <string name="learned_intro">These words aren’t in any dictionary; the keyboard learned them from you. Tap a word to forget it. You can also hold it in the suggestion bar.</string>
+    <string name="learned_words_empty">No learned words yet.</string>
+    <string name="forget_box_title">Forget “%1$s”?</string>
+    <string name="forget_box_text">The keyboard will treat this word as unknown again: it won’t suggest it and may correct it.</string>
+    <string name="forget_confirm">forget</string>
+</resources>

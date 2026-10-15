@@ -1,0 +1,220 @@
+{
+ "comment": "Free sources of the MetroKeys dictionaries (spec/05b-dictionaries.md section 2). Paths are relative to build-data/src.",
+ "sources": [
+  {
+   "path": "fw/de_full.txt",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/525f9b560de45753a5ea01069454e72e9aa541c6/content/2018/de/de_full.txt",
+   "sha256": "a5fc13f4efaaf70fd9226d11295fd3cd4c2264852ee1fad22c0abaf64acec8dc"
+  },
+  {
+   "path": "fw/en_full.txt",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/525f9b560de45753a5ea01069454e72e9aa541c6/content/2018/en/en_full.txt",
+   "sha256": "7fea67ab954e2c01df6c608c9826e594cf36f8823b3243554f88245fb75dc506"
+  },
+  {
+   "path": "wiktionary/dewiktionary-20261001-pages-articles.xml.bz2",
+   "url": "https://dumps.wikimedia.org/dewiktionary/20261001/dewiktionary-20261001-pages-articles.xml.bz2",
+   "sha256": "d72285187a6420e25f7e8c1c0949df3e64ce56116937aa9b31e98f9727e0b4cf"
+  },
+  {
+   "path": "tatoeba/deu_sentences.tsv.bz2",
+   "url": "https://downloads.tatoeba.org/exports/per_language/deu/deu_sentences.tsv.bz2",
+   "sha256": "7fb0b466dfaf4610cc3841b9e7f0f352b7fa3e3665bf8fd0558945d32e5ecbfa"
+  },
+  {
+   "path": "tatoeba/eng_sentences.tsv.bz2",
+   "url": "https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences.tsv.bz2",
+   "sha256": "0eabb52f54350bbb39807190920bfddaf9fee2ba50ca75af67e11a22ec475c29"
+  },
+  {
+   "path": "scowl/scowl-2020.12.07.tar.gz",
+   "url": "https://downloads.sourceforge.net/project/wordlist/SCOWL/2020.12.07/scowl-2020.12.07.tar.gz",
+   "sha256": "5587667caa20c4891390c2d42dbb4d5c4c3f41bee77af1457ece3ba23fb859cc"
+  },
+  {
+   "path": "cv/LICENSE",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/LICENSE",
+   "sha256": "bf474cdfd02e162603358e4e3615182018cad27593d2bf5e75ca13e4a5a6af0c"
+  },
+  {
+   "path": "cv/de/DonHege.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/DonHege.txt",
+   "sha256": "ef9877e3fa2f2ce3fce360beb95dc8cd7db514f40000986053ec2ccae5ec72e2"
+  },
+  {
+   "path": "cv/de/est31.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/est31.txt",
+   "sha256": "6d3bf94d3ba8b3de2cb9359ee4e408af0aa440a4b5bb64915dfde9e1899f7158"
+  },
+  {
+   "path": "cv/de/jf99-batch01.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/jf99-batch01.txt",
+   "sha256": "1fc864065ab574474da9c18ea7464b7eca5d891b3d8fdfe345087db90fd289ea"
+  },
+  {
+   "path": "cv/de/jf99-batch02.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/jf99-batch02.txt",
+   "sha256": "f4bc72053a10897245ffd77e430fd9acc8ad5633a47f76ba5ba43aa3f85892fd"
+  },
+  {
+   "path": "cv/de/jf99-batch03.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/jf99-batch03.txt",
+   "sha256": "8e9c3d0ae44423f0d9b05d446e48f7e7e989719f20ff5853aaad262008cc20a2"
+  },
+  {
+   "path": "cv/de/jf99-batch04.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/jf99-batch04.txt",
+   "sha256": "d21ccd3b89f58260f18a303b42be98a8ade7c74654a420d0662209f9aa099c00"
+  },
+  {
+   "path": "cv/de/jf99.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/jf99.txt",
+   "sha256": "d92c56ae7f42931bb57a3ce35f7b201b831a3ea9129cb29eeb8d92a486de176b"
+  },
+  {
+   "path": "cv/de/sentence-collector.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/sentence-collector.txt",
+   "sha256": "de6bd33fc5742350690fa4be6197aafd9be2c6c9fe4b70b8c5c8670971acc117"
+  },
+  {
+   "path": "cv/de/wiki.de.rerun-2022-01.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/wiki.de.rerun-2022-01.txt",
+   "sha256": "5357d22f0cc4d7222e81da87395f81dd4ded9affb7ef0736a922817e8bb61b8c"
+  },
+  {
+   "path": "cv/de/wiki.de.rerun-2022-08.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/wiki.de.rerun-2022-08.txt",
+   "sha256": "20fe674c2be4f7c4fa7fbee784bb74b7f7614902ba2258c8e253fb3ac41c9d55"
+  },
+  {
+   "path": "cv/de/wiki.de.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/wiki.de.txt",
+   "sha256": "0a56f22ef1581449eedebe99c5f55137b339d8bb58d971709b028de3ceebef8c"
+  },
+  {
+   "path": "cv/de/zeno.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/de/zeno.txt",
+   "sha256": "73ddf507cbdbf950d6816047a35684e339c4202cc35b59751d1229bda3a91cb2"
+  },
+  {
+   "path": "cv/en/DNGros.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/DNGros.txt",
+   "sha256": "d21c9183327c2a21fabef0add2f366ea4e63d19e823e3728b7ea1a2465fd9673"
+  },
+  {
+   "path": "cv/en/DictionaryofForeignPhrases.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/DictionaryofForeignPhrases.txt",
+   "sha256": "8655860354c84d5efac32b7b836c6d71b033591f268f17ffca2521c51da8f9a5"
+  },
+  {
+   "path": "cv/en/LICENSE",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/LICENSE",
+   "sha256": "bf474cdfd02e162603358e4e3615182018cad27593d2bf5e75ca13e4a5a6af0c"
+  },
+  {
+   "path": "cv/en/RLarissa.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/RLarissa.txt",
+   "sha256": "b42ce85ad34dfa5e504c02b3eb703248b973e7f94223cb70b560a50e4b76aa15"
+  },
+  {
+   "path": "cv/en/activate.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/activate.txt",
+   "sha256": "6d438d4d32a55bd2fba3dcd83be560e2413de150d62d6ecda653c82fb7757793"
+  },
+  {
+   "path": "cv/en/ajaydee.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/ajaydee.txt",
+   "sha256": "5c76e5c6baab9e7546b62f0ca2bf7987bfbad73c2abda899627fa47c35c56295"
+  },
+  {
+   "path": "cv/en/bavencope.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/bavencope.txt",
+   "sha256": "b9a6e84d4bf2d1c5069562a92368d5ad13bd3c4fb4a08b4b0ffbd4c3de0a61a7"
+  },
+  {
+   "path": "cv/en/elleo.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/elleo.txt",
+   "sha256": "5de742690b7e389bb1b0388466ef44dcac84f5d0ccf194244309e8bff5d06fa2"
+  },
+  {
+   "path": "cv/en/est31.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/est31.txt",
+   "sha256": "7278f16bba6fafb036687722c80044385332a75acbf41a16c946c1a5226203b9"
+  },
+  {
+   "path": "cv/en/fxvoice-cues.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/fxvoice-cues.txt",
+   "sha256": "263a3d6c656e293297f42f0d4f3f62e6e195e90025ee0d6e524ad7ec658dd4df"
+  },
+  {
+   "path": "cv/en/harvsents.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/harvsents.txt",
+   "sha256": "6d11a74e46a93b9463c25843d5a1f33ffcdf299a721b35b01f32dd8dc3bea657"
+  },
+  {
+   "path": "cv/en/james_fortune.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/james_fortune.txt",
+   "sha256": "1803a9335ab9663d8f856b869faba61584191c87fbce5825070874ebbb5ec94f"
+  },
+  {
+   "path": "cv/en/jf99.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/jf99.txt",
+   "sha256": "0c2bcb8ad553d1f956b36a276a1f76749f4da808175fb375b8ce91af7e23933c"
+  },
+  {
+   "path": "cv/en/kieran_drew.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/kieran_drew.txt",
+   "sha256": "062e6a5a30ed5475aafbe7945d41e5ee88aa5b26c52f7a9130156bbebbdd1137"
+  },
+  {
+   "path": "cv/en/mlennox.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/mlennox.txt",
+   "sha256": "8e397def2948b9701994213f4583d1a8ae974b2fe17b6a5debdeb0aa31049609"
+  },
+  {
+   "path": "cv/en/pro.gadget.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/pro.gadget.txt",
+   "sha256": "1484fd31ae31627e774659004aed18c9e31a7098e66d8826bd1d687935028b7f"
+  },
+  {
+   "path": "cv/en/reinhart1010.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/reinhart1010.txt",
+   "sha256": "6a085a2f3058b178f86bf1e099e2b4364525eaeb484134dc0895aa951edae5bf"
+  },
+  {
+   "path": "cv/en/sentence-collector.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/sentence-collector.txt",
+   "sha256": "31ac8e200449ebd7aee4a8c6bd16d4dafd076cf11f7c3efe1035f0283712d136"
+  },
+  {
+   "path": "cv/en/singleword-benchmark.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/singleword-benchmark.txt",
+   "sha256": "6e9ed6cf31d9e1b88aeaef9714ac89d23de04fc8f02cf58d19bd021bbcaa996a"
+  },
+  {
+   "path": "cv/en/thehowl.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/thehowl.txt",
+   "sha256": "85ad5098e647641471d0fd19e28cb874847af2466ec569ebcfa46b06257b644b"
+  },
+  {
+   "path": "cv/en/tlcoles.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/tlcoles.txt",
+   "sha256": "014f7795a2b8ca5ea6877c5d970de612b7426f4ad8043e44ea6d0c9923a4bcae"
+  },
+  {
+   "path": "cv/en/tww.id.au.proverbs.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/tww.id.au.proverbs.txt",
+   "sha256": "630df2a5d0e7c971086871135d27d6e66263635af96225c1189ca00f03406239"
+  },
+  {
+   "path": "cv/en/wiki.en.rerun-2021-11.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/wiki.en.rerun-2021-11.txt",
+   "sha256": "16647e64ba4124ccfeb7061e88ffb53261a16a15b7c4abcd2122b168b9f29639"
+  },
+  {
+   "path": "cv/en/wiki.en.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/wiki.en.txt",
+   "sha256": "438e55e8bc91dfa6cbe098a7233702c6b177c5ae07137a01d66b9c75c9789ae5"
+  }
+ ]
+}
