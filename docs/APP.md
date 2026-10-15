@@ -12,7 +12,7 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew :engine:test testDebugUnitTest lintDebug ass
 **Release build.** `assembleRelease` minifies with R8 (`proguard-android-optimize.txt`) and shrinks resources. No own
 keep rules are needed (reasons in `app/proguard-rules.pro`): manifest components are kept by AAPT's rules, the engine
 loads its dictionaries by absolute Java resource paths, and the only reflective call targets a framework method. The
-release APK (about 7 MB, debug about 18 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
+release APK (9.1 MB since the Spanish dictionary in 0.6, debug about 20 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
 writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences. Signing uses
 `keystore.properties` in the repository root when present (README, "Building"); the version is `appVersionName` /
 `appVersionCode` in `gradle/libs.versions.toml`.
@@ -67,7 +67,12 @@ data+info and the learned-words page opened):
 | data+info opened (peak sample) | 145 MB / 120 MB | 64.8 MB / 40.2 MB |
 | learned-words page open | 87 MB / 62 MB | 64.6 MB / 40.0 MB |
 
-The whole scenario also runs with the per-app heap limit lowered to 64 MB (`dalvik.vm.heapgrowthlimit`, root on the
+Since 0.6 the keyboard loads the active set of 05 §14.5 (up to three languages). Measured on the emulator with 0.6.0
+(Dalvik heap size / allocated, keyboard shown in the try-it field after a restart, highest sample while loading and
+after a swipe; identical values): de+en 63.0 / 39.0 MB, de+es 65.1 / 41.1 MB, en+es 58.9 / 34.9 MB, de+en+es
+77.2 / 53.2 MB. Two languages stay far below 96 MB and three below 128 MB (even below 96 MB, 05 open point 9).
+
+The whole scenario (0.5) also runs with the per-app heap limit lowered to 64 MB (`dalvik.vm.heapgrowthlimit`, root on the
 emulator) without an OutOfMemoryError; the default limit is 192 MB. Results come back with a generation number; an
 outdated answer is dropped (03 §6.2). Autocorrection at a separator uses the last query result for the same text or
 runs the query synchronously, so a fast trigger is never missed.
@@ -108,9 +113,11 @@ text-smiley list of emoji.json.
 | Spec | Where |
 |---|---|
 | 01 layouts, pages, roles, input types | `LayoutSet.parse`, `KeyboardController` (`setPage`, `typeOnPage`, start page per `FieldState.inputKind`) |
-| 01 §5.2 / §11 languages | `KeyboardController.switchLanguage`, `layouts-<lang>[-multi].json` by the number of enabled languages |
+| 01 §5.2 / §11 languages | `KeyboardController.switchLanguage`/`nextLanguage` (label order, then tag), `layouts-<lang>[-multi].json` by the number of enabled languages |
+| 05 §14.5 active set | `KeyboardController.activeSet`/`loadEngine` (engines of staying languages are reused, new ones load in the background, leaving ones are saved and released), `Prefs.LANGUAGE_RECENCY`, `forgetInStoredData` for enabled languages that are not loaded |
 | 01 §7 emoji page | `EmojiData` (generated `assets/emoji/emoji.txt`), `EmojiPanel`, `EmojiHistory` |
-| 01 §11.6 domains | `KeyboardController.domains` (device region) |
+| 01 §11.6 domains | `KeyboardController.domains` (the list of the layout data whose region is the device region; other regions: own ccTLD first) |
+| 04 §1.6 ¿ ¡ | `TextRules.isOpeningMark`; `InputLogic.otherText` (space first after a swiped word), `InputLogic.applySwipe` (no space after the mark); auto-shift via `TextRules.isSentenceStart` |
 | 02 §2, §3, 03 §17 sizes | `Metrics` (portrait s = w/1080, landscape s = min(w/1596, short/1080), height factor) |
 | 02 §4 typography | `TextStyles`, `Fonts`, `KeyboardView.drawLabel` (cap-height centring, 96 % fit) |
 | 02 §5.3–§5.7 keys, popup, picker | `KeyboardView.drawKey`, `drawPopup`, `openPicker`/`drawPicker` (mirroring, two rows, opening slide) |
@@ -141,6 +148,7 @@ text-smiley list of emoji.json.
 | 06 shape writing | touch side in `KeyboardView`, recognition in the engine, insertion in `InputLogic.applySwipe` |
 | 01 §5.2 comma key (extension) | `LayoutSet.withOptionalComma`, chosen in `KeyboardController.loadLayout` (`show_comma_key`) |
 | 05 §13 contacts | `ContactsWordSource` (harvest, observer with 1 s debounce, 5 retries 30 s apart) → `PredictionEngine.refreshContacts` |
+| 07 §9.5 languages page | `TypingPages.LanguagesPage` (one check box per `Prefs.SUPPORTED_LANGUAGES`, fixed order by tag; note for more than three), `LanguageNames`, `SettingsStore.setLanguages` (also prunes `language_recency`) |
 | 07 §9.1 preferences | `Prefs`, `KeyboardSettings`; the service listens for changes; `SettingsStore` observes them for Compose |
 | 07 §1, §8 activity, back stack | `SettingsActivity` (Navigation 3 `NavDisplay`, saved string back stack, edge-to-edge, `Theme.MetroKeys.Settings` window background) |
 | 07 §3, §4 colours, type | `settings.ui.MetroTheme` (`MetroColors`, `MetroFonts`, `MetroType`, `Accents`, `MetroEasing`) |
@@ -168,6 +176,7 @@ text-smiley list of emoji.json.
 | Imported fonts | `noBackupFilesDir/fonts/<slot>`, slot = light, semilight, regular, semibold, bold, emoji |
 | Imported sounds | `noBackupFilesDir/sounds/<slot>.wav`, slot = letter, space, function, picker, candidate, dictionary |
 | Contact names | memory only (keyboard process) |
+| Keyboard language selection order | preference `language_recency` (written by the keyboard) |
 | App language | Android's per-app locale (`LocaleManager`, Android 13+); `generateLocaleConfig` declares `en` and `de` |
 
 No-backup storage is never backed up or transferred; the backup rules include only the settings file. After an
@@ -272,6 +281,11 @@ to a change counter fed by the preference listener, so summaries follow changes 
 - **Font slot by style name** (07 §9.11): name ID 17, else 2, matched case-insensitively with spaces, hyphens and
   underscores removed, "semilight"/"semibold" before "light"/"bold"; italic fonts stay rejected and an "emoji" family
   still wins. The bundled Selawik Semilight now lands in the Semilight slot.
+- **Loaded languages** (05 §14.5): the active set is loaded also with multilingual typing off, so the language key
+  switches between up to three languages without loading; with more than three enabled languages, selecting one
+  outside the set loads it in the background while the staying languages answer.
+- **Opening marks before a swipe**: 06 §5.1 inserts a space before a swiped word after any non-space character; after
+  `¿`/`¡` none is inserted, following 04 §1.6 item 4 (see QUESTIONS).
 - **Hold on a candidate**: after 450 ms the release never picks; only learned words unknown to every loaded
   dictionary open the confirmation.
 

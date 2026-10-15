@@ -2,6 +2,8 @@
 
 import math
 
+import casing
+from casing import case_kind_rank
 from common import capitalize_first, freq_class, jlower
 
 EXCLUDED_LETTERS = set("İıŉſĸ")
@@ -53,15 +55,6 @@ def has_noun_suffix(key):
     return False
 
 
-def case_kind_rank(form):
-    """capitalised before mixed case before all caps"""
-    if len(form) > 1 and form == form.upper():
-        return 2
-    if form[0].isupper() and form[1:] == form[1:].lower():
-        return 0
-    return 1
-
-
 class GermanBuilder:
     def __init__(self, freq_path, wikt):
         self.titles, self.de_forms, counts = wikt
@@ -103,35 +96,7 @@ class GermanBuilder:
     def case_decision(self, key):
         if key in self._case_cache:
             return self._case_cache[key]
-        dict_forms = self.forms_by_key.get(key, set())
-        evidence = dict(self.variants.get(key, {}))
-        for f in dict_forms:
-            evidence.setdefault(f, 0)
-        total = sum(evidence.values())
-        result = None
-        if total >= 3:
-            ranked = sorted(evidence.items(), key=lambda kv: (-kv[1], kv[0]))
-            chosen = []
-            for i, (form, c) in enumerate(ranked):
-                share = c / total
-                if form == key or form in dict_forms:
-                    if i == 0 or share >= 0.1:
-                        chosen.append([form, share])
-                elif i == 0 and share >= 0.5:
-                    chosen.append([form, share])
-            lower_idx = next((i for i, (f, _) in enumerate(chosen) if f == key), None)
-            if lower_idx is not None and lower_idx > 0 and chosen[0][1] < 0.75:
-                # swap the forms, the shares stay in place (lower case takes the first share)
-                chosen[0][0], chosen[lower_idx][0] = chosen[lower_idx][0], chosen[0][0]
-            if chosen:
-                result = [(f, s) for f, s in chosen]
-        elif dict_forms:
-            if key in dict_forms:
-                result = [(key, 0.75)] + [(f, 0.25) for f in sorted(dict_forms)
-                                          if f != key and f[0].isupper() and case_kind_rank(f) == 0]
-            else:
-                best = sorted(dict_forms, key=lambda f: (case_kind_rank(f), f))[0]
-                result = [(best, 1.0)]
+        result = casing.decide(key, self.variants.get(key, {}), self.forms_by_key.get(key, set()))
         self._case_cache[key] = result
         return result
 

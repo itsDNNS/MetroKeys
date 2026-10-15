@@ -3,6 +3,33 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.6.0 – 2026-10-16
+
+### Languages
+- New keyboard language **Spanish (Spain)**: QWERTY with its own ñ key, accented letters on long press, ¿ and ¡ on the
+  long press of the period key, "espacio" on the space bar, "ESP"/"ES" on the language key and picker, `.com .es`
+  first among the domain endings in Spain, and a decimal comma on the number pad.
+- Any number of keyboard languages can be enabled. The language key cycles through all of them in label order
+  (DEU → ENG → ESP). Multilingual typing runs up to three languages at once; with more, the current language and the
+  two used last (remembered across restarts).
+- Spanish dictionary built from free sources (subtitle frequencies, Spanish and English Wiktionary, Tatoeba, Common
+  Voice; CC BY-SA 4.0, attribution on the licenses page): accents and ñ are part of the spelling, accent-less
+  spellings are corrected for free ("cancion" → "canción", "manana" → "mañana", "damelo" → "dámelo"), words that
+  exist in both spellings stay as typed with the accented one offered first ("esta"/"está", "si"/"sí"),
+  clitic forms are words ("dime", "hazlo", "decírselo"), and a missing space is fixed ("porfavor" → "por favor").
+- Shape writing for Spanish: "año" is swiped over the ñ key.
+
+### Typing
+- Spanish punctuation: the keyboard capitalises after ¿ and ¡, never puts a space after them, and puts a space before
+  them after a swiped word; ? and ! still trigger autocorrection, ¿ and ¡ do not.
+- Every keyboard language has its own prediction and shape-writing parameters; English shape writing now uses its own
+  values (accuracy on the acceptance test unchanged: 94.6 % instead of 94.8 % over 20 runs). A swiped double letter
+  must be the same letter twice.
+- Letters without a key of their own (í, ñ, ç …) count on their base letter's key for corrections on every layout.
+
+### Settings
+- The languages page lists every supported language; the main page summary names all enabled ones.
+
 ## 0.5.2 – 2026-10-15
 
 ### Licence

@@ -118,7 +118,7 @@ fun MainPage(setup: SetupState) {
         Spacer(Modifier.height(12.dp))
 
         val langs = store.languages()
-        val names = langs.map { stringResource(if (it == Prefs.GERMAN) R.string.lang_de else R.string.lang_en) }
+        val names = langs.map { stringResource(LanguageNames.res(it)) }
         val multi = langs.size >= 2 && store.bool(Prefs.MULTILINGUAL, true)
         val langSummary = names.joinToString(", ") + if (multi) stringResource(R.string.sum_multilingual) else ""
         ListItem(stringResource(R.string.page_languages), langSummary, { nav.open(Pages.LANGUAGES) })

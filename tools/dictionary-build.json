@@ -39,5 +39,792 @@
   "aliasKeys": 79,
   "aliasKeysReplacingAWord": 11,
   "possessiveForms": 34855
+ },
+ "es-ES": {
+  "S": 15.466736405487923,
+  "corpusTokens": 423290924,
+  "forms": 250743,
+  "keys": 247985,
+  "maxCount": 14461415,
+  "pairPrevWords": 38819,
+  "pairs": 385432,
+  "pairsFile": {
+   "bytes": 1221224,
+   "sha256": "85edda4b17312dd31e10402f83c39ef8b83d08e7cfb1de031171e1e293ba4f8e"
+  },
+  "wordsFile": {
+   "bytes": 817685,
+   "sha256": "45f69b37ce57b6015792d1568bfbd5db995aec75790a873d59681f8dc7788e5c"
+  },
+  "wordsPayloadSha256": "637aec8acacef0b14554f932a1395796c6a24aed8afa92b9b553e1bb1a0ed989"
+ },
+ "es-ES-extra": {
+  "accentMerged": 29151,
+  "accentMergedInflectedForms": 1649,
+  "accentMergedVariantPages": 220,
+  "acceptedCliticKeys": 2727,
+  "cliticCandidates": 3855,
+  "cliticFormsAccepted": 2727,
+  "commonVoiceFiles": [
+   [
+    "sentence-collector.txt",
+    3
+   ],
+   [
+    "wiki.es.txt",
+    1
+   ]
+  ],
+  "coverageTop20000SpanishDumpOnly": 0.8794,
+  "coverageTop20000WithEnglishDump": 0.8992,
+  "dropped": {
+   "foreign": 4366,
+   "formBelowCount2": 55995,
+   "implausible": 12576,
+   "misaccented": 364,
+   "missingSpace": 5715,
+   "missingSpaceExamples": [
+    "aah",
+    "aha",
+    "air",
+    "alquien",
+    "avi",
+    "dave",
+    "desi",
+    "hanson",
+    "have",
+    "haven",
+    "hayes",
+    "lahey",
+    "leah",
+    "love",
+    "masha",
+    "meera",
+    "misha",
+    "noah",
+    "ooh",
+    "over",
+    "porfavor",
+    "queen",
+    "seal",
+    "side",
+    "sonya",
+    "teal",
+    "titus",
+    "unni",
+    "yun",
+    "yves",
+    "yyo"
+   ],
+   "nonSpanishCharacters": 18371,
+   "oneLetter": 0,
+   "rare": 647070
+  },
+  "englishDumpUsed": true,
+  "englishWiktionarySpanishSections": {
+   "F": 750521,
+   "I": 650781,
+   "P": 26,
+   "V": 1306
+  },
+  "formsKeptWithTwoCases": 2756,
+  "fusedFormsDropped": [
+   [
+    "talvez",
+    "tal vez",
+    9,
+    597,
+    0.07,
+    "wiktionary"
+   ],
+   [
+    "apunto",
+    "a punto",
+    8,
+    496,
+    0.074,
+    "measured"
+   ],
+   [
+    "enserio",
+    "en serio",
+    0,
+    337,
+    0.0,
+    "wiktionary"
+   ],
+   [
+    "osea",
+    "o sea",
+    6,
+    95,
+    0.173,
+    "wiktionary"
+   ],
+   [
+    "aver",
+    "a ver",
+    1,
+    915,
+    0.046,
+    "wiktionary"
+   ],
+   [
+    "aveces",
+    "a veces",
+    0,
+    2529,
+    0.0,
+    "measured"
+   ],
+   [
+    "síes",
+    "sí es",
+    0,
+    41,
+    0.0,
+    "measured"
+   ],
+   [
+    "depronto",
+    "de pronto",
+    0,
+    138,
+    0.0,
+    "wiktionary"
+   ],
+   [
+    "eles",
+    "el es",
+    0,
+    39,
+    0.0,
+    "measured"
+   ],
+   [
+    "doses",
+    "dos es",
+    0,
+    31,
+    0.0,
+    "measured"
+   ],
+   [
+    "losé",
+    "lo sé",
+    0,
+    182,
+    0.0,
+    "measured"
+   ],
+   [
+    "igualen",
+    "igual en",
+    0,
+    46,
+    0.0,
+    "measured"
+   ],
+   [
+    "agrande",
+    "a grande",
+    0,
+    25,
+    0.0,
+    "measured"
+   ],
+   [
+    "pensaren",
+    "pensar en",
+    0,
+    271,
+    0.0,
+    "measured"
+   ],
+   [
+    "encamino",
+    "en camino",
+    0,
+    63,
+    0.0,
+    "measured"
+   ],
+   [
+    "apoco",
+    "a poco",
+    0,
+    474,
+    0.0,
+    "measured"
+   ],
+   [
+    "apara",
+    "a para",
+    0,
+    20,
+    0.0,
+    "measured"
+   ],
+   [
+    "sidos",
+    "si dos",
+    0,
+    20,
+    0.0,
+    "measured"
+   ],
+   [
+    "míen",
+    "mí en",
+    0,
+    30,
+    0.0,
+    "measured"
+   ],
+   [
+    "departe",
+    "de parte",
+    0,
+    173,
+    0.0,
+    "measured"
+   ],
+   [
+    "yantes",
+    "y antes",
+    0,
+    25,
+    0.0,
+    "measured"
+   ],
+   [
+    "quesea",
+    "que sea",
+    0,
+    768,
+    0.0,
+    "measured"
+   ],
+   [
+    "hablaren",
+    "hablar en",
+    0,
+    169,
+    0.0,
+    "measured"
+   ],
+   [
+    "sonde",
+    "son de",
+    0,
+    3127,
+    0.0,
+    "measured"
+   ],
+   [
+    "devan",
+    "de van",
+    0,
+    48,
+    0.0,
+    "measured"
+   ],
+   [
+    "encasa",
+    "en casa",
+    0,
+    1426,
+    0.0,
+    "measured"
+   ],
+   [
+    "escomo",
+    "es como",
+    0,
+    723,
+    0.0,
+    "measured"
+   ],
+   [
+    "envida",
+    "en vida",
+    0,
+    149,
+    0.0,
+    "measured"
+   ],
+   [
+    "entresemana",
+    "entre semana",
+    0,
+    10,
+    0.0,
+    "wiktionary"
+   ],
+   [
+    "novamos",
+    "no vamos",
+    0,
+    128,
+    0.0,
+    "measured"
+   ],
+   [
+    "paraque",
+    "para que",
+    1,
+    1923,
+    4.067,
+    "wiktionary"
+   ],
+   [
+    "yera",
+    "y era",
+    0,
+    248,
+    0.0,
+    "measured"
+   ],
+   [
+    "amanera",
+    "a manera",
+    0,
+    29,
+    0.0,
+    "measured"
+   ],
+   [
+    "aúnen",
+    "aún en",
+    0,
+    160,
+    0.0,
+    "measured"
+   ],
+   [
+    "novan",
+    "no van",
+    0,
+    90,
+    0.0,
+    "measured"
+   ],
+   [
+    "amorque",
+    "amor que",
+    0,
+    40,
+    0.0,
+    "measured"
+   ],
+   [
+    "encontraren",
+    "encontrar en",
+    0,
+    417,
+    0.0,
+    "measured"
+   ],
+   [
+    "llegaren",
+    "llegar en",
+    0,
+    26,
+    0.0,
+    "measured"
+   ],
+   [
+    "noves",
+    "no ves",
+    0,
+    49,
+    0.0,
+    "measured"
+   ],
+   [
+    "pasaren",
+    "pasar en",
+    0,
+    25,
+    0.0,
+    "measured"
+   ],
+   [
+    "tomaren",
+    "tomar en",
+    0,
+    36,
+    0.0,
+    "measured"
+   ],
+   [
+    "acara",
+    "a cara",
+    0,
+    65,
+    0.0,
+    "measured"
+   ],
+   [
+    "aguade",
+    "agua de",
+    0,
+    269,
+    0.0,
+    "measured"
+   ],
+   [
+    "atierra",
+    "a tierra",
+    0,
+    94,
+    0.0,
+    "measured"
+   ],
+   [
+    "devida",
+    "de vida",
+    0,
+    994,
+    0.0,
+    "measured"
+   ],
+   [
+    "encaso",
+    "en caso",
+    0,
+    505,
+    0.0,
+    "measured"
+   ],
+   [
+    "esparte",
+    "es parte",
+    0,
+    790,
+    0.0,
+    "measured"
+   ],
+   [
+    "hombrees",
+    "hombre es",
+    0,
+    207,
+    0.0,
+    "measured"
+   ],
+   [
+    "horade",
+    "hora de",
+    0,
+    750,
+    0.0,
+    "measured"
+   ],
+   [
+    "lasque",
+    "las que",
+    0,
+    859,
+    0.0,
+    "measured"
+   ],
+   [
+    "novale",
+    "no vale",
+    0,
+    91,
+    0.0,
+    "measured"
+   ],
+   [
+    "quemás",
+    "que más",
+    0,
+    705,
+    0.0,
+    "measured"
+   ],
+   [
+    "sumás",
+    "su más",
+    0,
+    78,
+    0.0,
+    "measured"
+   ],
+   [
+    "yode",
+    "yo de",
+    0,
+    27,
+    0.0,
+    "measured"
+   ],
+   [
+    "apersonas",
+    "a personas",
+    0,
+    127,
+    0.0,
+    "measured"
+   ],
+   [
+    "aproblemas",
+    "a problemas",
+    0,
+    74,
+    0.0,
+    "measured"
+   ],
+   [
+    "bienque",
+    "bien que",
+    0,
+    125,
+    0.0,
+    "wiktionary"
+   ],
+   [
+    "condicho",
+    "con dicho",
+    0,
+    33,
+    0.0,
+    "measured"
+   ],
+   [
+    "desolo",
+    "de solo",
+    0,
+    45,
+    0.0,
+    "measured"
+   ],
+   [
+    "doctoren",
+    "doctor en",
+    0,
+    365,
+    0.0,
+    "measured"
+   ]
+  ],
+  "fusedFormsDroppedCount": 70,
+  "hyphenTokensStripped": 20113,
+  "keptNotAForm": 22548,
+  "properNounKeys": 17824,
+  "spanishWiktionary": {
+   "F": 829350,
+   "I": 723731,
+   "P": 9,
+   "T": 926539,
+   "V": 746
+  },
+  "tatoebaStockNames": [
+   "Boston",
+   "Fadil",
+   "Japón",
+   "John",
+   "Layla",
+   "Mary",
+   "María",
+   "Mennad",
+   "Rima",
+   "Sami",
+   "Skura",
+   "Tom",
+   "Tomás",
+   "Yanni",
+   "Ziri"
+  ],
+  "tatoebaStockNamesAdded": [
+   "Boston",
+   "Japón",
+   "María",
+   "Tomás"
+  ],
+  "tatoebaTop30Capitalised": [
+   [
+    "Tom",
+    36793,
+    43486,
+    110.9
+   ],
+   [
+    "No",
+    34406,
+    12381855,
+    0.4
+   ],
+   [
+    "El",
+    22408,
+    7531907,
+    0.4
+   ],
+   [
+    "La",
+    17867,
+    9125843,
+    0.3
+   ],
+   [
+    "Me",
+    12758,
+    3927902,
+    0.4
+   ],
+   [
+    "Él",
+    12221,
+    931993,
+    1.7
+   ],
+   [
+    "Ella",
+    9274,
+    801076,
+    1.5
+   ],
+   [
+    "Es",
+    8495,
+    6996429,
+    0.2
+   ],
+   [
+    "Mary",
+    8444,
+    28981,
+    38.2
+   ],
+   [
+    "Los",
+    8123,
+    3069303,
+    0.3
+   ],
+   [
+    "Por",
+    7493,
+    4455036,
+    0.2
+   ],
+   [
+    "Qué",
+    7272,
+    4167822,
+    0.2
+   ],
+   [
+    "A",
+    6852,
+    9550940,
+    0.1
+   ],
+   [
+    "Se",
+    5740,
+    3058284,
+    0.2
+   ],
+   [
+    "Mi",
+    5657,
+    2403653,
+    0.3
+   ],
+   [
+    "En",
+    5634,
+    6817987,
+    0.1
+   ],
+   [
+    "Yo",
+    5431,
+    1919708,
+    0.4
+   ],
+   [
+    "Te",
+    4999,
+    3034548,
+    0.2
+   ],
+   [
+    "Si",
+    4413,
+    2349252,
+    0.2
+   ],
+   [
+    "Las",
+    4346,
+    2001280,
+    0.3
+   ],
+   [
+    "Estoy",
+    4214,
+    1092900,
+    0.5
+   ],
+   [
+    "Lo",
+    4041,
+    6042072,
+    0.1
+   ],
+   [
+    "Este",
+    3733,
+    859060,
+    0.6
+   ],
+   [
+    "Hay",
+    3668,
+    1014421,
+    0.5
+   ],
+   [
+    "Tengo",
+    3538,
+    954581,
+    0.5
+   ],
+   [
+    "Esta",
+    3321,
+    1052023,
+    0.4
+   ],
+   [
+    "Le",
+    3217,
+    1432216,
+    0.3
+   ],
+   [
+    "Quiero",
+    2893,
+    799067,
+    0.5
+   ],
+   [
+    "Ya",
+    2795,
+    1115307,
+    0.3
+   ],
+   [
+    "Cómo",
+    2598,
+    862624,
+    0.4
+   ]
+  ]
  }
 }

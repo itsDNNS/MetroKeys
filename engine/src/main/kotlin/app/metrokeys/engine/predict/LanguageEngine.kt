@@ -390,7 +390,7 @@ public class LanguageEngine @JvmOverloads constructor(
                 val bForm = if (lexicon.exact(bPart)) bPart else lexicon.canonical(bPart) ?: continue
                 val l = splitLm(aForm, bForm)
                 if (bestText == null || l < bestLm) {
-                    bestText = "${if (k == 1) splitHeadText(a) else a} $bForm"
+                    bestText = "${if (k == 1) splitHeadText(a, aForm) else a} $bForm"
                     bestLm = l
                 }
             }
@@ -449,22 +449,23 @@ public class LanguageEngine @JvmOverloads constructor(
         return LanguageSuggestions(languageTag, w, validity, ranked, corrections, ac)
     }
 
-    /** Exact form of the first part of a split (05 §8.2); a one-letter part only for "a"/"A" and "i"/"I". */
+    /**
+     * Exact form of the first part of a split (05 §8.2); a one-letter part only if it is one of the language's
+     * `ONE_LETTER_WORDS` (English "a"/"A" and "i"/"I", Spanish "a", "e", "o", "u", "y" in either case).
+     */
     private fun splitHead(a: String): String? {
-        if (a.length == 1) {
-            val c = a[0]
-            if (c == 'i' || c == 'I') return listOf("I", "i").firstOrNull { lexicon.exact(it) }
-            if (c != 'a' && c != 'A') return null
-        }
+        if (a.length == 1 && toKey(a) !in params.oneLetterWords) return null
         return when {
             lexicon.exact(a) -> a
             lexicon.exact(decapitalize(a)) -> decapitalize(a)
+            a.length == 1 -> lexicon.forms(a).firstOrNull()?.text
             else -> null
         }
     }
 
-    /** Text of a one-letter first part: "i" is shown as "I". */
-    private fun splitHeadText(a: String): String = if (a == "i") "I" else a
+    /** Text of a one-letter first part: the typed letter, or the dictionary form if only that has a capital ("I"). */
+    private fun splitHeadText(a: String, form: String): String =
+        if (form != a && a.none { Character.isUpperCase(it) } && form.any { Character.isUpperCase(it) }) form else a
 
     /**
      * Language cost of the split "[a] [b]" from the static word lists only (05 §8.2): the pair cost if the pair table
@@ -538,7 +539,7 @@ public class LanguageEngine @JvmOverloads constructor(
                     val r = if (upper) Character.toUpperCase(l) else l
                     variants.add(Variant(w.substring(0, i) + r + w.substring(i + 1), v))
                 }
-                params.prefixAccents[lowc]?.let { acc ->
+                params.prefixAccents[lowc]?.forEach { acc ->
                     val r = if (upper) Character.toUpperCase(acc) else acc
                     variants.add(Variant(w.substring(0, i) + r + w.substring(i + 1), 0))
                 }

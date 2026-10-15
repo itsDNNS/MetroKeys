@@ -8,36 +8,55 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Memory requirement of 00 "Quality requirements" / 05b §6: both languages with pair tables and the shape-writing
- * index fit a small heap, also at the peak while loading. Runs the load in a separate JVM with a fixed maximum heap.
+ * Memory requirement of 00 "Quality requirements" / 05b §6: two languages (below 96 MB of the app's heap) and three
+ * languages (below 128 MB) with pair tables and the shape-writing index fit a small heap, also at the peak while
+ * loading. Runs the load in a separate JVM with a fixed maximum heap.
  */
 class MemoryBudgetTest {
-    @Test
-    fun bothLanguagesLoadWithinASmallHeap() {
+    private fun probe(heapMb: Int, vararg tags: String): String {
         val java = File(System.getProperty("java.home"), "bin/java").path
-        val p = ProcessBuilder(java, "-Xmx$HEAP_MB" + "m", "-XX:+UseSerialGC", "-cp", System.getProperty("java.class.path"),
-            MemoryProbe::class.java.name)
+        val p = ProcessBuilder(java, "-Xmx${heapMb}m", "-XX:+UseSerialGC", "-cp", System.getProperty("java.class.path"),
+            MemoryProbe::class.java.name, tags.joinToString(","))
             .redirectErrorStream(true).start()
         val out = p.inputStream.bufferedReader().readText()
         p.waitFor(120, TimeUnit.SECONDS)
         assertEquals(0, p.exitValue(), out)
+        println("memory ${tags.joinToString("+")} in ${heapMb} MB: ${out.trim()}")
+        return out
+    }
+
+    @Test
+    fun twoLanguagesLoadWithinASmallHeap() {
+        probe(HEAP_TWO_MB, "de-DE", "en-US")
+        probe(HEAP_TWO_MB, "de-DE", "es-ES")
+        probe(HEAP_TWO_MB, "en-US", "es-ES")
+    }
+
+    @Test
+    fun threeLanguagesLoadWithinASmallHeap() {
+        probe(HEAP_THREE_MB, "de-DE", "en-US", "es-ES")
     }
 
     companion object {
         /** JVM heap for the engine part of the 96 MB budget (the app's views and settings need the rest). */
-        const val HEAP_MB = 44
+        const val HEAP_TWO_MB = 44
+
+        /** JVM heap for the engine part with three languages (budget 128 MB, 05 §14.5). */
+        const val HEAP_THREE_MB = 60
     }
 }
 
-/** Loads de + en with pairs, runs queries and a multilingual swipe; prints the retained heap. */
+/** Loads the given languages with pairs, runs queries and a multilingual swipe; prints the retained heap. */
 object MemoryProbe {
     @JvmStatic
     fun main(args: Array<String>) {
-        val engine = PredictionEngine.withBundledDictionaries(listOf("de-DE", "en-US"), EngineSettings(multilingual = true))
-        engine.activeLanguage = "de-DE"
-        val g = KeyboardGeometry.fallback("de-DE")
+        val tags = (args.firstOrNull() ?: "de-DE,en-US").split(",")
+        val engine = PredictionEngine.withBundledDictionaries(tags, EngineSettings(multilingual = true))
+        engine.activeLanguage = tags[0]
+        val g = KeyboardGeometry.fallback(tags[0])
         engine.setGeometry(g)
         engine.query(Query("Ich habe heute leider kei"))
+        engine.query(Query("Muchas gracias por to"))
         val keys = "vielleicht".map { g.shapeKey(it)!! }
         val xs = FloatArray(keys.size * 8) { i -> keys[i / 8].centerX + (if (i / 8 + 1 < keys.size) (keys[i / 8 + 1].centerX - keys[i / 8].centerX) * (i % 8) / 8f else 0f) }
         val ys = FloatArray(keys.size * 8) { i -> keys[i / 8].centerY + (if (i / 8 + 1 < keys.size) (keys[i / 8 + 1].centerY - keys[i / 8].centerY) * (i % 8) / 8f else 0f) }
@@ -46,6 +65,6 @@ object MemoryProbe {
         val rt = Runtime.getRuntime()
         println("retained ${(rt.totalMemory() - rt.freeMemory()) / 1024} KB, swipe ${r.candidates.firstOrNull()?.text}")
         check(r.candidates.isNotEmpty())
-        if (args.isNotEmpty()) Thread.sleep(args[0].toLong())
+        if (args.size > 1) Thread.sleep(args[1].toLong())
     }
 }

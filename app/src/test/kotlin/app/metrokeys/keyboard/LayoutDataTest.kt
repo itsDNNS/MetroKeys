@@ -20,7 +20,8 @@ class LayoutDataTest {
 
     @Test
     fun allLayoutFilesParseAndEveryInputTypeHasItsPages() {
-        for (n in listOf("layouts-de.json", "layouts-de-multi.json", "layouts-en.json", "layouts-en-multi.json")) {
+        for (n in listOf("layouts-de.json", "layouts-de-multi.json", "layouts-en.json", "layouts-en-multi.json",
+            "layouts-es.json", "layouts-es-multi.json")) {
             val l = layout(n)
             for ((type, pages) in l.inputTypes) for (p in pages) assertTrue("$n $type $p", p in l.pages)
             for (p in l.pages.values) for (k in p.keys) if (k.role == KeyRole.PAGE || k.role == KeyRole.EMOJI) {
@@ -46,6 +47,52 @@ class LayoutDataTest {
         // single-language layouts have nothing to put back
         val single = layout("layouts-de.json")
         assertTrue(single.withOptionalComma() === single)
+    }
+
+    @Test
+    fun spanishPages() {
+        val es = layout("layouts-es.json")
+        assertEquals("es-ES", es.language)
+        assertEquals("ESP", es.languageInfo.label)
+        assertEquals("ES", es.languageInfo.subLabel)
+        assertEquals("ES", es.domainRegion)
+        assertEquals(listOf(".com", ".es", ".org", ".net"), es.domains)
+        val p = es.page("text.letters")
+        // row 2: ten keys without indent, ñ last (01 §3.4)
+        val row2 = p.keys.filter { it.rect.top == 0.25f && it.isLetter }.sortedBy { it.rect.left }
+        assertEquals("asdfghjklñ", row2.joinToString("") { it.output!! })
+        assertEquals(0f, row2.first().rect.left)
+        val enye = row2.last()
+        assertEquals("Ñ", enye.outputText(true))
+        assertTrue(enye.alternates.isEmpty())
+        assertEquals(listOf("é", "ê", "è", "ë"), p.keys.first { it.output == "e" }.alternates.map { it.output })
+        assertEquals(listOf("ñ"), p.keys.first { it.output == "n" }.alternates.map { it.output })
+        assertEquals(listOf("§"), p.keys.first { it.output == "s" }.alternates.map { it.output })
+        // the . key offers the inverted marks (01 §5.1): ¿ third and ¡ sixth cell of ". , ¿ ? : ¡ ! -"
+        val dot = p.keys.first { it.output == "." && it.rect.top == 0.75f }
+        assertEquals(listOf(",", "¿", "?", ":", "¡", "!", "-"), dot.alternates.map { it.output })
+        assertEquals("espacio", p.keys.first { it.role == KeyRole.SPACE }.label)
+        // number pad: decimal comma (alternates . -)
+        val decimal = es.page("number.numpad").keys.first { it.rect.top == 0.75f && it.rect.left == 0f }
+        assertEquals(",", decimal.output)
+        assertEquals(listOf(".", "-"), decimal.alternates.map { it.output })
+        // symbols-1: € with $ £ ¥ ¢ ¤
+        val euro = es.page("text.symbols-1").keys.first { it.output == "€" }
+        assertEquals(listOf("$", "£", "¥", "¢", "¤"), euro.alternates.map { it.output })
+        // the multi-language file has the language key with the label ESP
+        val multi = layout("layouts-es-multi.json").page("text.letters")
+        val lang = multi.keys.first { it.role == KeyRole.LANGUAGE }
+        assertEquals(0.15f, lang.rect.left)
+        assertEquals("espacio", multi.keys.first { it.role == KeyRole.SPACE }.label)
+    }
+
+    @Test
+    fun languageKeyOrderByLabel() {
+        val labels = listOf("layouts-es.json", "layouts-de.json", "layouts-en.json").associate { n ->
+            layout(n).let { it.language to it.languageInfo.label }
+        }
+        assertEquals(listOf("de-DE", "en-US", "es-ES"), labels.keys.sortedWith(compareBy({ labels.getValue(it) }, { it })))
+        assertEquals(listOf("DEU", "ENG", "ESP"), labels.values.sorted())
     }
 
     @Test

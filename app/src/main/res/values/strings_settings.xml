@@ -53,6 +53,7 @@
     <string name="languages_min">One language must stay on</string>
     <string name="multilingual">Type in several languages</string>
     <string name="multilingual_note">Suggestions come from all chosen languages; corrections follow the language of the sentence.</string>
+    <string name="multilingual_note_many">Suggestions come from the current language and the two you used last; corrections follow the language of the sentence.</string>
     <string name="multilingual_off">Available with two or more keyboard languages</string>
     <string name="comma_key">Comma key with several languages</string>
     <string name="comma_key_note">Keeps the comma key next to the space bar when the keyboard shows a language key.</string>

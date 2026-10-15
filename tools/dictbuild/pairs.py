@@ -6,11 +6,13 @@ from common import jlower, pair_class
 
 DE_OPENERS = set("„“\"«»‚‘›‹([")
 EN_OPENERS = set("“\"‘'«»([")
-SENTENCE_END = set(".!?:")
+ES_OPENERS = set("«“\"‘([")
 
 DE_STOCK = {"Tom", "Toms", "Maria", "Marias", "Mary", "Marys", "John", "Johns"}
 EN_STOCK_BASE = ["Tom", "Mary", "John", "Sami", "Layla", "Rima", "Ziri", "Yanni", "Skura", "Mennad", "Fadil",
                  "Boston", "Australia", "Algeria", "Algerian", "Algerians", "Algiers", "Berber", "Kabylie"]
+# 05b §5 step 3; the Spanish build adds the translated stock names it finds (build_es.stock_names)
+ES_STOCK_BASE = ["Tom", "Mary", "John", "Sami", "Layla", "Mennad", "Fadil", "Ziri", "Yanni", "Skura", "Rima"]
 
 DE_WORD = re.compile(r"[^\W\d_]+")
 EN_WORD = re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)*")
@@ -18,24 +20,40 @@ EN_WORD = re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)*")
 SENTENCE_START = ""
 
 
+class PairProfile:
+    """Language-specific characters of the pair count (05b §5 step 2, §7)."""
+
+    def __init__(self, word_re, openers, sentence_end, stock, apostrophe):
+        self.word_re = word_re
+        self.openers = openers
+        self.sentence_end = set(sentence_end)
+        self.stock = stock            # token -> True if it is a Tatoeba stock name
+        self.apostrophe = apostrophe  # replace ’ by ' before tokenising
+
+
+PROFILES = {
+    "de": PairProfile(DE_WORD, DE_OPENERS, ".!?:", lambda tok: tok in DE_STOCK, False),
+    "en": PairProfile(EN_WORD, EN_OPENERS, ".!?:", lambda tok: tok.split("'")[0] in EN_STOCK_BASE, True),
+    "es": PairProfile(DE_WORD, ES_OPENERS, ".!?:¿¡", lambda tok: tok in ES_STOCK_BASE, False),
+}
+
+
 class PairCounter:
-    def __init__(self, lang, entries):
+    def __init__(self, lang, entries, stock=None):
         self.lang = lang
         self.entries = entries
-        self.word_re = DE_WORD if lang == "de" else EN_WORD
-        self.openers = DE_OPENERS if lang == "de" else EN_OPENERS
+        profile = PROFILES[lang]
+        self.word_re = profile.word_re
+        self.openers = profile.openers
+        self.sentence_end = profile.sentence_end
+        self.apostrophe = profile.apostrophe
+        self.is_stock = profile.stock if stock is None else (lambda tok: tok in stock)
         self.pairs = {}        # (prev, key) -> weighted count
         self.forms = {}        # (prev, key) -> {form: weighted count}
         self.totals = {}       # prev -> weighted count
 
-    def is_stock(self, tok):
-        if self.lang == "de":
-            return tok in DE_STOCK
-        base = tok.split("'")[0]
-        return base in EN_STOCK_BASE
-
     def add(self, text, weight, tatoeba):
-        if self.lang == "en":
+        if self.apostrophe:
             text = text.replace("’", "'")
         prev = SENTENCE_START
         i = 0
@@ -63,7 +81,7 @@ class PairCounter:
             i += 1
             if ch.isspace():
                 continue
-            if ch in SENTENCE_END:
+            if ch in self.sentence_end:
                 prev = SENTENCE_START
             elif ch in self.openers and prev == SENTENCE_START:
                 pass

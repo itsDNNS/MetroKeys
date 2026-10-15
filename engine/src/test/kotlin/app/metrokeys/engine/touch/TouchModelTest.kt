@@ -71,6 +71,55 @@ class TouchModelTest {
     }
 
     @Test
+    fun spanishGeometry() {
+        // 05 §4 and the conformance row "es: touch geometry": row 2 without indent, ñ its own key
+        val gs = KeyboardGeometry.fallback("es-ES")
+        val es = TouchModel(gs, LanguageParams.SPANISH)
+        assertEquals(27, gs.keys.size)
+        assertEquals(0f, gs.ownKey('a')!!.left)
+        assertEquals(gs.ownKey('q')!!.centerX, gs.ownKey('a')!!.centerX)
+        assertEquals(gs.ownKey('p')!!.centerX, gs.ownKey('ñ')!!.centerX)
+        assertEquals(60, es.sub('a', 'q'))
+        assertEquals(60, es.sub('ñ', 'p'))
+        assertEquals(67, es.sub('z', 's'))
+        assertEquals(67, es.sub('z', 'd'))
+        assertEquals(90, es.sub('a', 'w'))
+        assertEquals(90, es.sub('ñ', 'o'))
+        assertEquals(49, es.sub('ñ', 'l'))
+        assertEquals(49, es.sub('s', 'a'))
+        assertEquals(185, es.sub('ñ', 'n'))
+        assertEquals(185, es.sub('a', 'd'))
+        // a tap just across the border: 29 instead of 49
+        val a = gs.ownKey('a')!!
+        assertEquals(29, es.substitutionCost('s', a.centerX + 0.55f * gs.keyWidth, a.centerY, 'a'))
+        // the layout data agrees with the fallback grid
+        val layout = TestDictionaries.layoutGeometry("es")
+        assertEquals(27, layout.keys.size)
+        for (k in gs.keys) {
+            val l = layout.ownKey(k.letter)!!
+            assertEquals(k.centerX, l.centerX, 0.01f, "es ${k.letter}")
+            assertEquals(k.centerY, l.centerY, 0.01f, "es ${k.letter}")
+        }
+        assertEquals(27, TestDictionaries.layoutGeometry("es-multi").keys.size)
+    }
+
+    @Test
+    fun lettersWithoutAKeyLiveOnTheirBaseLetter() {
+        // German and English pages: ñ on n, í on i, ç on c; the Spanish page: ñ is its own key, ü on u
+        assertEquals(g.ownKey('n'), g.touchKey('ñ'))
+        assertEquals(g.ownKey('i'), g.touchKey('í'))
+        assertEquals(g.ownKey('c'), g.touchKey('ç'))
+        assertEquals(g.ownKey('y'), g.touchKey('ý'))
+        assertEquals(g.ownKey('s'), g.touchKey('ß'))
+        assertEquals(g.ownKey('s'), g.touchKey('§'))
+        val gs = KeyboardGeometry.fallback("es-ES")
+        assertEquals('ñ', gs.touchKey('ñ')!!.letter)
+        assertEquals('ñ', gs.touchKey('Ñ')!!.letter)
+        assertEquals(gs.ownKey('u'), gs.touchKey('ü'))
+        assertEquals(gs.ownKey('o'), gs.touchKey('ö'))
+    }
+
+    @Test
     fun tapAlignmentFromTheEnd() {
         val taps = listOf(Tap('x', 1f, 1f), Tap('h', 2f, 2f), Tap('a', 3f, 3f), Tap('Z', 4f, 4f))
         val seq = TapSequence.align("Haus", taps)

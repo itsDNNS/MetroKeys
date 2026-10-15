@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import app.metrokeys.engine.ActiveLanguages
 import app.metrokeys.ime.MetroKeysService
 import app.metrokeys.keyboard.UserAssets
 import app.metrokeys.settings.ui.Accents
@@ -77,7 +78,11 @@ class SettingsStore(private val context: Context) {
 
     fun edit(block: SharedPreferences.Editor.() -> Unit) = prefs.edit().apply(block).apply()
 
-    fun setLanguages(langs: Collection<String>) = prefs.edit().putStringSet(Prefs.LANGUAGES, langs.toSet()).apply()
+    /** Enabled languages; a disabled language also leaves the selection order (05 §14.5 "Changes"). */
+    fun setLanguages(langs: Collection<String>) {
+        val recency = ActiveLanguages.parse(prefs.getString(Prefs.LANGUAGE_RECENCY, null)).filter { it in langs }
+        prefs.edit().putStringSet(Prefs.LANGUAGES, langs.toSet()).putString(Prefs.LANGUAGE_RECENCY, ActiveLanguages.format(recency)).apply()
+    }
 
     // ---------------------------------------------------------------- derived values
 

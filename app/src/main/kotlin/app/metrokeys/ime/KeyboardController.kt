@@ -17,8 +17,13 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputContentInfo
 import android.widget.Toast
 import app.metrokeys.R
+import app.metrokeys.engine.ActiveLanguages
 import app.metrokeys.engine.EngineSettings
 import app.metrokeys.engine.PredictionEngine
+import app.metrokeys.engine.lexicon.Dictionary
+import app.metrokeys.engine.predict.LanguageEngine
+import app.metrokeys.engine.predict.LanguageParams
+import app.metrokeys.engine.predict.UserModel
 import app.metrokeys.engine.swipe.ShapeTrace
 import app.metrokeys.engine.swipe.ShiftState
 import app.metrokeys.engine.text.TextModel
@@ -34,6 +39,7 @@ import app.metrokeys.keyboard.layout.LayoutSet
 import app.metrokeys.keyboard.layout.Page
 import app.metrokeys.keyboard.layout.PageKind
 import app.metrokeys.settings.KeyboardSettings
+import app.metrokeys.settings.LanguageNames
 import app.metrokeys.settings.Prefs
 import app.metrokeys.settings.SettingsActivity
 import java.io.File
@@ -91,6 +97,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     @Volatile
     var engine: PredictionEngine? = null
         private set
+    /** The languages the engine is (being) built for: the active set of 05 §14.5. */
     private var engineLanguages: List<String> = emptyList()
     private var engineGeometryKey = ""
 
@@ -211,7 +218,9 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         }
         if (initial) forgetHandled = s.forgetRequests.maxOfOrNull { it.first } ?: 0 else applyForgetRequests(s)
         val langs = s.languages
-        if (initial || langs != engineLanguages) loadEngine(langs)
+        val wanted = s.activeLanguage?.takeIf { it in langs } ?: if (language in langs) language else langs.first()
+        val activeSet = activeSet(s, wanted)
+        if (initial || activeSet != engineLanguages) loadEngine(activeSet)
         engine?.settings = engineSettings(s)
         contacts.update(s.contactsWordSource)
         if (!initial && old.learnedResetAt != s.learnedResetAt) {
@@ -221,7 +230,6 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
             }
             emojiHistory = EmojiHistory(null)
         }
-        val wanted = s.activeLanguage?.takeIf { it in langs } ?: if (language in langs) language else langs.first()
         language = wanted
         loadLayout()
         if (!initial) {
@@ -237,28 +245,57 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         shapeWriting = s.shapeWriting,
     )
 
+    /**
+     * The languages that run and stay loaded (05 §14.5): all enabled languages up to three, else [selected] and the two
+     * other enabled languages selected most recently. Also with multilingual typing off, so that the language key
+     * switches between them without loading.
+     */
+    private fun activeSet(s: KeyboardSettings, selected: String): List<String> =
+        ActiveLanguages.select(s.languages, selected, s.languageRecency)
+
+    /**
+     * Builds the engine for [langs]. Engines of languages that stay are reused with their learned data; until the new
+     * languages are loaded, the staying ones answer alone (05 §14.5 "Loading"); a language that leaves is saved and
+     * released.
+     */
     private fun loadEngine(langs: List<String>) {
         engineLanguages = langs
         val old = engine
-        engine = null
-        logic.engine = null
         val s = settings
+        val staying = old?.languages?.filter { it.languageTag in langs }.orEmpty()
+        if (staying.isEmpty()) {
+            engine = null
+            logic.engine = null
+        } else if (staying.size != old!!.languages.size || staying.size != langs.size) {
+            val interim = PredictionEngine(staying, engineSettings(s))
+            if (staying.any { it.languageTag == language }) interim.activeLanguage = language
+            installEngine(interim)
+        }
         scheduler.background {
             if (old != null) old.saveLearnedData(learnedStore)
-            val e = PredictionEngine.withBundledDictionaries(langs, engineSettings(s))
-            e.loadLearnedData(learnedStore)
+            val reuse = old?.languages?.associateBy { it.languageTag }.orEmpty()
+            val engines = langs.map { tag ->
+                reuse[tag] ?: LanguageEngine(LanguageParams.forLanguage(tag), Dictionary.loadBundled(tag)).also {
+                    it.user.restore(learnedStore.load(tag))
+                }
+            }
+            val e = PredictionEngine(engines, engineSettings(s))
             e.refreshContacts(contacts)
             scheduler.main(0) {
                 if (engineLanguages != langs) return@main
                 if (language in langs) e.activeLanguage = language
-                engine = e
-                logic.engine = e
-                engineGeometryKey = ""
-                updateGeometry()
-                logic.refresh()
+                installEngine(e)
                 applyForgetRequests(settings)
             }
         }
+    }
+
+    private fun installEngine(e: PredictionEngine) {
+        engine = e
+        logic.engine = e
+        engineGeometryKey = ""
+        updateGeometry()
+        logic.refresh()
     }
 
     fun saveLearned() {
@@ -588,11 +625,11 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         return layoutCache.getOrPut(name) { LayoutSet.parse(context.assets.open(name).bufferedReader().use { it.readText() }) }
     }
 
-    /** Enabled languages ordered by label text. */
+    /** Enabled languages ordered by label text (DEU < ENG < ESP); equal labels are ordered by tag (01 §11.2). */
     private fun languageOrder(@Suppress("UNUSED_PARAMETER") current: String): List<String> =
-        settings.languages.sortedBy { languageLabel(it) }
+        settings.languages.sortedWith(compareBy({ languageLabel(it) }, { it }))
 
-    fun languageName(tag: String): String = str(if (tag.startsWith("de")) R.string.lang_de else R.string.lang_en)
+    fun languageName(tag: String): String = str(LanguageNames.res(tag))
 
     fun nextLanguage() {
         val order = languageOrder(language)
@@ -604,8 +641,14 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         if (tag !in settings.languages) return
         logic.endSwipeMark()
         language = tag
-        Prefs.of(context).edit().putString(Prefs.ACTIVE_LANGUAGE, tag).apply()
-        engine?.activeLanguage = tag
+        // the selection order decides the active set with more than three languages (05 §14.5)
+        val recency = ActiveLanguages.selected(settings.languageRecency, tag, settings.languages)
+        settings = settings.copy(activeLanguage = tag, languageRecency = recency)
+        Prefs.of(context).edit().putString(Prefs.ACTIVE_LANGUAGE, tag)
+            .putString(Prefs.LANGUAGE_RECENCY, ActiveLanguages.format(recency)).apply()
+        val activeSet = activeSet(settings, tag)
+        if (activeSet != engineLanguages) loadEngine(activeSet)
+        engine?.let { e -> if (e.languages.any { it.languageTag == tag }) e.activeLanguage = tag }
         loadLayout()
         engineGeometryKey = ""
         showStartPage()
@@ -613,15 +656,21 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         view?.announce(str(R.string.a11y_language, languageName(tag)).substringBefore(","))
     }
 
-    /** Domain endings by device region (01 §11.6; other regions: own ccTLD first, open point 2). */
+    /**
+     * Domain endings by device region (01 §11.6): the list of the layout data whose region matches (Germany, the US,
+     * Spain); other regions: own ccTLD first, then .com .org .net (open point 2); no region: the US list.
+     */
     fun domains(): List<String> {
         val region = Locale.getDefault().country.uppercase(Locale.ROOT)
+        regionDomains(region)?.let { return it }
         return when (region) {
-            "DE" -> listOf(".de", ".com", ".org", ".net")
-            "US", "" -> listOf(".com", ".us", ".org", ".net")
+            "" -> regionDomains("US") ?: listOf(".com", ".us", ".org", ".net")
             else -> listOf(".${region.lowercase(Locale.ROOT)}", ".com", ".org", ".net")
         }
     }
+
+    private fun regionDomains(region: String): List<String>? =
+        LanguageParams.ALL.asSequence().map { layoutFor(it.languageTag) }.firstOrNull { it.domainRegion == region }?.domains
 
     // ================================================================ shape writing (06)
 
@@ -1172,6 +1221,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         scheduler.background {
             e.forget(word)
             e.saveLearnedData(learnedStore)
+            forgetInStoredData(e, listOf(word))
             scheduler.main(0) {
                 logic.refresh()
                 logic.scheduleSpellRun()
@@ -1188,6 +1238,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         scheduler.background {
             for ((_, w) in new) e.forget(w)
             e.saveLearnedData(learnedStore)
+            forgetInStoredData(e, new.map { it.second })
             scheduler.main(0) {
                 logic.refresh()
                 logic.scheduleSpellRun()
@@ -1196,6 +1247,23 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     }
 
     private var forgetHandled = 0L
+
+    /** Forget (05 §14.4) in the stored learned data of enabled languages that are not loaded. Worker thread. */
+    private fun forgetInStoredData(e: PredictionEngine, words: List<String>) {
+        for (tag in settings.languages) {
+            if (e.language(tag) != null) continue
+            val model = UserModel.read(learnedStore.load(tag) ?: continue, null)
+            val keys = words.map { TextModel.trimNonWord(it) }.filter { it.isNotEmpty() }
+            val known = try {
+                Dictionary.bundledContains(tag, keys.map { app.metrokeys.engine.text.toKey(it) }.toSet())
+            } catch (_: java.io.IOException) {
+                emptySet()
+            }
+            var changed = false
+            for (w in keys) if (app.metrokeys.engine.text.toKey(w) !in known && model.forget(w)) changed = true
+            if (changed) learnedStore.save(tag, model.serialize())
+        }
+    }
 
     companion object {
         /** Lifetime of the recently-copied chip (03 §6.11). */

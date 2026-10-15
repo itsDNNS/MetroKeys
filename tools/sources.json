@@ -215,6 +215,38 @@
    "path": "cv/en/wiki.en.txt",
    "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/en/wiki.en.txt",
    "sha256": "438e55e8bc91dfa6cbe098a7233702c6b177c5ae07137a01d66b9c75c9789ae5"
+  },
+  {
+   "path": "fw/es_full.txt",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/525f9b560de45753a5ea01069454e72e9aa541c6/content/2018/es/es_full.txt",
+   "sha256": "b4794c425f3500c21a0ff9367175e36795a978c928a36670e9ad6ae206fb7728"
+  },
+  {
+   "path": "wiktionary/eswiktionary-20261001-pages-articles.xml.bz2",
+   "url": "https://dumps.wikimedia.org/eswiktionary/20261001/eswiktionary-20261001-pages-articles.xml.bz2",
+   "sha256": "b10214827500ab323e06e59ceeb783e04c8be051f184b4ffe9b59efcb5f54f20",
+   "sha1": "c0729c68e30caf723988711137224c3500550836"
+  },
+  {
+   "path": "wiktionary/enwiktionary-20261001-pages-articles.xml.bz2",
+   "url": "https://dumps.wikimedia.org/enwiktionary/20261001/enwiktionary-20261001-pages-articles.xml.bz2",
+   "sha256": "37e414002bdf72ccf6518b83116ec36df36af4aabbf4477d49871849b737de42",
+   "sha1": "f9ed426c69c6b21d026613bd0f200c2aaa1145e9"
+  },
+  {
+   "path": "tatoeba/spa_sentences.tsv.bz2",
+   "url": "https://downloads.tatoeba.org/exports/per_language/spa/spa_sentences.tsv.bz2",
+   "sha256": "d1f7aa997368571e8bbba341ab60f9145fefe14970f21065bd97be8e03c8e6fb"
+  },
+  {
+   "path": "cv/es/sentence-collector.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/es/sentence-collector.txt",
+   "sha256": "0a125f0d1cd892c5d727abb8006f5fb964ef9fe1e41bdf4afd3c4b845c47286b"
+  },
+  {
+   "path": "cv/es/wiki.es.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/es/wiki.es.txt",
+   "sha256": "26dfe9d9993cf7279ebf7cdffb2b086b4995982200415110903ba5530d1fc47d"
   }
  ]
 }

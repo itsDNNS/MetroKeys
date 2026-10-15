@@ -93,6 +93,7 @@
     <string name="a11y_forget_question">%1$s vergessen?</string>
     <string name="lang_de">Deutsch</string>
     <string name="lang_en">Englisch (USA)</string>
+    <string name="lang_es">Spanisch (Spanien)</string>
     <plurals name="a11y_clip_opened">
         <item quantity="one">Zwischenablage-Verlauf, %d Eintrag</item>
         <item quantity="other">Zwischenablage-Verlauf, %d Einträge</item>

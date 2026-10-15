@@ -9,6 +9,7 @@ import app.metrokeys.engine.lexicon.PairTable
 import app.metrokeys.engine.lexicon.WordForm
 import app.metrokeys.engine.predict.LanguageEngine
 import app.metrokeys.engine.predict.LanguageParams
+import app.metrokeys.engine.predict.ShapeParams
 import app.metrokeys.engine.text.FieldInfo
 import app.metrokeys.engine.text.FieldPolicy
 import app.metrokeys.engine.touch.KeyboardGeometry
@@ -204,6 +205,14 @@ class ShapeWriterTest {
         assertTrue(rate >= 0.9, "top-1 rate $rate")
     }
 
+    /** 06 §4.6 acceptance test on the English fallback grid (06 §7.1: re-run for English with its own constants). */
+    @Test
+    fun acceptanceAccuracyEnglish() {
+        val rate = englishAccuracy(TestDictionaries.english())
+        println("English shape-writing top-1 rate: $rate")
+        assertTrue(rate >= 0.9, "top-1 rate $rate")
+    }
+
     @Test
     fun contactWordsGetAnIndex() {
         val e = TestDictionaries.german()
@@ -254,5 +263,52 @@ class ShapeWriterTest {
         repeat(3) { traces.forEach { w.recognize(it, "") } }
         val mean = (System.nanoTime() - t0) / 1e6 / (3 * traces.size)
         assertTrue(mean < 100, "mean $mean ms")
+    }
+
+    companion object {
+        val ENGLISH_WORDS: List<String> = ("i you he she we they and or but not also still already now today tomorrow " +
+            "yesterday hello thanks please good very much more always again make have be will come go say know see give " +
+            "find think live work time year man woman child house city world country people friend love water food " +
+            "school play learn drive soon gladly maybe really simply morning night home where what when why how there " +
+            "here great little right").split(" ")
+
+        /** Share of [ENGLISH_WORDS] recognised first on jittered synthetic traces (06 §4.6), fixed random seed. */
+        fun englishAccuracy(e: LanguageEngine, words: List<String> = ENGLISH_WORDS, seed: Int = 42, shape: ShapeParams = e.params.shape): Double {
+            val g = KeyboardGeometry.fallback("en-US")
+            e.geometry = g
+            val w = ShapeWriter(e, shape)
+            val rnd = Random(seed)
+            var hits = 0
+            for (word in words) {
+                val ox = (rnd.nextFloat() * 2 - 1) * 0.15f * g.keyWidth
+                val oy = (rnd.nextFloat() * 2 - 1) * 0.15f * g.keyWidth
+                val t = traceOn(g, word) { (ox + (rnd.nextFloat() * 2 - 1) * 0.1f * g.keyWidth) to (oy + (rnd.nextFloat() * 2 - 1) * 0.1f * g.keyWidth) }
+                val r = w.recognize(t, "")
+                if (r.candidates.firstOrNull()?.text?.lowercase() == word) hits++
+            }
+            return hits.toDouble() / words.size
+        }
+
+        /** Every word stage A finds for [t] with its search cost and shape distance (not only the shown five). */
+        fun allCandidates(w: ShapeWriter, t: ShapeTrace, before: String = ""): Map<String, ShapeCandidate> =
+            w.recognizeAll(t, before).associateBy { it.text }
+
+        /** Straight lines between the key centres of [g], one sample every [step] px (06 §8). */
+        fun traceOn(g: KeyboardGeometry, word: String, step: Double = 19.4, jitter: (Int) -> Pair<Float, Float> = { 0f to 0f }): ShapeTrace {
+            val centres = word.mapIndexed { i, c ->
+                val k = g.shapeKey(c)!!
+                val (jx, jy) = jitter(i)
+                (k.centerX + jx).toDouble() to (k.centerY + jy).toDouble()
+            }
+            val pts = ArrayList<Pair<Float, Float>>()
+            pts.add(centres[0].first.toFloat() to centres[0].second.toFloat())
+            for (i in 1 until centres.size) {
+                val (x0, y0) = centres[i - 1]
+                val (x1, y1) = centres[i]
+                val n = maxOf(1, ceil(hypot(x1 - x0, y1 - y0) / step).toInt())
+                for (s in 1..n) pts.add((x0 + (x1 - x0) * s / n).toFloat() to (y0 + (y1 - y0) * s / n).toFloat())
+            }
+            return ShapeTrace.of(pts)
+        }
     }
 }

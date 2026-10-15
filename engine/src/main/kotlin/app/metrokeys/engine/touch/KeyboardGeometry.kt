@@ -1,5 +1,6 @@
 package app.metrokeys.engine.touch
 
+import app.metrokeys.engine.predict.LanguageParams
 import java.text.Normalizer
 
 /** A letter key of the current letter page, in keyboard (key-area) pixels. */
@@ -41,13 +42,14 @@ public class KeyboardGeometry(
     public fun ownKey(letter: Char): LetterKey? = byLetter[Character.toLowerCase(letter)]
 
     /**
-     * Key of [letter] for the touch model (05 §4): its own key, else the base key of the umlaut/accent alternates
-     * listed in the spec (ä à á â → a, ö ò ó ô → o, ü ù ú û → u, é è ê ë → e, ß § → s).
+     * Key of [letter] for the touch model (05 §4): its own key; a letter without a key of its own lives on its base
+     * letter's key (the letter with its diacritic removed: ä à á â → a, í ì î ï → i, ñ → n, ç → c, ý ÿ → y …;
+     * ß, § → s). On the Spanish page ñ has its own key, on the German and English pages it lives on n.
      */
     public fun touchKey(letter: Char): LetterKey? {
         val low = Character.toLowerCase(letter)
         byLetter[low]?.let { return it }
-        val base = TOUCH_BASE[low] ?: return null
+        val base = if (low == '§') 's' else baseLetter(low) ?: return null
         return byLetter[base]
     }
 
@@ -66,15 +68,6 @@ public class KeyboardGeometry(
     public val letters: List<Char> get() = byLetter.keys.sorted()
 
     public companion object {
-        private val TOUCH_BASE: Map<Char, Char> = buildMap {
-            for (c in "äàáâ") put(c, 'a')
-            for (c in "öòóô") put(c, 'o')
-            for (c in "üùúû") put(c, 'u')
-            for (c in "éèêë") put(c, 'e')
-            put('ß', 's')
-            put('§', 's')
-        }
-
         /** Lower-case base letter with diacritics removed (ß → s), or null if there is none. */
         @JvmStatic
         public fun baseLetter(c: Char): Char? {
@@ -93,22 +86,21 @@ public class KeyboardGeometry(
 
         /** Letter rows of the fallback grid (05 §4). */
         @JvmStatic
-        public fun fallbackRows(languageTag: String): List<String> =
-            if (languageTag.startsWith("de")) listOf("qwertzuiop", "asdfghjkl", "yxcvbnm")
-            else listOf("qwertyuiop", "asdfghjkl", "zxcvbnm")
+        public fun fallbackRows(languageTag: String): List<String> = LanguageParams.forLanguage(languageTag).fallbackRows
 
         /**
          * The fallback grid of 05 §4 on a [width] × [height] letter area: keys 0.1 · width × 0.25 · height, row 1 from
-         * x = 0, row 2 from 0.05 · width, row 3 from 0.15 · width.
+         * x = 0, row 2 from the language's start (0.05 · width; Spanish 0), row 3 from 0.15 · width.
          */
         @JvmStatic
         @JvmOverloads
         public fun fallback(languageTag: String, width: Float = 1080f, height: Float = 756f): KeyboardGeometry {
+            val params = LanguageParams.forLanguage(languageTag)
             val kw = width * 0.1f
             val kh = height * 0.25f
-            val offsets = floatArrayOf(0f, 0.05f * width, 0.15f * width)
+            val offsets = floatArrayOf(0f, params.fallbackRow2Start * width, 0.15f * width)
             val keys = ArrayList<LetterKey>()
-            for ((r, row) in fallbackRows(languageTag).withIndex()) {
+            for ((r, row) in params.fallbackRows.withIndex()) {
                 for ((i, c) in row.withIndex()) {
                     val l = offsets[r] + i * kw
                     keys.add(LetterKey(c, l, r * kh, l + kw, (r + 1) * kh))

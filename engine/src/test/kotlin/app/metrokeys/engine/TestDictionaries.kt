@@ -11,10 +11,18 @@ import java.io.File
 object TestDictionaries {
     val de: Dictionary by lazy { Dictionary.loadBundled("de-DE") }
     val en: Dictionary by lazy { Dictionary.loadBundled("en-US") }
+    val es: Dictionary by lazy { Dictionary.loadBundled("es-ES") }
 
     fun german(): LanguageEngine = LanguageEngine(LanguageParams.GERMAN, de)
 
     fun english(): LanguageEngine = LanguageEngine(LanguageParams.ENGLISH, en)
+
+    /** Spanish on the Spanish fallback grid (row 2 without indent, ñ its own key). */
+    fun spanish(): LanguageEngine = LanguageEngine(LanguageParams.SPANISH, es)
+
+    /** Several languages, [selected] chosen with the language key, multilingual typing on. */
+    fun multilingual(selected: String, vararg engines: LanguageEngine): PredictionEngine =
+        PredictionEngine(engines.toList(), EngineSettings(multilingual = true)).also { it.activeLanguage = selected }
 
     /** de + en, German selected with the language key, multilingual typing on. */
     fun multilingual(): PredictionEngine =

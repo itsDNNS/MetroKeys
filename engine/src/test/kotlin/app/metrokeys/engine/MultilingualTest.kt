@@ -112,4 +112,39 @@ class MultilingualTest {
         e.settings = e.settings.copy(multilingual = false)
         assertTrue(!e.isKnown("receive"))
     }
+
+    @Test
+    fun threeLanguages() {
+        // 05 §14.1 / §14.5: N = 3, es selected, empty context: 0.65 / 0.175 / 0.175
+        val e = TestDictionaries.multilingual("es-ES", TestDictionaries.german(), TestDictionaries.english(), TestDictionaries.spanish())
+        val empty = weights(e, "")
+        assertEquals(0.65, empty.getValue("es-ES"), 1e-12)
+        assertEquals(0.175, empty.getValue("de-DE"), 1e-12)
+        assertEquals(0.175, empty.getValue("en-US"), 1e-12)
+        assertTrue(weights(e, "Muchas gracias por todo").getValue("es-ES") > 0.95)
+        e.activeLanguage = "de-DE"
+        assertTrue(weights(e, "Muchas gracias por todo").getValue("es-ES") > 0.95)
+        assertTrue(weights(e, "Ich habe heute leider keine Zeit").getValue("de-DE") > 0.95)
+        assertTrue(weights(e, "I think we should meet tomorrow").getValue("en-US") > 0.95)
+        // corrections follow the language of the sentence
+        assertEquals("für", e.query(Query("Vielen Dank fur")).autoCorrection)
+        assertEquals("mañana", e.query(Query("Nos vemos hasta manana")).autoCorrection)
+        // suggestions come from all three languages
+        val tags = e.query(Query("Dan")).suggestions.mapNotNull { it.languageTag }.toSet()
+        assertEquals(setOf("de-DE", "en-US", "es-ES"), tags)
+    }
+
+    @Test
+    fun geometryOfTheCurrentPageForEveryLanguage() {
+        // 05 §14.4: on the Spanish page the German engine finds ü on the u key, on the German page ñ lives on n
+        val e = TestDictionaries.multilingual("es-ES", TestDictionaries.german(), TestDictionaries.spanish())
+        e.setGeometry(app.metrokeys.engine.touch.KeyboardGeometry.fallback("es-ES"))
+        val de = e.language("de-DE")!!
+        assertEquals(de.geometry.ownKey('u'), de.geometry.touchKey('ü'))
+        assertEquals('ñ', de.geometry.touchKey('ñ')!!.letter)
+        e.setGeometry(app.metrokeys.engine.touch.KeyboardGeometry.fallback("de-DE"))
+        val es = e.language("es-ES")!!
+        assertEquals(es.geometry.ownKey('n'), es.geometry.touchKey('ñ'))
+        assertEquals("mañana", e.query(Query("Hasta manana")).autoCorrection)
+    }
 }

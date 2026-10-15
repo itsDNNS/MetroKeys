@@ -11,24 +11,28 @@ written from a functional specification (see [How it is made](#how-it-is-made)).
 
 > **Made with AI:** MetroKeys is written and maintained with the help of Claude Opus 5.5 (Anthropic). See [How it is made](#how-it-is-made).
 
-Version 0.5.2 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer.
+Version 0.6.0 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer.
 
 <p>
   <img src="docs/screenshots/letters-dark.png" width="240" alt="Letter page, dark theme, with next-word predictions">
   <img src="docs/screenshots/letters-light.png" width="240" alt="Letter page, light theme with the red accent">
   <img src="docs/screenshots/suggestions.png" width="240" alt="Suggestions while typing a misspelled word">
+  <img src="docs/screenshots/letters-spanish-dark.png" width="240" alt="Spanish letter page with ñ and next-word predictions">
 </p>
 
 ## Features
 
 **Typing**
-- English (US, QWERTY) and German (QWERTZ) layouts with the symbol pages, number, phone and PIN pads, and
-  long-press alternates for accented letters and symbols.
+- Keyboard languages: German (QWERTZ), English (US, QWERTY) and Spanish (Spain, QWERTY with ñ), each with its own
+  dictionary, symbol pages, number, phone and PIN pads, and long-press alternates for accented letters and symbols
+  (Spanish: ¿ and ¡ on the long press of the period key).
 - Word suggestions while typing, next-word prediction and autocorrection, with an undo by tapping the word you
-  typed. Corrections are case-aware, learn from what you type and, in English, fix a missing space ("ofthe" →
-  "of the").
+  typed. Corrections are case-aware, learn from what you type, add missing accents in Spanish ("cancion" → "canción",
+  "manana" → "mañana") and, in English and Spanish, fix a missing space ("ofthe" → "of the", "porfavor" →
+  "por favor").
 - Shape writing: slide across the letters to write a word; the trace follows your finger.
-- Typing in two languages at once (multilingual mode) with a language key.
+- Typing in several languages at once (multilingual mode): a language key cycles through all enabled languages,
+  suggestions come from up to three of them and corrections follow the language of the sentence.
 - Automatic capitalisation, double-space period, smart spacing around punctuation, and spelling marks for
   unknown words in the text field.
 - Learned words stay on the device; the settings list every learned word and let you forget any of them, and you
@@ -85,7 +89,8 @@ Version 0.5.2 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer
      every third-party keyboard.
    - **choose**: pick MetroKeys as the current keyboard.
 3. Tap the **Try it** field on the same page and start typing.
-4. Optional: under **languages**, enable a second keyboard language and choose the app language; under
+4. Optional: under **languages**, enable further keyboard languages (German, English, Spanish) and choose the app
+   language (English or German); under
    **suggestions**, turn on contact names as a word source (asks for the contacts permission); under **layout →
    app bar buttons**, choose what the three buttons below the keys do.
 

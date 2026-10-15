@@ -9,12 +9,27 @@ app (next stage) only translates editor state into queries and applies the resul
 
 | Package | Content |
 |---|---|
-| `app.metrokeys.engine` | public facade: `PredictionEngine`, `Query`, `Prediction`, `Suggestion`, `EngineSettings`, `LearnedDataStore`, `Proofreader` |
+| `app.metrokeys.engine` | public facade: `PredictionEngine`, `Query`, `Prediction`, `Suggestion`, `EngineSettings`, `LearnedDataStore`, `Proofreader`, `ActiveLanguages` (05 §14.5) |
 | `…engine.lexicon` | runtime dictionaries: `Dictionary` (word list + pair table), `Lexicon` (prefix tree with per-subtree best class, `forms/exact/canonical/frequency/completions/fuzzy/words`), `PairTable` (`bigram/followers`, bound to its word list) |
-| `…engine.predict` | per-language engine `LanguageEngine` (LM cost §3, case mode §6, validity §7, candidates §8, autocorrection decision §10.1, next word §11), `EditDistance` (§5), `LmCost`, `UserModel` (§12, persistence), `ContactNames` (§13), `LanguageParams`/`Params` (§1) |
+| `…engine.predict` | per-language engine `LanguageEngine` (LM cost §3, case mode §6, validity §7, candidates §8, autocorrection decision §10.1, next word §11), `EditDistance` (§5), `LmCost`, `UserModel` (§12, persistence), `ContactNames` (§13), `LanguageParams`/`ShapeParams`/`Params` (§1, 06 §7.1) |
 | `…engine.text` | `TextModel` (word characters, current word, contexts §2.2), `TextRules` (04: auto-shift, double-space period, triggers, smart/trailing space, word delete, autocorrection gate), `FieldPolicy`/`FieldInfo` (§15 incl. Android input-type mapping), case helpers |
 | `…engine.touch` | `KeyboardGeometry` (letter keys from `spec/data/layouts-*.json` or the fallback grid), `TouchModel` (§4), `Tap`/`TapSequence` |
 | `…engine.swipe` | `ShapeWriter` (06 §3–§4: key sequence, angles, stage-A search, templates, DTW, context, unrecognised gestures), `ShapeTrace`, `ShapeResult` |
+
+## Languages
+
+Keyboard languages: German (`de-DE`), US English (`en-US`) and Spanish (`es-ES`). Everything that differs between
+them is one `LanguageParams` instance (`LanguageParams.ALL`, fixed language order = alphabetical by tag): the weights
+and limits of 05 §1.1, the language rules (`prefixAccents` with one or more accented letters per base letter,
+`oneLetterWords`, `singleLetterFix`, `compoundLinks` = null for no compounds, `missingSpaceSplit`, `ingRule`), the
+fallback grid of 05 §4 (rows and the start of row 2: Spanish has ten keys without indent), the shape-writing constants
+of 06 §7.1 (`ShapeParams`; English uses its own column since 0.6) and the emoji table. A further language adds one
+instance, its dictionary files and a build profile (DATA-SOURCES.md).
+
+**Active set** (05 §14.5): `ActiveLanguages.select(enabled, selected, recency)` gives the languages that run and stay
+loaded: all enabled up to three, else the selected one and the two others selected most recently (never selected
+ones in the fixed order). `ActiveLanguages.selected` updates the recency order; the app stores it as
+`language_recency`. A `PredictionEngine` is built for the active set; its weights use N = its size.
 
 ## Using it from the app
 
@@ -105,9 +120,9 @@ computed on the way), never held as a whole. The front-coded keys are kept only 
 character per tree node) with their lengths and common-prefix lengths; the breadth-first prefix tree (children
 contiguous and sorted, so lookups are binary searches and node order is (depth, text)) is then built level by level —
 a key's node at depth d is new exactly when its common prefix with the previous key is shorter than d — into arrays of
-exactly the node count: de-DE ≈ 717 000 nodes, en-US ≈ 385 000. Explicit forms are a sorted index array with their
-texts; pair-table followers go straight into primitive arrays. Both languages with pair tables retain ≈ 33 MB of JVM
-heap and load within a 44 MB maximum heap (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
+exactly the node count: de-DE ≈ 717 000 nodes, en-US ≈ 385 000, es-ES ≈ 516 000. Explicit forms are a sorted index array with their
+texts; pair-table followers go straight into primitive arrays. Two languages with pair tables retain 29–35 MB of JVM
+heap and load within a 44 MB maximum heap, all three 48 MB within 60 MB (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
 string per key and per-character build arrays). Loading both takes ≈ 0.2–0.3 s on a desktop JVM. Completions are a best-first search over the per-node maximum class; the fuzzy search walks the tree with
 optimal-string-alignment rows and prunes with the row minimum (and the row before it, which keeps the pruning
 admissible with transpositions). Shape writing reuses the same tree as its word index; contact words not in the
@@ -115,20 +130,24 @@ lexicon get a small second tree.
 
 ## Rebuilding the dictionaries
 
-Requirements: Python 3.10+ (standard library only), ~2 GB free disk.
+Requirements: Python 3.10+ (standard library only), ~4 GB free disk.
 
 ```sh
 python3 tools/build_dictionaries.py download   # fetches tools/sources.json into build-data/src, verifies SHA-256
-python3 tools/build_dictionaries.py build      # ≈ 3 minutes; writes engine/src/main/resources/app/metrokeys/engine/dict/
+python3 tools/build_dictionaries.py build      # all languages; writes engine/src/main/resources/app/metrokeys/engine/dict/
+python3 tools/build_dictionaries.py build es-ES   # one language (≈ 1.5 minutes once the Wiktionary passes are cached)
 ```
 
-`build-data/` is git-ignored (downloads and caches; the Wiktionary pass is cached in
-`build-data/cache/dewiktionary-20261001.tsv.gz`). Downloads are read in place (bz2/tar streams); from the SCOWL
+`build-data/` is git-ignored (downloads and caches; the Wiktionary passes are cached in
+`build-data/cache/dewiktionary-20261001.tsv.gz`, `eswiktionary-20261001.tsv.gz` and
+`enwiktionary-20261001-spanish.tsv.gz`; the English dump takes ≈ 15 minutes). Downloads are read in place (bz2/tar streams); from the SCOWL
 archive only the plain lists and the `Copyright` file are extracted, no script is run. The build is deterministic
 (sorted iteration, gzip with mtime 0); its counts and output hashes are written to `tools/dictionary-build.json`
 and documented in [DATA-SOURCES.md](DATA-SOURCES.md). Pipeline modules (`tools/dictbuild/`):
-`wiktionary_de.py` (§3.2), `build_de.py` (§3.3–3.7), `build_en.py` (§4), `pairs.py` (§5), `common.py` (classes and
-binary formats), `licenses.py` (attribution texts).
+`wiktionary_de.py` (§3.2), `build_de.py` (§3.3–3.7), `build_en.py` (§4), `wiktionary_es.py` (§8.2), `build_es.py`
+(§8), `casing.py` (case decision §3.4, shared by de and es), `pairs.py` (§5, per-language pair profiles), `common.py`
+(classes and binary formats), `licenses.py` (attribution texts). `build_dictionaries.py` holds one build profile per
+language (`PROFILES`, 05b §7).
 
 ## Tests
 
@@ -137,7 +156,10 @@ conformance checklist of 05 §18 (`ConformanceTest`) and unit tests of all parts
 where the spec's numbers depend on them. The rules of 05 §12.5 are covered with the real dictionaries: "usz" → "ist",
 "Usz" → "Ist", "pqt" does not reach "ist"; an unknown word typed twice is still corrected and known after the third
 use; acceptance by picking or "add to dictionary"; one or two undos; forgetting; the version-1 data format. `MemoryBudgetTest`
-loads both languages with pair tables, runs a query and a multilingual swipe in a separate JVM with `-Xmx44m`;
+loads every pair of languages with pair tables in a separate JVM with `-Xmx44m` and all three with `-Xmx60m`, runs
+queries and a multilingual swipe (retained heap: de+en 33.1 MB, de+es 35.4 MB, en+es 29.0 MB, de+en+es 48.1 MB);
+`SpanishExamplesTest`, `SpanishShapeTest` (06 E8/E9), `ActiveLanguagesTest` (the five-language example of 05 §14.5) and
+`MultilingualTest.threeLanguages` cover 0.6;
 `LexiconStructureTest` checks the trees built from the front-coded keys and the streaming key lookup;
 `LearnedWordListTest` the list of every stored unknown word (also from learned data without dictionaries).
 `ShapeWriterTest` covers the multilingual example of 06 §4.1 (d-a-s → das · dass · daß · da · dad) and the language
@@ -151,9 +173,14 @@ penalty. `-PshowOutput` shows test output.
 - **Autocorrection runner-up** (05 §10.1 step 7): the second candidate in correction-cost order.
 - **Compound validity cost** (05 §7.6): lm of head and tail without pair context.
 - **Missing-space split** (05 §8.2): only for languages without compounds (`LanguageParams.missingSpaceSplit`: English
-  yes, German no). `LanguageEngine.splitLm` costs a split from the static lists only: the pair cost when the pair table
-  has (a, b′), else the floored mean of the static unigram costs plus `SPLIT_SURCHARGE`. One-letter heads only "a"/"A"
-  and "i"/"I" (shown "I"). `MissingSpaceTest` covers the examples of §8.2.
+  and Spanish yes, German no). `LanguageEngine.splitLm` costs a split from the static lists only: the pair cost when the
+  pair table has (a, b′), else the floored mean of the static unigram costs plus `SPLIT_SURCHARGE`. One-letter heads
+  only the language's `ONE_LETTER_WORDS` in either case (English "i" is shown as its dictionary form "I").
+  `MissingSpaceTest` covers the examples of §8.2.
+- **Letters without a key** (05 §4): `KeyboardGeometry.touchKey` maps any letter without a key of its own to the key of
+  the letter with its diacritic removed (and ß, § to s), so ñ lives on n on the German and English pages and is its
+  own key on the Spanish page; every language's engine uses the geometry of the current page (05 §14.4).
+- **Double letter** (06 §4.3 A5, open point 10): only the same letter twice (base letters compared, so "eé" counts).
 - **Contact possessives** (05 §7.4): "Anna's" gets the cost of "Anna" (the possessive itself has no LM cost).
 - **Language weights**: words with digits are skipped and do not consume a decay step.
 - **Learning target in multilingual mode** (05 §14.4): the only language that knows every part; otherwise the
@@ -173,5 +200,16 @@ penalty. `-PshowOutput` shows test output.
   applied to every use of learned words (the worked example is tested with an accepted word).
 - **Learned words list**: every stored form the dictionaries do not know (also used once); each stored case form is its
   own entry; forgetting works on the word's key (all case forms).
+
+- **Shape writing per language**: `ShapeWriter(engine)` takes the constants of `engine.params.shape`; in multilingual
+  mode every index is searched with its own language's constants. English acceptance test (06 §4.6, 76 common
+  words, fallback grid, ±10 % jitter and up to 15 % offset): German constants (before 0.6) 0.947 at seed 42, mean
+  0.948 over 20 seeds; English constants 0.947 at seed 42, mean 0.946 (min 0.934). Spanish: 0.983 (58 words).
+- **Spanish worked examples** (05 §17.8): outcomes are tested in `SpanishExamplesTest` together with the computed values
+  of this build (05 open point 10): lm(canción) 87, lm(mañana | hasta) 56, lm(dámelo) 101, score(por favor) 177,
+  score(España) = lm + 29, score(Hola) = lm + 65. Measured deviations from the expected outcomes are in
+  spec/QUESTIONS.md ("Muchas " → "gracias" is fifth, "aveces" scores 218 > 217).
+- **Prefix accent variants** (05 open point 8): accent variants cost 0 and come first in the stable order, so the
+  limit of 24 never removes them; it is reached by the neighbour variants of prefixes of five letters and more.
 
 Questions with assumptions that matter are recorded in the specification (`spec/QUESTIONS.md`, not published).

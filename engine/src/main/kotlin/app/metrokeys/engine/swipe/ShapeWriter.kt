@@ -5,6 +5,7 @@ import app.metrokeys.engine.lexicon.WordForm
 import app.metrokeys.engine.predict.LanguageEngine
 import app.metrokeys.engine.predict.LmCost
 import app.metrokeys.engine.predict.Params
+import app.metrokeys.engine.predict.ShapeParams
 import app.metrokeys.engine.text.PrevContext
 import app.metrokeys.engine.text.TextModel
 import app.metrokeys.engine.text.capitalizeFirst
@@ -94,7 +95,11 @@ public data class ShapeResult(val candidates: List<ShapeCandidate>, val recogniz
  * Shape-writing recogniser of one language (spec 06 §3–§4). The word index is the language's lexicon prefix tree
  * (keys = lower-cased forms, nodes know the best class below); contact words not in the lexicon get a second index.
  */
-public class ShapeWriter(private val engine: LanguageEngine) {
+public class ShapeWriter @JvmOverloads constructor(
+    private val engine: LanguageEngine,
+    /** The language's constants of 06 §7.1. */
+    public val shape: ShapeParams = engine.params.shape,
+) {
     public val geometry: KeyboardGeometry get() = engine.geometry
 
     @Volatile
@@ -114,12 +119,21 @@ public class ShapeWriter(private val engine: LanguageEngine) {
     }
 
     public fun recognize(trace: ShapeTrace, before: String = ""): ShapeResult {
+        val out = recognizeAll(trace, before)
+        if (out.isEmpty()) return ShapeResult.NONE
+        val best = out[0]
+        val recognized = !(best.total > UNKNOWN_SCORE && best.shapeDistance > UNKNOWN_SHAPE)
+        return ShapeResult(out.take(SHOWN_CANDIDATES), recognized)
+    }
+
+    /** Every word of stage A (up to [SEARCH_LIST_SIZE] per index) with its final score, best first. */
+    internal fun recognizeAll(trace: ShapeTrace, before: String = ""): List<ShapeCandidate> {
         val g = geometry
-        if (trace.size < 2) return ShapeResult.NONE
-        if (trace.ys[0] >= NO_START_BOTTOM * g.height) return ShapeResult.NONE
-        if (!exceedsThreshold(trace, g)) return ShapeResult.NONE
-        val seq = keySequence(trace, g) ?: return ShapeResult.NONE
-        if (seq.size < 2) return ShapeResult.NONE
+        if (trace.size < 2) return emptyList()
+        if (trace.ys[0] >= NO_START_BOTTOM * g.height) return emptyList()
+        if (!exceedsThreshold(trace, g)) return emptyList()
+        val seq = keySequence(trace, g) ?: return emptyList()
+        if (seq.size < 2) return emptyList()
         val sx = 480.0 / (10 * g.keyWidth)
         val sy = 336.0 / (4 * g.keyHeight)
         val search = Search(g, seq)
@@ -130,7 +144,7 @@ public class ShapeWriter(private val engine: LanguageEngine) {
                 if (old == null || cost < old.first) found[form.text] = cost to form.frequencyClass
             }
         }
-        if (found.isEmpty()) return ShapeResult.NONE
+        if (found.isEmpty()) return emptyList()
         val traceRu = trimmedTrace(trace, sx, sy)
         val prev = TextModel.previousWordForPairs(before, before.length)
         val out = ArrayList<ShapeCandidate>()
@@ -142,10 +156,7 @@ public class ShapeWriter(private val engine: LanguageEngine) {
             out.add(ShapeCandidate(text, searchCost - bonus + SHAPE_WEIGHT * shape, searchCost, shape, bonus, engine.languageTag))
         }
         out.sortWith(compareBy({ it.total }, { it.text }))
-        if (out.isEmpty()) return ShapeResult.NONE
-        val best = out[0]
-        val recognized = !(best.total > UNKNOWN_SCORE && best.shapeDistance > UNKNOWN_SHAPE)
-        return ShapeResult(out.take(SHOWN_CANDIDATES), recognized)
+        return out
     }
 
     private fun contacts(): Lexicon? {
@@ -203,7 +214,13 @@ public class ShapeWriter(private val engine: LanguageEngine) {
             if (c in JOINERS) JOINER else g.shapeKey(c)?.let { k -> keyList.indexOfFirst { it === k } } ?: -1
         }
 
-        fun accent(c: Char): Double = if (g.isViaBaseLetter(c)) ACCENT_COST else 0.0
+        val unusedKeyCost = shape.unusedKeyCost
+        val neighbourFactor = shape.neighbourFactor
+        val doubleLetterCost = shape.doubleLetterCost
+        val accentCost = shape.accentCost
+        val cornerAngle = shape.cornerAngle
+
+        fun accent(c: Char): Double = if (g.isViaBaseLetter(c)) accentCost else 0.0
 
         lateinit var lex: Lexicon
         val results = HashMap<WordForm, Double>()
@@ -227,7 +244,7 @@ public class ShapeWriter(private val engine: LanguageEngine) {
                 val cost = when {
                     k == k0 -> accent(ch)
                     !neighbour[k * nk + k0].isNaN() && !(n > 1 && seq.keys[1] == k) && !(n > 2 && seq.keys[2] == k) ->
-                        NEIGHBOUR_FACTOR * neighbour[k * nk + k0] + accent(ch)
+                        neighbourFactor * neighbour[k * nk + k0] + accent(ch)
                     else -> continue
                 }
                 expand(c, 0, 1, cost, false)
@@ -257,13 +274,13 @@ public class ShapeWriter(private val engine: LanguageEngine) {
             states++
             val dk = (node.toLong() * (n + 1) + p) * 2 + if (prevDouble) 1 else 0
             if (!dominance.putIfLower(dk, cost)) return
-            val bound = cost + UNUSED_KEY_COST * maxOf(0, p - letters) + LM_PER_CLASS * (255 - lex.maxClassOf(node))
+            val bound = cost + unusedKeyCost * maxOf(0, p - letters) + LM_PER_CLASS * (255 - lex.maxClassOf(node))
             if (results.size >= SEARCH_LIST_SIZE && bound >= worst) return
             val key = lex.keyAt(node)
             if (key >= 0 && p == n - 1) {
                 for (form in lex.formsOf(key)) {
                     if (form.text.length < 2 || !form.text.all { Character.isLetter(it) || it in JOINERS }) continue
-                    offer(form, cost + UNUSED_KEY_COST * maxOf(0, n - letters) + LM_PER_CLASS * (255 - form.frequencyClass))
+                    offer(form, cost + unusedKeyCost * maxOf(0, n - letters) + LM_PER_CLASS * (255 - form.frequencyClass))
                 }
             }
             val first = lex.firstChild(node)
@@ -278,7 +295,11 @@ public class ShapeWriter(private val engine: LanguageEngine) {
                 }
                 if (k < 0) continue
                 val acc = accent(ch)
-                if (!prevDouble && k == seq.keys[p]) expand(c, p, letters + 1, cost + DOUBLE_LETTER_COST + acc, true)
+                // A5: a real double letter, the same letter twice (also when one of them is accented, "eé"),
+                // on the key at position p (06 open point 10)
+                if (!prevDouble && k == seq.keys[p] && node != lex.root && sameLetter(lex.charOf(node), ch)) {
+                    expand(c, p, letters + 1, cost + doubleLetterCost + acc, true)
+                }
                 var skipped = 0.0
                 var cornerSeen = false
                 var j = p + 1
@@ -288,15 +309,15 @@ public class ShapeWriter(private val engine: LanguageEngine) {
                         expand(c, j, letters + 1, cost + acc + skipped / SKIP_ANGLE_DIVISOR, false)
                     } else {
                         val d = neighbour[k * nk + kj]
-                        if (!d.isNaN() && (j == n - 1 || seq.angles[j] > CORNER_ANGLE || prevDouble) &&
+                        if (!d.isNaN() && (j == n - 1 || seq.angles[j] > cornerAngle || prevDouble) &&
                             !(j + 1 < n && seq.keys[j + 1] == k) && !(j + 2 < n && seq.keys[j + 2] == k)
                         ) {
-                            expand(c, j, letters + 1, cost + NEIGHBOUR_FACTOR * d + acc + skipped / SKIP_ANGLE_DIVISOR, false)
+                            expand(c, j, letters + 1, cost + neighbourFactor * d + acc + skipped / SKIP_ANGLE_DIVISOR, false)
                         }
                     }
                     if (j == n - 1) break
                     val tried = j - p
-                    val corner = seq.angles[j] >= CORNER_ANGLE
+                    val corner = seq.angles[j] >= cornerAngle
                     if (tried >= FREE_SKIP_POSITIONS && corner && cornerSeen) break
                     if (corner) cornerSeen = true
                     skipped += seq.angles[j]
@@ -378,15 +399,10 @@ public class ShapeWriter(private val engine: LanguageEngine) {
         public const val KEY_HYSTERESIS: Float = 0.12f
         public const val MAX_KEYS: Int = 70
         public const val END_ANGLE: Float = 180f
-        public const val CORNER_ANGLE: Float = 45f
         public const val FREE_SKIP_POSITIONS: Int = 8
         public const val SKIP_ANGLE_DIVISOR: Double = 5.0
-        public const val UNUSED_KEY_COST: Double = 10.0
         public const val NEIGHBOUR_RADIUS: Float = 2.05f
         public const val NEIGHBOUR_DIST_PER_KEY: Float = 250f
-        public const val NEIGHBOUR_FACTOR: Double = 0.096
-        public const val ACCENT_COST: Double = 0.24 * 50
-        public const val DOUBLE_LETTER_COST: Double = 14.0
         public const val JOINER_COST: Double = 0.0
         public const val LM_PER_CLASS: Double = 1.0
         public const val SEARCH_LIST_SIZE: Int = 16
@@ -401,6 +417,13 @@ public class ShapeWriter(private val engine: LanguageEngine) {
         public const val UNKNOWN_SHAPE: Double = 50.0
         public const val SHOWN_CANDIDATES: Int = 5
         private const val JOINER = -2
+
+        /** The same letter, ignoring case and diacritics (ß counts as s). */
+        internal fun sameLetter(a: Char, b: Char): Boolean {
+            val x = KeyboardGeometry.baseLetter(a) ?: Character.toLowerCase(a)
+            val y = KeyboardGeometry.baseLetter(b) ?: Character.toLowerCase(b)
+            return x == y
+        }
         private const val JOINERS = "-'’"
 
         /** Swipe start threshold T in px for a key area of [width] × [height] px (06 §2.2). */

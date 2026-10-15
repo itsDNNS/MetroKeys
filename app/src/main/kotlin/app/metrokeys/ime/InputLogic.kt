@@ -468,6 +468,8 @@ class InputLogic(
         if (word.isNotEmpty() && typedSinceMove && !wasSwiped && !TextRules.caretInsideWord(editor.textAfter(1))) {
             learn(word, TextModel.precedingWords(before, before.length - word.length, 2))
         }
+        // an opening mark ¿ ¡ starts a new phrase: after a swiped word a space comes first (04 §1.6 item 4, 06 §5.6)
+        if (wasSwiped && TextRules.isOpeningMark(text)) commit(" ")
         commit(text)
         editor.endBatch()
         lastSpaceTime = 0
@@ -781,7 +783,8 @@ class InputLogic(
         swiped = null
         autoSpace = false
         val b = editor.textBefore(1)
-        if (b.isNotEmpty() && !b.last().isWhitespace()) commit(" ")
+        // 06 §5.1 item 1; never a space directly after an opening mark ¿ ¡ (04 §1.6 item 4)
+        if (b.isNotEmpty() && !b.last().isWhitespace() && !TextRules.isOpeningMark(b)) commit(" ")
         val start = selStart
         setComposing(texts[0])
         editor.endBatch()

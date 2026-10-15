@@ -1,6 +1,34 @@
 package app.metrokeys.engine.predict
 
-/** Per-language parameters of spec 05 §1.1. */
+/**
+ * Shape-writing constants that differ between keyboard languages (spec 06 §7.1). Every language has its own column;
+ * a multilingual search uses each language's own constants on its index (06 §4.1).
+ */
+public data class ShapeParams(
+    /** Cost per key of the trace the word does not use. */
+    val unusedKeyCost: Double,
+    /** Neighbour match = factor × distance value. */
+    val neighbourFactor: Double,
+    /** A real double letter on one key. */
+    val doubleLetterCost: Double,
+    /** Accent cost = `swAccentDistance` (50) × factor. */
+    val accentFactor: Double,
+    /** Corner threshold in degrees. */
+    val cornerAngle: Float,
+) {
+    /** Cost of a letter that reaches its key only through its base letter (06 §4.3 A2). */
+    val accentCost: Double get() = ACCENT_DISTANCE * accentFactor
+
+    public companion object {
+        public const val ACCENT_DISTANCE: Double = 50.0
+    }
+}
+
+/**
+ * Per-language parameters of spec 05 §1.1 (weights, limits and language rules), the fallback letter grid of 05 §4,
+ * the shape-writing constants of 06 §7.1 and the emoji table of 05 Appendix A. A further language adds one instance
+ * with every value of its own (no inheritance from another language) and registers it in [ALL].
+ */
 public data class LanguageParams(
     val languageTag: String,
     val edInsert: Int,
@@ -18,16 +46,24 @@ public data class LanguageParams(
     val acMargin: Int,
     val acValidRare: Int,
     val acValidTarget: Int,
-    /** Accent variants tried for completions (lower case base → accented). */
-    val prefixAccents: Map<Char, Char>,
-    /** Linking elements of the compound rule; null = no compounds. */
-    val compoundLinks: List<String>?,
-    /** Missing-space split candidates (05 §8.2); off for languages that form compounds. */
-    val missingSpaceSplit: Boolean,
-    /** One-letter words that are autocorrected. */
+    /** `PREFIX_ACCENTS`: lower-case base letter → accented letters in list order, tried for completions (§8.4). */
+    val prefixAccents: Map<Char, List<Char>>,
+    /** `ONE_LETTER_WORDS`: the only one-letter dictionary keys, also the only one-letter parts of a split (§8.2). */
+    val oneLetterWords: Set<String>,
+    /** `SINGLE_LETTER_FIX`: one-letter words that are autocorrected (§10.1). */
     val singleLetterFix: Map<String, String>,
-    /** "…in" counts as valid like "…ing". */
+    /** `COMPOUND_LINKS`: linking elements of the compound rule (§7 rule 6); null switches the rule off. */
+    val compoundLinks: List<String>?,
+    /** `SPLIT_SPACE`: missing-space split candidates (§8.2); off for languages that form compounds. */
+    val missingSpaceSplit: Boolean,
+    /** `ING_RULE`: "…in" counts as valid like "…ing" (§7 rule 7). */
     val ingRule: Boolean,
+    /** Letter rows of the fallback grid (§4), top to bottom. */
+    val fallbackRows: List<String>,
+    /** Start of fallback row 2 as a fraction of the width (§4: 0.05, Spanish 0). */
+    val fallbackRow2Start: Float,
+    /** Shape-writing constants (06 §7.1). */
+    val shape: ShapeParams,
     /** Emoji table (Appendix A), lower-cased word → emoji. */
     val emoji: Map<String, String>,
 ) {
@@ -38,11 +74,15 @@ public data class LanguageParams(
             edInsert = 210, edDelete = 175, edSubstitute = 100, edSwap = 50, edSpace = 225, edCase = 44,
             edDiacritic = 4, edFiller = 0, edNearDiv = 13, edNearBase = 1,
             acLimit = 212, acEditFactor = 5, acMargin = 33, acValidRare = 157, acValidTarget = 168,
-            prefixAccents = mapOf('a' to 'ä', 'o' to 'ö', 'u' to 'ü', 's' to 'ß'),
+            prefixAccents = mapOf('a' to listOf('ä'), 'o' to listOf('ö'), 'u' to listOf('ü'), 's' to listOf('ß')),
+            oneLetterWords = emptySet(),
+            singleLetterFix = emptyMap(),
             compoundLinks = listOf("", "s", "es", "n", "en", "er"),
             missingSpaceSplit = false,
-            singleLetterFix = emptyMap(),
             ingRule = false,
+            fallbackRows = listOf("qwertzuiop", "asdfghjkl", "yxcvbnm"),
+            fallbackRow2Start = 0.05f,
+            shape = ShapeParams(unusedKeyCost = 10.0, neighbourFactor = 0.096, doubleLetterCost = 14.0, accentFactor = 0.24, cornerAngle = 45f),
             emoji = EmojiTables.GERMAN,
         )
 
@@ -52,21 +92,52 @@ public data class LanguageParams(
             edInsert = 119, edDelete = 119, edSubstitute = 140, edSwap = 56, edSpace = 131, edCase = 11,
             edDiacritic = 0, edFiller = 0, edNearDiv = 13, edNearBase = 20,
             acLimit = 260, acEditFactor = 5, acMargin = 16, acValidRare = 202, acValidTarget = 150,
-            prefixAccents = mapOf('e' to 'é'),
+            prefixAccents = mapOf('e' to listOf('é')),
+            oneLetterWords = setOf("a", "i"),
+            singleLetterFix = mapOf("i" to "I"),
             compoundLinks = null,
             missingSpaceSplit = true,
-            singleLetterFix = mapOf("i" to "I"),
             ingRule = true,
+            fallbackRows = listOf("qwertyuiop", "asdfghjkl", "zxcvbnm"),
+            fallbackRow2Start = 0.05f,
+            shape = ShapeParams(unusedKeyCost = 8.0, neighbourFactor = 0.083, doubleLetterCost = 14.0, accentFactor = 0.01, cornerAngle = 45f),
             emoji = EmojiTables.ENGLISH,
         )
 
-        /** Parameters for "de…" or "en…" language tags. */
+        @JvmField
+        public val SPANISH: LanguageParams = LanguageParams(
+            languageTag = "es-ES",
+            edInsert = 225, edDelete = 240, edSubstitute = 185, edSwap = 65, edSpace = 208, edCase = 44,
+            edDiacritic = 0, edFiller = 0, edNearDiv = 13, edNearBase = 20,
+            acLimit = 217, acEditFactor = 4, acMargin = 33, acValidRare = 157, acValidTarget = 137,
+            prefixAccents = mapOf(
+                'a' to listOf('á'), 'e' to listOf('é'), 'i' to listOf('í'), 'o' to listOf('ó'),
+                'u' to listOf('ú', 'ü'), 'n' to listOf('ñ'),
+            ),
+            oneLetterWords = setOf("a", "e", "o", "u", "y"),
+            singleLetterFix = emptyMap(),
+            compoundLinks = null,
+            missingSpaceSplit = true,
+            ingRule = false,
+            fallbackRows = listOf("qwertyuiop", "asdfghjklñ", "zxcvbnm"),
+            fallbackRow2Start = 0f,
+            shape = ShapeParams(unusedKeyCost = 8.0, neighbourFactor = 0.092, doubleLetterCost = 19.0, accentFactor = 0.24, cornerAngle = 45f),
+            emoji = EmojiTables.SPANISH,
+        )
+
+        /** Every supported keyboard language, in the fixed language order (alphabetical by tag, 07 §9.5). */
+        @JvmField
+        public val ALL: List<LanguageParams> = listOf(GERMAN, ENGLISH, SPANISH)
+
+        /** Parameters of a supported language tag ("de-DE", "en-US", "es-ES"; a bare "de" also matches). */
         @JvmStatic
-        public fun forLanguage(tag: String): LanguageParams = when {
-            tag.startsWith("de") -> GERMAN
-            tag.startsWith("en") -> ENGLISH
-            else -> throw IllegalArgumentException("unsupported language $tag")
-        }
+        public fun forLanguage(tag: String): LanguageParams =
+            ALL.firstOrNull { it.languageTag == tag } ?: ALL.firstOrNull { it.languageTag.substringBefore('-') == tag.substringBefore('-') }
+                ?: throw IllegalArgumentException("unsupported language $tag")
+
+        /** True if [tag] is a supported keyboard language. */
+        @JvmStatic
+        public fun isSupported(tag: String): Boolean = ALL.any { it.languageTag == tag }
     }
 }
 
@@ -136,4 +207,7 @@ public object Params {
     public const val LANG_W_MIN: Double = 1e-4
     public const val LANG_AC_MIN: Double = 0.3
     public const val LANG_TYPO: Double = 2.0
+
+    /** Most languages that multilingual typing runs (and keeps loaded) at once (05 §14.5). */
+    public const val LANG_ACTIVE_MAX: Int = 3
 }

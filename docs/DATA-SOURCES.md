@@ -10,7 +10,7 @@ The word lists and word-pair tables in `engine/src/main/resources/app/metrokeys/
 The derived data files (`*.words.gz`, `*.pairs.gz`) are licensed under **CC BY-SA 4.0**
 (https://creativecommons.org/licenses/by-sa/4.0/) because the frequency source is CC BY-SA. This licence applies to
 the data files only, not to the MetroKeys code. A licence/attribution text accompanies each data file
-(`LICENSE-de-DE.txt`, `LICENSE-en-US.txt`, `SCOWL-Copyright.txt`); the engine exposes it through
+(`LICENSE-de-DE.txt`, `LICENSE-en-US.txt`, `LICENSE-es-ES.txt`, `SCOWL-Copyright.txt`); the engine exposes it through
 `Dictionary.bundledLicenseText(tag)` for the app's licences screen.
 
 ## Sources
@@ -26,8 +26,15 @@ the data files only, not to the MetroKeys code. A licence/attribution text accom
 | SCOWL `Copyright` (inside the archive) | – | `scowl-2020.12.07/Copyright` | `283326a422e29c510e2ba6805518c418ce3c35ed1fadc3eec83d2da4f6c5a055` | – | shipped as `SCOWL-Copyright.txt` |
 | Mozilla Common Voice (https://github.com/common-voice/common-voice) | commit `e983ce07e3f4a935b7958c77224c77b7bdc8079a`, `server/data/de/` (12 files, see sources.json) | conversational files weight 3, `wiki.*` weight 1, Europarl not used | see [sources.json](../tools/sources.json) | CC0 1.0 (`server/data/LICENSE`, sha256 `bf474cdfd02e162603358e4e3615182018cad27593d2bf5e75ca13e4a5a6af0c`) | German pairs |
 | Mozilla Common Voice | same commit, `server/data/en/` (23 files) | `wiki.*` weight 1, others weight 3 | see sources.json | CC0 1.0 | English pairs and sentence statistics |
+| hermitdave/FrequencyWords | same commit as de/en | `content/2018/es/es_full.txt` | `b4794c425f3500c21a0ff9367175e36795a978c928a36670e9ad6ae206fb7728` | content CC BY-SA 4.0 | Spanish words and counts (1 202 520 lines, 423 290 924 tokens) |
+| Spanish Wiktionary (https://es.wiktionary.org/) | dump `20261001` | `eswiktionary-20261001-pages-articles.xml.bz2` (sha1 `c0729c68e30caf723988711137224c3500550836`) | `b10214827500ab323e06e59ceeb783e04c8be051f184b4ffe9b59efcb5f54f20` | CC BY-SA 4.0 (also GFDL) | Spanish spelling, validity, proper-noun case, titles of all languages (no frequencies) |
+| English Wiktionary, Spanish sections (https://en.wiktionary.org/) | dump `20261001` | `enwiktionary-20261001-pages-articles.xml.bz2` (sha1 `f9ed426c69c6b21d026613bd0f200c2aaa1145e9`) | `37e414002bdf72ccf6518b83116ec36df36af4aabbf4477d49871849b737de42` | CC BY-SA 4.0 (also GFDL) | further Spanish forms (verb forms, plurals); used because the Spanish dump alone knows only 87.9 % of the top 20 000 keys (05b §8.2 point 3) |
+| Tatoeba | export of 2026-10-10 (Last-Modified `Sat, 10 Oct 2026 06:30:50 GMT`, downloaded 2026-10-15) | `per_language/spa/spa_sentences.tsv.bz2` (442 544 sentences) | `d1f7aa997368571e8bbba341ab60f9145fefe14970f21065bd97be8e03c8e6fb` | CC BY 2.0 FR | Spanish pairs (weight 3), running-text case evidence, stock-name check |
+| Mozilla Common Voice | same commit, `server/data/es/` | `sentence-collector.txt` weight 3 (`0a125f0d1cd892c5d727abb8006f5fb964ef9fe1e41bdf4afd3c4b845c47286b`), `wiki.es.txt` weight 1 (`26dfe9d9993cf7279ebf7cdffb2b086b4995982200415110903ba5530d1fc47d`); `singleword-benchmark.txt` not used | see left | CC0 1.0 | Spanish pairs and running-text case evidence |
 
-All hashes equal the ones listed in the specification. The Tatoeba exports downloaded on 2026-10-15 still carried
+All hashes equal the ones listed in the specification (for the Wiktionary dumps the specification gives the sha1 of
+the dump status; the sha256 values above were recorded at download). The directory `server/data/es/` of Common Voice
+holds exactly the three files listed (checked with the GitHub contents API at that commit). The Tatoeba exports downloaded on 2026-10-15 still carried
 the reference export date (2026-10-10) and the reference hashes. The Wiktionary dump and the Tatoeba exports will
 disappear from their servers; keep archived copies (with the hashes above) to rebuild byte-identical data.
 
@@ -42,11 +49,17 @@ disappear from their servers; keep archived copies (with the hashes above) to re
   Voice (CC0). Modified (filtered, spelling, contractions, frequency classes), CC BY-SA 4.0 — followed by the
   complete SCOWL `Copyright` file verbatim (`SCOWL-Copyright.txt`, also appended to `LICENSE-en-US.txt`).
 - English word pairs: as German word pairs.
+- Spanish word list: FrequencyWords © Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; spellings from Wiktionary
+  (es.wiktionary.org and the Spanish sections of en.wiktionary.org), authors see page histories, CC BY-SA 4.0;
+  sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, accents, case,
+  frequency classes), CC BY-SA 4.0 (`LICENSE-es-ES.txt`).
+- Spanish word pairs: as German word pairs.
 
 ## Build result
 
 Recorded by the build in [tools/dictionary-build.json](../tools/dictionary-build.json). Two runs on the same inputs
-produced identical bytes.
+produced identical bytes (also after the 0.6 restructuring into per-language profiles: the German and English files are
+byte-identical to 0.5.2, and two Spanish runs gave identical bytes).
 
 | | de-DE | reference (05b) | en-US | reference (05b) |
 |---|---:|---:|---:|---:|
@@ -69,6 +82,60 @@ produced identical bytes.
 
 The SHA-256 of the uncompressed word-list payloads (stored in the pair tables as binding) are
 `c51a843f…c8637ad` (de-DE) and `ceac596e…ec3fb43f` (en-US), see dictionary-build.json.
+
+### Spanish (es-ES, first build, 0.6.0)
+
+| | es-ES |
+|---|---:|
+| keys | 247 985 |
+| cased forms | 250 743 (2 756 keys with two case forms, 17 824 keys whose best form is capitalised) |
+| S | 15.466736 (spec: expected ≈ 15.4669; `maxCount` is 14 461 415 instead of 14 459 520 because cut-off tokens such as "de-" are counted for "de") |
+| maxCount | 14 461 415 ("de") |
+| corpusTokens | 423 290 924 |
+| A / Bc | −8.63 / 0.02808 |
+| pair previous words | 38 819 |
+| pairs | 385 432 |
+| tokens with a leading/trailing hyphen added to the bare token | 20 113 |
+| clitic forms accepted (§8.4 step 1) | 2 727 of 3 855 candidates |
+| accent-less spellings merged (§8.4 step 2) | 29 151, of them 220 variant pages and 1 649 inflected forms (see below) |
+| missing-space artefacts dropped | 5 715 (70 of them Spanish forms, e.g. aveces, osea, enserio, talvez, aver, depronto) |
+| dropped as foreign words | 4 366 |
+| dropped as wrongly accented ("vámos") | 364 |
+| kept without being a Spanish form (count ≥ 40) | 22 548 |
+| coverage of the top 20 000 keys (Spanish forms) | 87.94 % Spanish dump alone, 89.92 % with the English dump (the rest are mostly names and English words of dubbed films) |
+| Tatoeba stock names | Tom, Mary, John, Sami, Layla, Mennad, Fadil, Ziri, Yanni, Skura, Rima + over-represented María, Tomás, Boston, Japón |
+
+| File | Bytes | SHA-256 |
+|---|---:|---|
+| `es-ES.words.gz` | 817 685 | `45f69b37ce57b6015792d1568bfbd5db995aec75790a873d59681f8dc7788e5c` |
+| `es-ES.pairs.gz` | 1 221 224 | `85edda4b17312dd31e10402f83c39ef8b83d08e7cfb1de031171e1e293ba4f8e` |
+
+Word-list payload SHA-256 `637aec8a…1ed989`. Size in the APK per language (word list + pairs; gzip already, so the APK cannot compress them
+further): de-DE 2.83 MB, en-US 2.45 MB, es-ES 2.04 MB. The release APK grew from about 7 MB (0.5.2) to 9.1 MB.
+
+Rules of the Spanish build that the specification leaves to the implementation (05b §8, open point 5; all are in
+`tools/dictbuild/build_es.py` and `wiktionary_es.py`):
+
+- **Wiktionary page kinds.** Both passes record, besides the Spanish forms, pages whose Spanish definitions only point
+  to another spelling (obsolete, substandard, misspelling, or the same word with accents: "tambien", "aqui", "sólo"),
+  pages that are only inflections (verb forms, plurals) and pages that call the title a misspelling or alternative
+  form of a phrase ("osea" → "o sea", "talvez" → "tal vez"). Templates are only read as text, never expanded.
+- **Accent merge** (§8.4 step 2) also merges a variant page ("tambien" → "también"; a variant page that is not merged
+  stays a word: "sólo", "éste"), and an inflected form without a lemma of its own if the accented word is at least
+  10 times as frequent ("dias" → "días", "llamame" → "llámame"); the pairs of §1.5 ("esta"/"está", "ano"/"año" …)
+  stay.
+- **Clitic forms** compete when they differ only by acute accents: the most frequent is accepted ("dámelo" over
+  "damelo"), unless a Spanish form of that spelling without accents is at least as frequent ("díme" is no clitic form).
+- **Missing-space artefacts** (§8.5 step 5) also include Spanish forms that a Wiktionary page calls a fused phrase,
+  and inflected forms without a lemma whose two-word phrase is at least 10 times as frequent as the form in the
+  sentence sources while the form's share there is below 0.2 of its subtitle share ("aveces" of avezar); a second
+  part that is a clitic pronoun never counts ("pasarla", "dejala" stay).
+- **Wrongly accented tokens** that are not forms and whose spelling without the accent is a form are dropped
+  ("vámos"; §8.4 step 3 expects them to fall out).
+- **Stock names**: the 30 most frequent capitalised Tatoeba tokens are recorded; a token among the 100 most frequent
+  whose Tatoeba share is at least 10 times its subtitle share is added.
+- The Wikipedia weight stays 1: weights 0.5, 0.25 and 0.1 were measured and change neither "a veces" nor the order
+  after "muchas" (see spec/QUESTIONS.md), but lose up to 27 % of the pairs.
 
 The small differences to the reference counts come from details of the Wiktionary markup cleaning and the
 tokenisation that the specification describes only functionally; all classes the worked examples of spec 05 §17

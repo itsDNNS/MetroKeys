@@ -2,6 +2,8 @@ package app.metrokeys.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import app.metrokeys.R
+import app.metrokeys.engine.ActiveLanguages
 
 /**
  * The settings shared by the settings app and the keyboard service (spec 07 §9.1). Keys and defaults are the
@@ -14,6 +16,7 @@ object Prefs {
     const val MULTILINGUAL = "multilingual"
     const val SHOW_COMMA_KEY = "show_comma_key"
     const val ACTIVE_LANGUAGE = "active_language"
+    const val LANGUAGE_RECENCY = "language_recency"
     const val SUGGESTIONS = "suggestions"
     const val AUTOCORRECT = "autocorrect"
     const val SPACE_AFTER_SUGGESTION = "space_after_suggestion"
@@ -62,17 +65,30 @@ object Prefs {
 
     const val GERMAN = "de-DE"
     const val ENGLISH = "en-US"
-    val SUPPORTED_LANGUAGES = listOf(GERMAN, ENGLISH)
+    const val SPANISH = "es-ES"
+
+    /** The supported keyboard languages in the fixed language order: alphabetical by tag (07 §9.5). */
+    val SUPPORTED_LANGUAGES = listOf(GERMAN, ENGLISH, SPANISH)
 
     /** Default tap bindings of the three application-bar buttons (spec 07 §9.12). */
     val DEFAULT_NAV_TAP = listOf("editor", "emoji", "voice")
 
     fun of(context: Context): SharedPreferences = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-    /** Enabled keyboard languages in the canonical order (German, English); never empty. */
+    /** Enabled keyboard languages in the fixed language order; unknown tags are ignored; never empty. */
     fun languages(p: SharedPreferences): List<String> {
         val set = p.getStringSet(LANGUAGES, null) ?: setOf(GERMAN)
         return SUPPORTED_LANGUAGES.filter { it in set }.ifEmpty { listOf(GERMAN) }
+    }
+}
+
+/** Names of the keyboard languages in the app language (07 §9.5, string table §11.2). */
+object LanguageNames {
+    fun res(tag: String): Int = when (tag) {
+        Prefs.GERMAN -> R.string.lang_de
+        Prefs.ENGLISH -> R.string.lang_en
+        Prefs.SPANISH -> R.string.lang_es
+        else -> R.string.lang_en
     }
 }
 
@@ -88,6 +104,8 @@ data class KeyboardSettings(
     val multilingual: Boolean,
     val showCommaKey: Boolean,
     val activeLanguage: String?,
+    /** Order in which the enabled languages were last selected, most recent first (07 §9.1, 05 §14.5). */
+    val languageRecency: List<String> = emptyList(),
     val suggestions: Boolean,
     val autocorrect: Boolean,
     val spaceAfterSuggestion: Boolean,
@@ -139,6 +157,7 @@ data class KeyboardSettings(
             multilingual = p.getBoolean(Prefs.MULTILINGUAL, true),
             showCommaKey = p.getBoolean(Prefs.SHOW_COMMA_KEY, false),
             activeLanguage = p.getString(Prefs.ACTIVE_LANGUAGE, null),
+            languageRecency = ActiveLanguages.parse(p.getString(Prefs.LANGUAGE_RECENCY, null)),
             suggestions = p.getBoolean(Prefs.SUGGESTIONS, true),
             autocorrect = p.getBoolean(Prefs.AUTOCORRECT, true),
             spaceAfterSuggestion = p.getBoolean(Prefs.SPACE_AFTER_SUGGESTION, true),

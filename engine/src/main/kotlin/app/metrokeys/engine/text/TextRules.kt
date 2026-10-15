@@ -128,6 +128,13 @@ public object TextRules {
         return if (isAutocorrectTrigger(c)) TrailingSpaceAction.NOTHING else TrailingSpaceAction.INSERT_SPACE
     }
 
+    /**
+     * The Spanish opening marks `¿` `¡` (04 §1.6): no triggers, never an automatic space before or after them, auto-shift
+     * after them; after a swiped word a space is inserted first.
+     */
+    @JvmStatic
+    public fun isOpeningMark(text: CharSequence): Boolean = text.length == 1 && (text[0] == '¿' || text[0] == '¡')
+
     /** Smart space (04 §4.3): an auto space is deleted before this character (a trigger other than space). */
     @JvmStatic
     public fun smartSpaceDeletesBefore(c: Char): Boolean = c != ' ' && isAutocorrectTrigger(c)

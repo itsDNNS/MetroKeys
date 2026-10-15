@@ -43,6 +43,7 @@
     <string name="languages_min">Eine Sprache muss aktiv bleiben</string>
     <string name="multilingual">In mehreren Sprachen tippen</string>
     <string name="multilingual_note">Vorschläge kommen aus allen gewählten Sprachen; korrigiert wird in der Sprache des Satzes.</string>
+    <string name="multilingual_note_many">Vorschläge kommen aus der aktuellen Sprache und den zwei zuletzt benutzten; korrigiert wird in der Sprache des Satzes.</string>
     <string name="multilingual_off">Verfügbar ab zwei Tastatursprachen</string>
     <string name="comma_key">Kommataste bei mehreren Sprachen</string>
     <string name="comma_key_note">Behält die Kommataste neben der Leertaste, wenn die Tastatur eine Sprachtaste zeigt.</string>

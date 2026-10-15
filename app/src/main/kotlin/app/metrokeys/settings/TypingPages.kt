@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import app.metrokeys.R
+import app.metrokeys.engine.predict.Params
 import app.metrokeys.settings.ui.BodyText
 import app.metrokeys.settings.ui.CheckBoxRow
 import app.metrokeys.settings.ui.FieldHeader
@@ -48,11 +49,12 @@ fun LanguagesPage() {
         BodyText(stringResource(R.string.languages_intro))
         FieldHeader(stringResource(R.string.languages_header))
         val langs = store.languages()
-        for ((tag, name) in listOf(Prefs.GERMAN to R.string.lang_de, Prefs.ENGLISH to R.string.lang_en)) {
+        // one check box per supported language, always all of them, in the fixed language order (07 §9.5 item 3)
+        for (tag in Prefs.SUPPORTED_LANGUAGES) {
             val checked = tag in langs
             val last = checked && langs.size == 1
             CheckBoxRow(
-                stringResource(name), checked,
+                stringResource(LanguageNames.res(tag)), checked,
                 { on -> store.setLanguages(if (on) langs + tag else langs - tag) },
                 enabled = !last, note = if (last) stringResource(R.string.languages_min) else null,
             )
@@ -60,7 +62,13 @@ fun LanguagesPage() {
         val avail = langs.size >= 2
         PrefToggle(
             stringResource(R.string.multilingual), Prefs.MULTILINGUAL, true, enabled = avail,
-            note = stringResource(if (avail) R.string.multilingual_note else R.string.multilingual_off),
+            note = stringResource(
+                when {
+                    !avail -> R.string.multilingual_off
+                    langs.size > Params.LANG_ACTIVE_MAX -> R.string.multilingual_note_many
+                    else -> R.string.multilingual_note
+                },
+            ),
         )
         PrefToggle(
             stringResource(R.string.comma_key), Prefs.SHOW_COMMA_KEY, false, enabled = avail,

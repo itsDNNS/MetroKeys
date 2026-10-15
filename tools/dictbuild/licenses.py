@@ -16,10 +16,17 @@ EN_WORDS = ("Word list: FrequencyWords (c) Hermit Dave (OpenSubtitles 2018), CC 
             "and Mozilla Common Voice (CC0). Modified (filtered, spelling, contractions, frequency classes), "
             "CC BY-SA 4.0.")
 
+ES_WORDS = ("Word list: FrequencyWords (c) Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; spellings from Wiktionary "
+            "(es.wiktionary.org and the Spanish sections of en.wiktionary.org), authors see page histories, "
+            "CC BY-SA 4.0; sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified "
+            "(filtered, accents, case, frequency classes), CC BY-SA 4.0.")
+
+WORDS = {"de": DE_WORDS, "en": EN_WORDS, "es": ES_WORDS}
+
 
 def text(tag, scowl_notice=None):
     lines = [f"MetroKeys dictionary {tag} ({tag}.words.gz, {tag}.pairs.gz)", ""]
-    lines.append(DE_WORDS if tag.startswith("de") else EN_WORDS)
+    lines.append(WORDS[tag.split("-")[0]])
     lines += ["", PAIRS, "", CC_BY_SA, ""]
     out = "\n".join(lines)
     if scowl_notice is not None:
