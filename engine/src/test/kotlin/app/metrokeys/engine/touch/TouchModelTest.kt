@@ -104,6 +104,40 @@ class TouchModelTest {
     }
 
     @Test
+    fun portugueseGeometry() {
+        // 05 §4 and the conformance row "pt: touch geometry": the Spanish geometry with ç in place of ñ
+        val gp = KeyboardGeometry.fallback("pt-BR")
+        val pt = TouchModel(gp, LanguageParams.PORTUGUESE)
+        assertEquals(27, gp.keys.size)
+        assertEquals(0f, gp.ownKey('a')!!.left)
+        assertEquals(gp.ownKey('p')!!.centerX, gp.ownKey('ç')!!.centerX)
+        assertEquals(55, pt.sub('a', 'q'))
+        assertEquals(55, pt.sub('ç', 'p'))
+        assertEquals(62, pt.sub('z', 's'))
+        assertEquals(85, pt.sub('a', 'w'))
+        assertEquals(85, pt.sub('ç', 'o'))
+        assertEquals(44, pt.sub('ç', 'l'))
+        assertEquals(44, pt.sub('s', 'a'))
+        assertEquals(155, pt.sub('ç', 'c'))
+        assertEquals(155, pt.sub('c', 'ç'))
+        // a tap just across the border: 24 instead of 44
+        val a = gp.ownKey('a')!!
+        assertEquals(24, pt.substitutionCost('s', a.centerX + 0.55f * gp.keyWidth, a.centerY, 'a'))
+        // on the Portuguese page ñ lives on n; on the Spanish page ç lives on c
+        assertEquals(gp.ownKey('n'), gp.touchKey('ñ'))
+        assertEquals('ç', gp.touchKey('Ç')!!.letter)
+        assertEquals(KeyboardGeometry.fallback("es-ES").ownKey('c'), KeyboardGeometry.fallback("es-ES").touchKey('ç'))
+        val layout = TestDictionaries.layoutGeometry("pt")
+        assertEquals(27, layout.keys.size)
+        for (k in gp.keys) {
+            val l = layout.ownKey(k.letter)!!
+            assertEquals(k.centerX, l.centerX, 0.01f, "pt ${k.letter}")
+            assertEquals(k.centerY, l.centerY, 0.01f, "pt ${k.letter}")
+        }
+        assertEquals(27, TestDictionaries.layoutGeometry("pt-multi").keys.size)
+    }
+
+    @Test
     fun lettersWithoutAKeyLiveOnTheirBaseLetter() {
         // German and English pages: ñ on n, í on i, ç on c; the Spanish page: ñ is its own key, ü on u
         assertEquals(g.ownKey('n'), g.touchKey('ñ'))

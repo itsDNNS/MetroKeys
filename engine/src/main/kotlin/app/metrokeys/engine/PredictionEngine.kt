@@ -186,7 +186,7 @@ public class PredictionEngine(
         val engines = runningEngines()
         val len = ctx.word.length
         if (!policy.prediction || len > Params.WORD_MAX_LEN || (!s.suggestions && !s.autocorrect)) {
-            val valid = engines.any { it.validity(ctx.word, it.caseMode(ctx.word, ctx.preceding), ctx.prev).valid }
+            val valid = engines.any { it.typedValidity(ctx).valid }
             return Prediction(ctx.word, emptyList(), null, valid)
         }
         val results = engines.map { it.suggest(ctx) }
@@ -364,7 +364,7 @@ public class PredictionEngine(
         val engines = runningEngines()
         if (engines.size == 1) return engines[0]
         val parts = word.split(' ').map { TextModel.trimNonWord(it) }.filter { it.isNotEmpty() }
-        val knowing = engines.filter { e -> parts.isNotEmpty() && parts.all { e.lexicon.keyIndex(it) >= 0 } }
+        val knowing = engines.filter { e -> parts.isNotEmpty() && parts.all { e.lexicon.keyIndex(e.stripElision(it)) >= 0 } }
         if (knowing.size == 1) return knowing[0]
         val weights = languageWeights(previousWords.flatMap { it.split(' ') }.filter { it.isNotEmpty() }.reversed())
         val pool = knowing.ifEmpty { engines }
@@ -383,15 +383,17 @@ public class PredictionEngine(
         accepted: Boolean = false,
     ) {
         if (!settings.learning || !field.policy.learning) return
-        learningLanguage(word, previousWords).user.learn(word, previousWords, accepted)
+        val target = learningLanguage(word, previousWords)
+        // a word with an elided prefix ("d'água") is learned as its remainder (05 §2.2)
+        target.user.learn(target.stripElision(word), previousWords, accepted)
     }
 
     /** "Add to dictionary" (05 §12.4). Returns true if the word was added. */
     public fun addWord(word: String, field: FieldInfo = FieldInfo(FieldPolicy.TEXT)): Boolean {
         if (!settings.learning || !field.policy.learning) return false
         val engines = runningEngines()
-        val target = engines.firstOrNull { it.lexicon.keyIndex(word) >= 0 } ?: active
-        return target.user.addWord(word)
+        val target = engines.firstOrNull { it.lexicon.keyIndex(it.stripElision(word)) >= 0 } ?: active
+        return target.user.addWord(target.stripElision(word))
     }
 
     /**
@@ -406,7 +408,7 @@ public class PredictionEngine(
         accepted: Boolean = false,
     ) {
         val learn = settings.learning && field.policy.learning
-        for (l in languages) l.user.reject(typed, correction, learn, accepted)
+        for (l in languages) l.user.reject(l.stripElision(typed), l.stripElision(correction), learn, accepted)
     }
 
     /** True if a dictionary of any loaded language knows [word] in some casing. */

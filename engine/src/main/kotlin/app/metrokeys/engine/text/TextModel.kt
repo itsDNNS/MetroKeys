@@ -126,11 +126,19 @@ public object TextModel {
         return PrevContext.None
     }
 
-    /** True if [s] contains only letters, apostrophes and combining marks (spelling-check filter). */
+    /** The ordinal indicators º ª: letters in Unicode, but never part of a dictionary word (05 §2.2, 04 §11.1). */
+    @JvmStatic
+    public fun isOrdinalIndicator(c: Char): Boolean = c == 'º' || c == 'ª'
+
+    /**
+     * True if [s] contains only letters, apostrophes and combining marks (spelling-check filter); a word with an ordinal
+     * indicator is never checked (05 §16).
+     */
     @JvmStatic
     public fun isCheckable(s: String): Boolean {
         if (s.length !in 2..127) return false
         for (c in s) {
+            if (isOrdinalIndicator(c)) return false
             val ok = Character.isLetter(c) || c == '\'' || c == '’' || Character.getType(c) == Character.NON_SPACING_MARK.toInt() ||
                 Character.getType(c) == Character.COMBINING_SPACING_MARK.toInt() || Character.getType(c) == Character.ENCLOSING_MARK.toInt()
             if (!ok) return false

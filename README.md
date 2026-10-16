@@ -11,25 +11,26 @@ written from a functional specification (see [How it is made](#how-it-is-made)).
 
 > **Made with AI:** MetroKeys is written and maintained with the help of Claude Opus 5.5 (Anthropic). See [How it is made](#how-it-is-made).
 
-Version 0.6.0 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer.
+Version 0.6.1 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer.
 
 <p>
   <img src="docs/screenshots/letters-dark.png" width="240" alt="Letter page, dark theme, with next-word predictions">
   <img src="docs/screenshots/letters-light.png" width="240" alt="Letter page, light theme with the red accent">
   <img src="docs/screenshots/suggestions.png" width="240" alt="Suggestions while typing a misspelled word">
   <img src="docs/screenshots/letters-spanish-dark.png" width="240" alt="Spanish letter page with ñ and next-word predictions">
+  <img src="docs/screenshots/letters-portuguese-dark.png" width="240" alt="Portuguese (Brazil) letter page with ç and next-word predictions">
 </p>
 
 ## Features
 
 **Typing**
-- Keyboard languages: German (QWERTZ), English (US, QWERTY) and Spanish (Spain, QWERTY with ñ), each with its own
-  dictionary, symbol pages, number, phone and PIN pads, and long-press alternates for accented letters and symbols
-  (Spanish: ¿ and ¡ on the long press of the period key).
+- Keyboard languages: German (QWERTZ), English (US, QWERTY), Spanish (Spain, QWERTY with ñ) and Portuguese (Brazil,
+  QWERTY with ç), each with its own dictionary, symbol pages, number, phone and PIN pads, and long-press alternates
+  for accented letters and symbols (Spanish: ¿ and ¡ on the long press of the period key).
 - Word suggestions while typing, next-word prediction and autocorrection, with an undo by tapping the word you
-  typed. Corrections are case-aware, learn from what you type, add missing accents in Spanish ("cancion" → "canción",
-  "manana" → "mañana") and, in English and Spanish, fix a missing space ("ofthe" → "of the", "porfavor" →
-  "por favor").
+  typed. Corrections are case-aware, learn from what you type, add missing accents in Spanish and Portuguese
+  ("cancion" → "canción", "informacao" → "informação", "voce" → "você") and, in English, Spanish and Portuguese, fix
+  a missing space ("ofthe" → "of the", "porfavor" → "por favor").
 - Shape writing: slide across the letters to write a word; the trace follows your finger.
 - Typing in several languages at once (multilingual mode): a language key cycles through all enabled languages,
   suggestions come from up to three of them and corrections follow the language of the sentence.
@@ -89,7 +90,7 @@ Version 0.6.0 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer
      every third-party keyboard.
    - **choose**: pick MetroKeys as the current keyboard.
 3. Tap the **Try it** field on the same page and start typing.
-4. Optional: under **languages**, enable further keyboard languages (German, English, Spanish) and choose the app
+4. Optional: under **languages**, enable further keyboard languages (German, English, Spanish, Portuguese) and choose the app
    language (English or German); under
    **suggestions**, turn on contact names as a word source (asks for the contacts permission); under **layout →
    app bar buttons**, choose what the three buttons below the keys do.
@@ -139,8 +140,8 @@ keyPassword=…
 `apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk`.
 
 **Continuous integration.** [.github/workflows/build.yml](.github/workflows/build.yml) runs the tests, lint and the
-debug build on every push and pull request to `main` and uploads the debug APK and the reports. Pushing a tag
-`v*` also builds the (unsigned) release APK and attaches it to a draft GitHub release.
+debug build on every push and pull request to `main` and uploads the debug APK and the reports. Releases are built
+and signed locally; the signed APK is attached to the GitHub release by hand.
 
 **Code layout.** `engine/` is a pure Kotlin/JVM library with prediction, autocorrection, shape writing and the
 dictionaries ([docs/ENGINE.md](docs/ENGINE.md)); `app/` is the Android app with the input method and the settings
@@ -172,7 +173,8 @@ The bundled third-party components keep their own licences:
 - **Dictionaries** (word lists and word-pair tables, licensed as data under CC BY-SA 4.0, not under the GPL), built
   from:
   - FrequencyWords by Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0;
-  - German Wiktionary (de.wiktionary.org), CC BY-SA 4.0;
+  - Wiktionary (de.wiktionary.org, es.wiktionary.org, pt.wiktionary.org and the Spanish and Portuguese sections of
+    en.wiktionary.org), CC BY-SA 4.0;
   - Tatoeba sentences (tatoeba.org), CC BY 2.0 FR;
   - SCOWL by Kevin Atkinson and others (wordlist.aspell.net), SCOWL licence (notice shipped verbatim);
   - Mozilla Common Voice sentences, CC0 1.0.

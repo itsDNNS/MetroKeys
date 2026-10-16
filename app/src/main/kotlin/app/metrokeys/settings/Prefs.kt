@@ -66,9 +66,10 @@ object Prefs {
     const val GERMAN = "de-DE"
     const val ENGLISH = "en-US"
     const val SPANISH = "es-ES"
+    const val PORTUGUESE = "pt-BR"
 
     /** The supported keyboard languages in the fixed language order: alphabetical by tag (07 §9.5). */
-    val SUPPORTED_LANGUAGES = listOf(GERMAN, ENGLISH, SPANISH)
+    val SUPPORTED_LANGUAGES = listOf(GERMAN, ENGLISH, SPANISH, PORTUGUESE)
 
     /** Default tap bindings of the three application-bar buttons (spec 07 §9.12). */
     val DEFAULT_NAV_TAP = listOf("editor", "emoji", "voice")
@@ -88,6 +89,7 @@ object LanguageNames {
         Prefs.GERMAN -> R.string.lang_de
         Prefs.ENGLISH -> R.string.lang_en
         Prefs.SPANISH -> R.string.lang_es
+        Prefs.PORTUGUESE -> R.string.lang_pt
         else -> R.string.lang_en
     }
 }

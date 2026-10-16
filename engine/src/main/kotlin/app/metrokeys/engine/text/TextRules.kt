@@ -135,6 +135,21 @@ public object TextRules {
     @JvmStatic
     public fun isOpeningMark(text: CharSequence): Boolean = text.length == 1 && (text[0] == '¿' || text[0] == '¡')
 
+    /**
+     * Space before a swiped word (06 §5.1 item 1): true if the text before the caret ends with a character that is not
+     * whitespace, except directly after an opening mark `¿ ¡` (04 §1.6) and directly after a hyphen that follows a
+     * letter (`deixe-` + `me` → `deixe-me`, `E-` + `Mail` → `E-Mail`; a hyphen after a space keeps the space).
+     */
+    @JvmStatic
+    public fun spaceBeforeSwipe(before: CharSequence): Boolean {
+        val n = before.length
+        if (n == 0) return false
+        val last = before[n - 1]
+        if (last.isWhitespace() || last == '¿' || last == '¡') return false
+        if (last == '-' && n >= 2 && Character.isLetter(before[n - 2])) return false
+        return true
+    }
+
     /** Smart space (04 §4.3): an auto space is deleted before this character (a trigger other than space). */
     @JvmStatic
     public fun smartSpaceDeletesBefore(c: Char): Boolean = c != ' ' && isAutocorrectTrigger(c)

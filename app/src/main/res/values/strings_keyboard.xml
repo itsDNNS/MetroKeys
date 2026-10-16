@@ -95,6 +95,7 @@
     <string name="lang_de">German</string>
     <string name="lang_en">English (United States)</string>
     <string name="lang_es">Spanish (Spain)</string>
+    <string name="lang_pt">Portuguese (Brazil)</string>
     <plurals name="a11y_clip_opened">
         <item quantity="one">Clipboard history, %d entry</item>
         <item quantity="other">Clipboard history, %d entries</item>

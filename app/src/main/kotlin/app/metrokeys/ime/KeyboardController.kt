@@ -59,6 +59,9 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         override fun now(): Long = SystemClock.uptimeMillis()
 
         override fun background(task: () -> Unit) {
+            // InputMethodService.onDestroy finishes the input view after destroy() shut the worker down (when the
+            // user switches to another keyboard while this one is shown); the learned data was saved by destroy()
+            if (worker.isShutdown) return
             worker.execute {
                 try {
                     task()
@@ -625,7 +628,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         return layoutCache.getOrPut(name) { LayoutSet.parse(context.assets.open(name).bufferedReader().use { it.readText() }) }
     }
 
-    /** Enabled languages ordered by label text (DEU < ENG < ESP); equal labels are ordered by tag (01 §11.2). */
+    /** Enabled languages ordered by label text (DEU < ENG < ESP < POR); equal labels are ordered by tag (01 §11.2). */
     private fun languageOrder(@Suppress("UNUSED_PARAMETER") current: String): List<String> =
         settings.languages.sortedWith(compareBy({ languageLabel(it) }, { it }))
 
@@ -658,7 +661,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
 
     /**
      * Domain endings by device region (01 §11.6): the list of the layout data whose region matches (Germany, the US,
-     * Spain); other regions: own ccTLD first, then .com .org .net (open point 2); no region: the US list.
+     * Spain, Brazil); other regions: own ccTLD first, then .com .org .net (open point 2); no region: the US list.
      */
     fun domains(): List<String> {
         val region = Locale.getDefault().country.uppercase(Locale.ROOT)

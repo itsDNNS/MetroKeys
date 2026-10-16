@@ -58,6 +58,11 @@ public data class LanguageParams(
     val missingSpaceSplit: Boolean,
     /** `ING_RULE`: "…in" counts as valid like "…ing" (§7 rule 7). */
     val ingRule: Boolean,
+    /**
+     * `ELISION_PREFIXES` (extension, §2.2): elided prefixes the engine strips from the current word, lower case with the
+     * ASCII apostrophe ("d'" for pt-BR). Empty for no elision.
+     */
+    val elisionPrefixes: List<String>,
     /** Letter rows of the fallback grid (§4), top to bottom. */
     val fallbackRows: List<String>,
     /** Start of fallback row 2 as a fraction of the width (§4: 0.05, Spanish 0). */
@@ -80,6 +85,7 @@ public data class LanguageParams(
             compoundLinks = listOf("", "s", "es", "n", "en", "er"),
             missingSpaceSplit = false,
             ingRule = false,
+            elisionPrefixes = emptyList(),
             fallbackRows = listOf("qwertzuiop", "asdfghjkl", "yxcvbnm"),
             fallbackRow2Start = 0.05f,
             shape = ShapeParams(unusedKeyCost = 10.0, neighbourFactor = 0.096, doubleLetterCost = 14.0, accentFactor = 0.24, cornerAngle = 45f),
@@ -98,6 +104,7 @@ public data class LanguageParams(
             compoundLinks = null,
             missingSpaceSplit = true,
             ingRule = true,
+            elisionPrefixes = emptyList(),
             fallbackRows = listOf("qwertyuiop", "asdfghjkl", "zxcvbnm"),
             fallbackRow2Start = 0.05f,
             shape = ShapeParams(unusedKeyCost = 8.0, neighbourFactor = 0.083, doubleLetterCost = 14.0, accentFactor = 0.01, cornerAngle = 45f),
@@ -119,17 +126,40 @@ public data class LanguageParams(
             compoundLinks = null,
             missingSpaceSplit = true,
             ingRule = false,
+            elisionPrefixes = emptyList(),
             fallbackRows = listOf("qwertyuiop", "asdfghjklñ", "zxcvbnm"),
             fallbackRow2Start = 0f,
             shape = ShapeParams(unusedKeyCost = 8.0, neighbourFactor = 0.092, doubleLetterCost = 19.0, accentFactor = 0.24, cornerAngle = 45f),
             emoji = EmojiTables.SPANISH,
         )
 
+        @JvmField
+        public val PORTUGUESE: LanguageParams = LanguageParams(
+            languageTag = "pt-BR",
+            edInsert = 165, edDelete = 240, edSubstitute = 155, edSwap = 65, edSpace = 213, edCase = 44,
+            edDiacritic = 30, edFiller = 0, edNearDiv = 13, edNearBase = 15,
+            acLimit = 250, acEditFactor = 5, acMargin = 33, acValidRare = 201, acValidTarget = 130,
+            prefixAccents = mapOf(
+                'a' to listOf('á', 'à', 'ã', 'â'), 'c' to listOf('ç'), 'e' to listOf('é', 'ê'), 'i' to listOf('í'),
+                'o' to listOf('ó', 'õ', 'ô'), 'u' to listOf('ú', 'ü'),
+            ),
+            oneLetterWords = setOf("a", "à", "e", "é", "o"),
+            singleLetterFix = emptyMap(),
+            compoundLinks = null,
+            missingSpaceSplit = true,
+            ingRule = false,
+            elisionPrefixes = listOf("d'"),
+            fallbackRows = listOf("qwertyuiop", "asdfghjklç", "zxcvbnm"),
+            fallbackRow2Start = 0f,
+            shape = ShapeParams(unusedKeyCost = 12.0, neighbourFactor = 0.092, doubleLetterCost = 14.0, accentFactor = 0.16, cornerAngle = 45f),
+            emoji = EmojiTables.PORTUGUESE,
+        )
+
         /** Every supported keyboard language, in the fixed language order (alphabetical by tag, 07 §9.5). */
         @JvmField
-        public val ALL: List<LanguageParams> = listOf(GERMAN, ENGLISH, SPANISH)
+        public val ALL: List<LanguageParams> = listOf(GERMAN, ENGLISH, SPANISH, PORTUGUESE)
 
-        /** Parameters of a supported language tag ("de-DE", "en-US", "es-ES"; a bare "de" also matches). */
+        /** Parameters of a supported language tag ("de-DE", "en-US", "es-ES", "pt-BR"; a bare "de" also matches). */
         @JvmStatic
         public fun forLanguage(tag: String): LanguageParams =
             ALL.firstOrNull { it.languageTag == tag } ?: ALL.firstOrNull { it.languageTag.substringBefore('-') == tag.substringBefore('-') }

@@ -24,11 +24,13 @@ sys.path.insert(0, os.path.join(HERE, "dictbuild"))
 import build_de  # noqa: E402
 import build_en  # noqa: E402
 import build_es  # noqa: E402
+import build_pt  # noqa: E402
 import common  # noqa: E402
 import licenses  # noqa: E402
 import pairs  # noqa: E402
 import wiktionary_de  # noqa: E402
 import wiktionary_es  # noqa: E402
+import wiktionary_pt  # noqa: E402
 
 ROOT = os.path.dirname(HERE)
 SRC = os.path.join(ROOT, "build-data", "src")
@@ -37,6 +39,7 @@ OUT = os.path.join(ROOT, "engine", "src", "main", "resources", "app", "metrokeys
 WIKT_DUMP = "wiktionary/dewiktionary-20261001-pages-articles.xml.bz2"
 ES_WIKT_DUMP = "wiktionary/eswiktionary-20261001-pages-articles.xml.bz2"
 EN_WIKT_DUMP = "wiktionary/enwiktionary-20261001-pages-articles.xml.bz2"
+PT_WIKT_DUMP = "wiktionary/ptwiktionary-20261001-pages-articles.xml.bz2"
 SCOWL = "scowl/scowl-2020.12.07.tar.gz"
 
 
@@ -84,6 +87,7 @@ CV_FILES = {
     "de": None,
     "en": None,
     "es": {"sentence-collector.txt": 3, "wiki.es.txt": 1},
+    "pt": {"sentence-collector.txt": 3},
 }
 
 
@@ -263,11 +267,87 @@ def build_spanish(stats):
     write_licenses(tags=["es-ES"])
 
 
+def build_portuguese(stats):
+    pt_cache = os.path.join(CACHE, "ptwiktionary-20261001-pt.tsv.gz")
+    en_cache = os.path.join(CACHE, "enwiktionary-20261001-pt.tsv.gz")
+    if not os.path.exists(pt_cache):
+        print("Portuguese Wiktionary pass")
+        wiktionary_pt.extract(os.path.join(SRC, PT_WIKT_DUMP), pt_cache, "pt")
+    if not os.path.exists(en_cache):
+        print("English Wiktionary pass, Portuguese sections (about 15 minutes)")
+        wiktionary_pt.extract(os.path.join(SRC, EN_WIKT_DUMP), en_cache, "en")
+    pt_titles, pt_secs = wiktionary_pt.load_extract(pt_cache)
+    en_titles, en_secs = wiktionary_pt.load_extract(en_cache)
+    pt_pages = (pt_titles, {t: wiktionary_pt.classify_pt(t, s) for t, s in pt_secs.items()})
+    en_pages = (en_titles, {t: wiktionary_pt.classify_en(t, s) for t, s in en_secs.items()})
+    del pt_secs, en_secs
+    pt = build_pt.PortugueseBuilder(os.path.join(SRC, "fw", "pt_br_full.txt"), os.path.join(SRC, "fw", "pt_br_ignored.txt"),
+                                    pt_pages, en_pages)
+
+    # §9.7: the Brazilian filter of the sentence sources (pairs and running-text case evidence)
+    markers = pt.european_marker_keys()
+    dropped_sentences = {"tatoeba": 0, "commonVoice": 0}
+    kept = []
+    for text in tatoeba_sentences("por_sentences.tsv.bz2", "por"):
+        if pt.european_sentence(text, markers):
+            dropped_sentences["tatoeba"] += 1
+        else:
+            kept.append((text, 3, True))
+    cv_used = []
+    for fn, weight, lines in cv_files("pt"):
+        cv_used.append([fn, weight])
+        for text in lines:
+            if pt.european_sentence(text, markers):
+                dropped_sentences["commonVoice"] += 1
+            else:
+                kept.append((text, weight, False))
+    st = build_pt.SentenceStats()
+    for text, weight, tatoeba in kept:
+        st.add_sentence(text, weight == 3, tatoeba)
+    st.finish()
+    pt.finish_spellings(st)
+    phrases = build_pt.PhraseCounter(p for _, p in pt.phrase_candidates())
+    for text, weight, _ in kept:
+        phrases.add(text, weight)
+    pt.set_phrase_counts(phrases)
+    pt_entries = pt.build()
+    pt_keys = sorted(pt_entries)
+    stock, top30, added = build_es.stock_names(st, pt.counts)
+    counter = pairs.PairCounter("pt", pt_entries, stock)
+    for text, weight, tatoeba in kept:
+        counter.add(text, weight, tatoeba)
+    order = {k: i for i, k in enumerate(pt_keys)}
+    pt_table = counter.table(order)
+    report = dict(pt.report)
+    cov = pt.coverage()
+    report.update({
+        "coverageTop20000PortugueseDump": round(cov["pt"], 4),
+        "coverageTop20000EnglishDump": round(cov["en"], 4),
+        "coverageTop20000BothDumps": round(cov["both"], 4),
+        "portugueseWiktionaryTitles": len(pt_titles),
+        "portugueseWiktionaryPortugueseSections": len(pt_pages[1]),
+        "englishWiktionaryPortugueseSections": len(en_pages[1]),
+        "commonVoiceFiles": cv_used,
+        "sentencesDropped": dropped_sentences,
+        "sentencesKept": len(kept),
+        "europeanMarkerKeys": len(markers),
+        "tatoebaStockNames": sorted(stock),
+        "tatoebaStockNamesAdded": added,
+        "tatoebaTop30Capitalised": top30,
+        "formsKeptWithTwoCases": sum(1 for v in pt_entries.values() if len(v) > 1),
+        "properNounKeys": sum(1 for v in pt_entries.values() if v[0][0][0].isupper()),
+    })
+    stats["pt-BR-extra"] = report
+    write_outputs("pt-BR", pt.scale, pt.max_count, pt.corpus_tokens, pt_entries, pt_table, stats)
+    write_licenses(tags=["pt-BR"])
+
+
 # build profiles (05b §7): language tag -> builder
 PROFILES = {
     "de-DE": build_german,
     "en-US": build_english,
     "es-ES": build_spanish,
+    "pt-BR": build_portuguese,
 }
 
 

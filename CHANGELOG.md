@@ -3,6 +3,35 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.6.1 – 2026-10-16
+
+### Languages
+- New keyboard language **Portuguese (Brazil)**: QWERTY with its own ç key, ã and õ first on the long press of a and o,
+  "espaço" on the space bar, "POR"/"BR" on the language key and picker, `.com .br .com.br .gov.br` among the domain
+  endings in Brazil, and a decimal comma on the number pad. The language key cycles DEU → ENG → ESP → POR.
+- Brazilian Portuguese dictionary built from free sources (Brazilian subtitle frequencies including their hyphenated
+  forms, Portuguese and English Wiktionary, Tatoeba and Common Voice filtered for Brazilian usage; CC BY-SA 4.0,
+  attribution on the licenses page): missing accents, tildes and cedillas are corrected ("voce" → "você",
+  "nao" → "não", "informacao" → "informação", "comecar" → "começar"); words that exist in both spellings stay as typed
+  with the accented one offered ("esta"/"está", "e"/"é"); spellings of the 1990 orthographic agreement are preferred
+  while the former Brazilian ones ("idéia", "vôo") stay valid; European-only forms ("facto", "bebé", "autocarro") are
+  not suggested; a missing space is fixed ("porfavor" → "por favor").
+- Hyphenated forms are typed as their parts: "deixe-me", "fazê-lo" and "bem-vindo" are two words each, the hyphen
+  never triggers an autocorrection, and the verb forms used before a pronoun ("fazê", "ajudá") are words.
+- "d'água": the elided "d'" is kept as typed and only the rest is predicted and corrected ("d'agua" → "d'água").
+- Words with the ordinal indicators º and ª ("1º", "nº") are never corrected or marked.
+- Shape writing for Portuguese: "faço" is swiped over the ç key, accented letters through their base keys.
+
+### Typing
+- All languages: a word swiped directly after a letter and a hyphen gets no space before it, so hyphenated words can
+  be swiped part by part ("deixe-" + "me", "E-" + "Mail"); after " - " the space stays.
+
+### Settings
+- Portuguese (Brazil) on the languages page.
+
+### Fixes
+- Switching to another keyboard while MetroKeys was shown could crash the keyboard process while it closed.
+
 ## 0.6.0 – 2026-10-16
 
 ### Languages

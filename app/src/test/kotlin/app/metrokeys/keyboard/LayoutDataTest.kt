@@ -21,7 +21,7 @@ class LayoutDataTest {
     @Test
     fun allLayoutFilesParseAndEveryInputTypeHasItsPages() {
         for (n in listOf("layouts-de.json", "layouts-de-multi.json", "layouts-en.json", "layouts-en-multi.json",
-            "layouts-es.json", "layouts-es-multi.json")) {
+            "layouts-es.json", "layouts-es-multi.json", "layouts-pt.json", "layouts-pt-multi.json")) {
             val l = layout(n)
             for ((type, pages) in l.inputTypes) for (p in pages) assertTrue("$n $type $p", p in l.pages)
             for (p in l.pages.values) for (k in p.keys) if (k.role == KeyRole.PAGE || k.role == KeyRole.EMOJI) {
@@ -87,12 +87,49 @@ class LayoutDataTest {
     }
 
     @Test
+    fun portuguesePages() {
+        val pt = layout("layouts-pt.json")
+        assertEquals("pt-BR", pt.language)
+        assertEquals("POR", pt.languageInfo.label)
+        assertEquals("BR", pt.languageInfo.subLabel)
+        assertEquals("BR", pt.domainRegion)
+        assertEquals(listOf(".com", ".br", ".com.br", ".gov.br", ".org", ".net"), pt.domains)
+        val p = pt.page("text.letters")
+        // row 2: ten keys without indent, ç last (01 §3.5)
+        val row2 = p.keys.filter { it.rect.top == 0.25f && it.isLetter }.sortedBy { it.rect.left }
+        assertEquals("asdfghjklç", row2.joinToString("") { it.output!! })
+        assertEquals(0f, row2.first().rect.left)
+        val cedilla = row2.last()
+        assertEquals("Ç", cedilla.outputText(true))
+        assertTrue(cedilla.alternates.isEmpty())
+        assertEquals(listOf("ã", "á", "â", "à", "ä", "æ", "å"), p.keys.first { it.output == "a" }.alternates.map { it.output })
+        assertEquals(listOf("õ", "ó", "ô", "ò", "ö", "œ", "ø"), p.keys.first { it.output == "o" }.alternates.map { it.output })
+        assertEquals(listOf("ç", "©"), p.keys.first { it.output == "c" }.alternates.map { it.output })
+        val dot = p.keys.first { it.output == "." && it.rect.top == 0.75f }
+        assertEquals(listOf(",", "?", "!", "-"), dot.alternates.map { it.output })
+        assertEquals("espaço", p.keys.first { it.role == KeyRole.SPACE }.label)
+        // url letters: the . key has no comma (01 §5.1)
+        val urlDot = pt.page("url.letters").keys.first { it.output == "." && it.rect.top == 0.75f }
+        assertEquals(listOf("/", ":", "\"", "&", "+", "-"), urlDot.alternates.map { it.output })
+        // number pad: decimal comma (alternates . -)
+        val decimal = pt.page("number.numpad").keys.first { it.rect.top == 0.75f && it.rect.left == 0f }
+        assertEquals(",", decimal.output)
+        assertEquals(listOf(".", "-"), decimal.alternates.map { it.output })
+        // symbols-1: $ with € £ ¥ ¢ ¤
+        val dollar = pt.page("text.symbols-1").keys.first { it.output == "$" }
+        assertEquals(listOf("€", "£", "¥", "¢", "¤"), dollar.alternates.map { it.output })
+        val multi = layout("layouts-pt-multi.json").page("text.letters")
+        assertEquals(0.15f, multi.keys.first { it.role == KeyRole.LANGUAGE }.rect.left)
+        assertEquals("espaço", multi.keys.first { it.role == KeyRole.SPACE }.label)
+    }
+
+    @Test
     fun languageKeyOrderByLabel() {
-        val labels = listOf("layouts-es.json", "layouts-de.json", "layouts-en.json").associate { n ->
+        val labels = listOf("layouts-pt.json", "layouts-es.json", "layouts-de.json", "layouts-en.json").associate { n ->
             layout(n).let { it.language to it.languageInfo.label }
         }
-        assertEquals(listOf("de-DE", "en-US", "es-ES"), labels.keys.sortedWith(compareBy({ labels.getValue(it) }, { it })))
-        assertEquals(listOf("DEU", "ENG", "ESP"), labels.values.sorted())
+        assertEquals(listOf("de-DE", "en-US", "es-ES", "pt-BR"), labels.keys.sortedWith(compareBy({ labels.getValue(it) }, { it })))
+        assertEquals(listOf("DEU", "ENG", "ESP", "POR"), labels.values.sorted())
     }
 
     @Test

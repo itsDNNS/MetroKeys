@@ -338,9 +338,79 @@ public class LanguageEngine @JvmOverloads constructor(
         }
     }
 
-    /** Runs the candidate generation of §8 and the autocorrection decision of §10.1 for the current word. */
+    // ------------------------------------------------------------------ elided prefix (§2.2, extension)
+
+    /**
+     * Length of the language's elided prefix (`ELISION_PREFIXES`, e.g. "d'") at the start of [word], or 0 when the rule
+     * does not apply: the prefix matches case-insensitively with `’` counted as `'`, and either [word] is the prefix
+     * alone (the length of [word] is returned) or it continues with a letter and is not itself an exact dictionary form.
+     */
+    public fun elisionPrefixLength(word: String): Int {
+        for (p in params.elisionPrefixes) {
+            if (word.length < p.length) continue
+            var match = true
+            for (i in p.indices) {
+                var c = Character.toLowerCase(word[i])
+                if (c == '’') c = '\''
+                if (c != p[i]) {
+                    match = false
+                    break
+                }
+            }
+            if (!match) continue
+            if (word.length == p.length) return p.length
+            if (!Character.isLetter(word[p.length])) return 0
+            if (lexicon.exact(word) || (startsUpper(word) && lexicon.exact(decapitalize(word)))) return 0
+            return p.length
+        }
+        return 0
+    }
+
+    /** [word] without its elided prefix (the remainder the engine works on, 05 §2.2), else [word] itself. */
+    public fun stripElision(word: String): String {
+        val n = elisionPrefixLength(word)
+        return if (n in 1 until word.length) word.substring(n) else word
+    }
+
+    /** Validity of the current word of [ctx] (05 §7), of the remainder after an elided prefix (§2.2). */
+    public fun typedValidity(ctx: QueryContext): Validity {
+        val n = elisionPrefixLength(ctx.word)
+        if (n > 0 && n == ctx.word.length) return Validity.INVALID
+        val w = if (n > 0) ctx.word.substring(n) else ctx.word
+        val prev = if (n > 0) PrevContext.None else ctx.prev
+        return validity(w, caseMode(w, ctx.preceding), prev, ctx.nameField)
+    }
+
+    /**
+     * Runs the candidate generation of §8 and the autocorrection decision of §10.1 for the current word. A current word
+     * with an elided prefix (§2.2) is predicted as its remainder without pair context; every candidate is the prefix as
+     * typed followed by the remainder's candidate. The prefix alone gives no candidates.
+     */
     @JvmOverloads
     public fun suggest(ctx: QueryContext, correctionsOnly: Boolean = false): LanguageSuggestions {
+        val n = elisionPrefixLength(ctx.word)
+        if (n == 0) return suggestWord(ctx, correctionsOnly)
+        if (n == ctx.word.length) return LanguageSuggestions(languageTag, ctx.word, Validity.INVALID, emptyList(), emptyList(), null)
+        val prefix = ctx.word.substring(0, n)
+        val sub = QueryContext(
+            ctx.before, ctx.word.substring(n), ctx.wordStart + n, ctx.charBefore, PrevContext.None, ctx.preceding,
+            ctx.taps.drop(n), ctx.nameField,
+        )
+        val r = suggestWord(sub, correctionsOnly)
+        val mapped = HashMap<Candidate, Candidate>()
+        fun map(c: Candidate): Candidate = mapped.getOrPut(c) {
+            Candidate(c.word, prefix + c.display, c.lm).also {
+                it.correctionCost = c.correctionCost
+                it.completionCost = c.completionCost
+                it.ed = c.ed
+            }
+        }
+        return LanguageSuggestions(
+            languageTag, ctx.word, r.validity, r.ranked.map(::map), r.corrections.map(::map), r.autoCorrection?.let(::map),
+        )
+    }
+
+    private fun suggestWord(ctx: QueryContext, correctionsOnly: Boolean): LanguageSuggestions {
         val w = ctx.word
         val len = w.length
         val mode = caseMode(w, ctx.preceding)
@@ -520,7 +590,7 @@ public class LanguageEngine @JvmOverloads constructor(
         out.add(w)
         val len = w.length
         if (len in 2..Params.VARIANT_MAX_LEN) {
-            class Variant(val text: String, val cost: Int)
+            class Variant(val text: String, val cost: Int, val accent: Boolean = false)
             val variants = ArrayList<Variant>()
             val letters = touchModel.geometry.letters
             for (i in 0 until len) {
@@ -541,13 +611,14 @@ public class LanguageEngine @JvmOverloads constructor(
                 }
                 params.prefixAccents[lowc]?.forEach { acc ->
                     val r = if (upper) Character.toUpperCase(acc) else acc
-                    variants.add(Variant(w.substring(0, i) + r + w.substring(i + 1), 0))
+                    variants.add(Variant(w.substring(0, i) + r + w.substring(i + 1), 0, accent = true))
                 }
             }
             for (i in 0 until len - 1) {
                 if (w[i] != w[i + 1]) variants.add(Variant(w.substring(0, i) + w[i + 1] + w[i] + w.substring(i + 2), params.edSwap))
             }
-            variants.sortBy { it.cost } // stable
+            // stable; accent variants (cost 0) come first, so the limit never removes them (05 §1.1 notes on pt-BR)
+            variants.sortWith(compareBy<Variant>({ it.cost }, { !it.accent }))
             for (v in variants.take(Params.PREFIX_VARIANTS_MAX)) out.add(v.text)
         }
         if (w.contains("ss", ignoreCase = true)) out.add(w.replace("ss", "ß").replace("SS", "ß").replace("Ss", "ß").replace("sS", "ß"))
@@ -577,7 +648,7 @@ public class LanguageEngine @JvmOverloads constructor(
             }
             return c
         }
-        if (w.any { it.isDigit() } || user.isRejected(w)) return null
+        if (w.any { it.isDigit() || TextModel.isOrdinalIndicator(it) } || user.isRejected(w)) return null
         val best = corrections.firstOrNull() ?: return null
         if (validity.valid && !(validity.cost > params.acValidRare && best.lm < params.acValidTarget)) return null
         val sb = acScore(best, len)
@@ -679,6 +750,12 @@ public class LanguageEngine @JvmOverloads constructor(
     /** Emoji for a word (Appendix A), or null. */
     public fun emojiFor(word: String): String? = params.emoji[toKey(word)]
 
-    /** True if [word] alone is valid (proofing, 05 §16): no context, case mode from the word itself. */
-    public fun isKnown(word: String): Boolean = validity(word, caseMode(word, emptyList())).valid
+    /**
+     * True if [word] alone is valid (proofing, 05 §16): no context, case mode from the word itself; a word with an
+     * elided prefix is known if its remainder is (§2.2).
+     */
+    public fun isKnown(word: String): Boolean {
+        val w = stripElision(word)
+        return validity(w, caseMode(w, emptyList())).valid
+    }
 }

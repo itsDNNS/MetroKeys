@@ -782,9 +782,8 @@ class InputLogic(
         finishComposing()
         swiped = null
         autoSpace = false
-        val b = editor.textBefore(1)
-        // 06 §5.1 item 1; never a space directly after an opening mark ¿ ¡ (04 §1.6 item 4)
-        if (b.isNotEmpty() && !b.last().isWhitespace() && !TextRules.isOpeningMark(b)) commit(" ")
+        // 06 §5.1 item 1; never a space directly after an opening mark ¿ ¡ (04 §1.6 item 4) or after "<letter>-"
+        if (TextRules.spaceBeforeSwipe(editor.textBefore(2))) commit(" ")
         val start = selStart
         setComposing(texts[0])
         editor.endBatch()

@@ -22,6 +22,9 @@ public class TapSequence internal constructor(internal val xs: FloatArray, inter
 
     public fun y(i: Int): Float = if (i in ys.indices) ys[i] else Float.NaN
 
+    /** The taps without the first [n] characters (an elided prefix, 05 §2.2). */
+    internal fun drop(n: Int): TapSequence = TapSequence(xs.copyOfRange(minOf(n, xs.size), xs.size), ys.copyOfRange(minOf(n, ys.size), ys.size))
+
     public companion object {
         /**
          * Aligns [taps] to [word] from the end (05 §2.1): the last tap belongs to the last character; a tap whose

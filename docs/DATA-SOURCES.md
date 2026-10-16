@@ -10,7 +10,7 @@ The word lists and word-pair tables in `engine/src/main/resources/app/metrokeys/
 The derived data files (`*.words.gz`, `*.pairs.gz`) are licensed under **CC BY-SA 4.0**
 (https://creativecommons.org/licenses/by-sa/4.0/) because the frequency source is CC BY-SA. This licence applies to
 the data files only, not to the MetroKeys code. A licence/attribution text accompanies each data file
-(`LICENSE-de-DE.txt`, `LICENSE-en-US.txt`, `LICENSE-es-ES.txt`, `SCOWL-Copyright.txt`); the engine exposes it through
+(`LICENSE-de-DE.txt`, `LICENSE-en-US.txt`, `LICENSE-es-ES.txt`, `LICENSE-pt-BR.txt`, `SCOWL-Copyright.txt`); the engine exposes it through
 `Dictionary.bundledLicenseText(tag)` for the app's licences screen.
 
 ## Sources
@@ -31,10 +31,17 @@ the data files only, not to the MetroKeys code. A licence/attribution text accom
 | English Wiktionary, Spanish sections (https://en.wiktionary.org/) | dump `20261001` | `enwiktionary-20261001-pages-articles.xml.bz2` (sha1 `f9ed426c69c6b21d026613bd0f200c2aaa1145e9`) | `37e414002bdf72ccf6518b83116ec36df36af4aabbf4477d49871849b737de42` | CC BY-SA 4.0 (also GFDL) | further Spanish forms (verb forms, plurals); used because the Spanish dump alone knows only 87.9 % of the top 20 000 keys (05b §8.2 point 3) |
 | Tatoeba | export of 2026-10-10 (Last-Modified `Sat, 10 Oct 2026 06:30:50 GMT`, downloaded 2026-10-15) | `per_language/spa/spa_sentences.tsv.bz2` (442 544 sentences) | `d1f7aa997368571e8bbba341ab60f9145fefe14970f21065bd97be8e03c8e6fb` | CC BY 2.0 FR | Spanish pairs (weight 3), running-text case evidence, stock-name check |
 | Mozilla Common Voice | same commit, `server/data/es/` | `sentence-collector.txt` weight 3 (`0a125f0d1cd892c5d727abb8006f5fb964ef9fe1e41bdf4afd3c4b845c47286b`), `wiki.es.txt` weight 1 (`26dfe9d9993cf7279ebf7cdffb2b086b4995982200415110903ba5530d1fc47d`); `singleword-benchmark.txt` not used | see left | CC0 1.0 | Spanish pairs and running-text case evidence |
+| hermitdave/FrequencyWords | same commit as de/en/es | `content/2018/pt_br/pt_br_full.txt` (848 043 lines, 426 260 247 tokens) | `533b3abaab3b1ea9cec7a150fc8aaf8d428c6f241979cc2224b7ee82f8a369b2` | content CC BY-SA 4.0 | Brazilian Portuguese words and counts; `content/2018/pt/` (European) is not used |
+| hermitdave/FrequencyWords | same commit | `content/2018/pt_br/pt_br_ignored.txt` (314 902 lines) | `1ac69c22ec5df9530841adeef021c2132a427c6414bd77b043318eee5aa38278` | content CC BY-SA 4.0 | only its hyphen tokens: 214 590 types, 3 703 820 tokens, 7 483 329 credited part counts |
+| Portuguese Wiktionary (https://pt.wiktionary.org/) | dump `20261001` | `ptwiktionary-20261001-pages-articles.xml.bz2` (70 114 946 bytes, sha1 `b0972df4b1532d7cf9ed27a6387a4bd4eefa528a`) | `7d44d78e55c4318ae09e0232582628f700e1b1a4e3856e4acb9bbda9422f7e02` | CC BY-SA 4.0 (also GFDL) | Portuguese spelling, validity, pre-reform and Portugal notices, proper-noun case (no frequencies) |
+| English Wiktionary, Portuguese sections | dump `20261001` (the file of the Spanish row) | `enwiktionary-20261001-pages-articles.xml.bz2` | `37e414002bdf72ccf6518b83116ec36df36af4aabbf4477d49871849b737de42` | CC BY-SA 4.0 (also GFDL) | inflected forms, pre-reform and regional labels (required, 05b §9.2) |
+| Tatoeba | export of 2026-10-10 (Last-Modified `Sat, 10 Oct 2026 06:30:50 GMT`, downloaded 2026-10-16) | `per_language/por/por_sentences.tsv.bz2` | `396a9416796b494c889e845075a5e2fa49a34f58831fd6e73d8bf38b7d926845` | CC BY 2.0 FR | Portuguese pairs (weight 3) and running-text case evidence, after the Brazilian filter |
+| Mozilla Common Voice | same commit, `server/data/pt/` | `sentence-collector.txt` weight 3 (1 670 250 bytes); `singleword-benchmark.txt` not used | `bdabc8258ab0955aada07f75f31fae9fad8b1ca5d40899b92074610bb5aed13d` | CC0 1.0 | Portuguese pairs and running-text case evidence, after the Brazilian filter |
 
 All hashes equal the ones listed in the specification (for the Wiktionary dumps the specification gives the sha1 of
 the dump status; the sha256 values above were recorded at download). The directory `server/data/es/` of Common Voice
-holds exactly the three files listed (checked with the GitHub contents API at that commit). The Tatoeba exports downloaded on 2026-10-15 still carried
+holds exactly the three files listed, `server/data/pt/` exactly the two named above (checked with the GitHub contents
+API at that commit). The Tatoeba exports downloaded on 2026-10-15 still carried
 the reference export date (2026-10-10) and the reference hashes. The Wiktionary dump and the Tatoeba exports will
 disappear from their servers; keep archived copies (with the hashes above) to rebuild byte-identical data.
 
@@ -54,6 +61,12 @@ disappear from their servers; keep archived copies (with the hashes above) to re
   sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, accents, case,
   frequency classes), CC BY-SA 4.0 (`LICENSE-es-ES.txt`).
 - Spanish word pairs: as German word pairs.
+- Portuguese (Brazil) word list: FrequencyWords © Hermit Dave (OpenSubtitles 2018, Brazilian Portuguese), CC BY-SA
+  4.0; spellings from Wiktionary (pt.wiktionary.org and the Portuguese sections of en.wiktionary.org), authors see page
+  histories, CC BY-SA 4.0; sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified
+  (filtered, hyphen tokens split, accents, spelling reform, case, frequency classes), CC BY-SA 4.0
+  (`LICENSE-pt-BR.txt`).
+- Portuguese word pairs: as German word pairs.
 
 ## Build result
 
@@ -140,6 +153,79 @@ Rules of the Spanish build that the specification leaves to the implementation (
 The small differences to the reference counts come from details of the Wiktionary markup cleaning and the
 tokenisation that the specification describes only functionally; all classes the worked examples of spec 05 §17
 rely on are reproduced exactly (verified by `WorkedExamplesTest`).
+
+### Portuguese (pt-BR, first build, 0.6.1)
+
+Rebuilding all four languages after adding Portuguese left the German, English and Spanish files byte-identical
+(SHA-256 compared before and after); two Portuguese runs gave identical bytes.
+
+| | pt-BR |
+|---|---:|
+| keys | 173 200 |
+| cased forms | 174 752 (1 552 keys with two case forms, 14 311 keys whose best form is capitalised) |
+| S | 15.429650 (spec: expected ≈ 15.4297) |
+| maxCount | 15 045 998 ("que", main list 15 044 152 plus hyphen credits) |
+| corpusTokens | 433 743 576 (426 260 247 main list + 7 483 329 credited hyphen parts) |
+| A / Bc | −8.64 / 0.02815 |
+| pair previous words | 21 100 |
+| pairs | 279 747 |
+| pre-clitic verb forms accepted (§9.4 step 1) | 1 236 (ajudá, encontrá, pegá, colocá, tirá, mantê, trazê …) |
+| pre-reform pages | 706 pt.wiktionary notices, 303 pre-reform variants listed on reformed pages, 664 en.wiktionary (1990 only) |
+| former Brazilian spellings kept with class 0 | 271 (pára, pêlo, idéia, vôo, agüentar, tranqüilo, jóia, platéia …), 319 474 counts moved |
+| former European spellings dropped | 329 (acção, óptimo, actividades …), 134 104 counts moved |
+| pages pre-reform in one dump and a form in the other (open point 12) | 212 (mostly European spellings of the 1911–1990 reforms) |
+| keys with only European-only pages | 4 135 |
+| European forms dropped (§9.4 step 3) | 405 (bebé, facto, connosco, prémio, autocarro, camião, género, acabámos, planear, humidade …) |
+| accent-less / wrongly accented spellings merged (§9.4 step 4) | 32 884, of them 492 pointer pages and 1 240 inflected-only forms (ultima, noticias, ate, amanha, agua …) |
+| merges skipped: spelling used in the sentence sources | 78 (thomas, carter, oliver, angela, jessica …) |
+| merges skipped: foreign word with a rare target | 528 (he, place, porter, les …) |
+| missing-space artefacts dropped | 4 518 (porfavor, denovo, devolta, porisso, apartir, anoite, quejá, oque …) |
+| dropped as foreign words | 4 709 (12 847 more would be dropped with the English dump's titles, mostly names) |
+| dropped for a misplaced cedilla | 415 (começ …) |
+| kept without being a Portuguese form (count ≥ 40) | 27 990 |
+| coverage of the top 20 000 keys (Portuguese forms) | 72.82 % Portuguese dump alone, 85.13 % English dump alone, 86.43 % both |
+| sentences dropped by the Brazilian filter (§9.7) | Tatoeba 2 992, Common Voice 75 (483 288 kept) |
+| Tatoeba stock names | Tom, Mary, John, Sami, Layla, Mennad, Fadil, Ziri, Yanni, Skura, Rima + over-represented Austrália, Boston, Brasil, João, Maria, Tatoeba |
+
+| File | Bytes | SHA-256 |
+|---|---:|---|
+| `pt-BR.words.gz` | 593 768 | `fe074a9443b4f5ce51791923b9031698e3c27442de6ce0174569541c47f22c62` |
+| `pt-BR.pairs.gz` | 864 062 | `7d42d0c627a5c97fae055fd02433e9cb4aa78a4e6c7229ed6eb120059b092e80` |
+
+Word-list payload SHA-256 `a95326a7…a7060`. Size in the APK: 1.46 MB (word list + pairs). All lists of accepted and
+dropped keys are in `tools/dictionary-build.json` (`pt-BR-extra`).
+
+Rules of the Portuguese build that the specification leaves to the implementation (05b §9, open point 9; all in
+`tools/dictbuild/wiktionary_pt.py` and `build_pt.py`, questions in spec/QUESTIONS.md):
+
+- **Two-stage Wiktionary passes.** Each dump is read once and its Portuguese sections are cached raw
+  (`build-data/cache/*-pt.tsv.gz`); the page kinds are classified from the cache on every build. Templates are only
+  read as text, never expanded.
+- **Page kinds.** pt.wiktionary: `{{Anterior ao Acordo de 1990|…}}` = pre-reform page, `{{grafiaPtpt|…}}` = Portugal
+  spelling with its Brazilian counterpart, senses labelled "grafia lusitana", "grafia portuguesa" or "Portugal" (not a
+  place label such as "Geografia|Portugal") = European senses, "vide"/"o mesmo que" definitions to a spelling that
+  differs only by diacritics or case, or on pre-1911 pages = pointer pages. en.wiktionary: `pt-pre-reform` with
+  `br=90` or `pt=90` = pre-reform page (older reforms are obsolete spellings, i.e. pointer pages), obsolete,
+  misspelling, nonstandard, eye-dialect and superseded spellings = pointers, "Portugal"/"European Portuguese" labels and
+  "standard spelling of … from=European Portuguese" = European senses, alternative forms labelled Brazil = counterpart.
+  Inflected-only = inflection and spelling pointers only, no definition of its own. Extensions: pre-reform variants
+  listed on a reformed pt.wiktionary page count as pre-reform pages; an English-dump inflected form whose alternative
+  form labelled Brazil differs only by diacritics is European-only with that counterpart ("falámos" → "falamos").
+- **Hyphen tokens.** Parts with characters outside the key alphabet are skipped (the corpus total counts every part).
+- **Accent merge guards.** Not merged: a key the filtered sentence sources use at least twice and at least as often as
+  its target (names), and a lower-case title of the Portuguese dump whose target occurs fewer than 10 times there
+  (English words). Inflected-only forms are merged only into a target at least 10 times as frequent that adds
+  diacritics to plain letters and is not a pre-clitic verb form, so "têm"/"tem", "séria"/"seria" and "faze"/"fazê" stay
+  two words. "esta" stays because "está" is only about 8.5 times as frequent.
+- **Missing-space artefacts.** Unknown keys as specified (parts ≥ 20 000 each, phrase ≥ 10 and ≥ 10 × the fused
+  form, weighted); pointer pages to a phrase ("denovo"); inflected-only forms by the Spanish rule (phrase ≥ 20 and
+  ≥ 10 × fused, sentence share < 0.2) only when the sentence sources should contain the form at least 5 times and
+  never for infinitive + "em" (personal infinitive).
+- **Foreign words** use the titles of the Portuguese dump only.
+- **Cedilla.** A key that is not a Portuguese form and has a ç not followed by a, o or u is dropped.
+- **Brazilian filter** (§9.7): marker keys are the European forms and spellings dropped by §9.4 plus the keys with only
+  European-only pages and fewer than 2 counts (4 299 keys); the European progressive is a form of "estar" + "a" + a
+  word ending in -ar/-er/-ir/-or, all separated by spaces only.
 
 # App data sources
 

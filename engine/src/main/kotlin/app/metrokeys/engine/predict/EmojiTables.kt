@@ -45,4 +45,17 @@ internal object EmojiTables {
             "teléfono 📞, móvil 📱, ordenador 💻, correo 📧, carta ✉️, libro 📖, música 🎵, foto 📷, cámara 📷, película 🎬, " +
             "idea 💡, fútbol ⚽, deporte 🏃, bebé 👶, navidad 🎄, pascua 🐣, guitarra 🎸",
     )
+
+    val PORTUGUESE: Map<String, String> = table(
+        "amor ❤️, coração ❤️, beijo 😘, beijos 😘, rir 😂, haha 😂, kkkk 😂, rsrs 😂, engraçado 😄, alegria 😊, " +
+            "feliz 😊, contente 😊, legal 😃, ótimo 😃, triste 😢, chorar 😢, bravo 😠, irritado 😠, medo 😱, uau 😮, " +
+            "cansado 😴, dormir 😴, sono 😴, doente 😷, bem 👍, beleza 👍, sim 👍, não 👎, ok 👌, obrigado 🙏, obrigada 🙏, " +
+            "valeu 🙏, oi 👋, olá 👋, tchau 👋, sol ☀️, chuva 🌧️, neve ❄️, nuvem ☁️, tempestade ⛈️, raio ⚡, lua 🌙, " +
+            "estrela ⭐, fogo 🔥, calor 🔥, flor 🌸, rosa 🌹, árvore 🌳, sorte 🍀, café ☕, chá 🍵, cerveja 🍺, vinho 🍷, " +
+            "pizza 🍕, hambúrguer 🍔, fome 🍴, comida 🍴, comer 🍴, bolo 🍰, aniversário 🎂, festa 🎉, carnaval 🎭, " +
+            "presente 🎁, maçã 🍎, banana 🍌, sorvete 🍦, chocolate 🍫, cachorro 🐶, gato 🐱, cavalo 🐴, pássaro 🐦, carro 🚗, " +
+            "trem 🚆, ônibus 🚌, bicicleta 🚲, bike 🚲, avião ✈️, férias 🌴, praia 🏖️, casa 🏠, escola 🏫, trabalho 💼, " +
+            "dinheiro 💰, relógio ⌚, hora ⏰, telefone 📞, celular 📱, computador 💻, email 📧, carta ✉️, livro 📖, música 🎵, " +
+            "foto 📷, câmera 📷, filme 🎬, ideia 💡, futebol ⚽, esporte 🏃, bebê 👶, natal 🎄, páscoa 🐣, violão 🎸",
+    )
 }

@@ -18,11 +18,12 @@ app (next stage) only translates editor state into queries and applies the resul
 
 ## Languages
 
-Keyboard languages: German (`de-DE`), US English (`en-US`) and Spanish (`es-ES`). Everything that differs between
-them is one `LanguageParams` instance (`LanguageParams.ALL`, fixed language order = alphabetical by tag): the weights
-and limits of 05 §1.1, the language rules (`prefixAccents` with one or more accented letters per base letter,
-`oneLetterWords`, `singleLetterFix`, `compoundLinks` = null for no compounds, `missingSpaceSplit`, `ingRule`), the
-fallback grid of 05 §4 (rows and the start of row 2: Spanish has ten keys without indent), the shape-writing constants
+Keyboard languages: German (`de-DE`), US English (`en-US`), Spanish (`es-ES`) and Portuguese (Brazil, `pt-BR`, 0.6.1).
+Everything that differs between them is one `LanguageParams` instance (`LanguageParams.ALL`, fixed language order =
+alphabetical by tag): the weights and limits of 05 §1.1, the language rules (`prefixAccents` with one or more accented
+letters per base letter, `oneLetterWords`, `singleLetterFix`, `compoundLinks` = null for no compounds,
+`missingSpaceSplit`, `ingRule`, `elisionPrefixes`), the fallback grid of 05 §4 (rows and the start of row 2: Spanish
+and Portuguese have ten keys without indent, ñ / ç last), the shape-writing constants
 of 06 §7.1 (`ShapeParams`; English uses its own column since 0.6) and the emoji table. A further language adds one
 instance, its dictionary files and a build profile (DATA-SOURCES.md).
 
@@ -120,9 +121,9 @@ computed on the way), never held as a whole. The front-coded keys are kept only 
 character per tree node) with their lengths and common-prefix lengths; the breadth-first prefix tree (children
 contiguous and sorted, so lookups are binary searches and node order is (depth, text)) is then built level by level —
 a key's node at depth d is new exactly when its common prefix with the previous key is shorter than d — into arrays of
-exactly the node count: de-DE ≈ 717 000 nodes, en-US ≈ 385 000, es-ES ≈ 516 000. Explicit forms are a sorted index array with their
-texts; pair-table followers go straight into primitive arrays. Two languages with pair tables retain 29–35 MB of JVM
-heap and load within a 44 MB maximum heap, all three 48 MB within 60 MB (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
+exactly the node count: de-DE ≈ 717 000 nodes, en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000. Explicit forms are a sorted index array with their
+texts; pair-table followers go straight into primitive arrays. Two languages with pair tables retain 24–35 MB of JVM
+heap and load within a 44 MB maximum heap, three 39–48 MB within 60 MB (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
 string per key and per-character build arrays). Loading both takes ≈ 0.2–0.3 s on a desktop JVM. Completions are a best-first search over the per-node maximum class; the fuzzy search walks the tree with
 optimal-string-alignment rows and prunes with the row minimum (and the row before it, which keeps the pruning
 admissible with transpositions). Shape writing reuses the same tree as its word index; contact words not in the
@@ -136,16 +137,20 @@ Requirements: Python 3.10+ (standard library only), ~4 GB free disk.
 python3 tools/build_dictionaries.py download   # fetches tools/sources.json into build-data/src, verifies SHA-256
 python3 tools/build_dictionaries.py build      # all languages; writes engine/src/main/resources/app/metrokeys/engine/dict/
 python3 tools/build_dictionaries.py build es-ES   # one language (≈ 1.5 minutes once the Wiktionary passes are cached)
+python3 tools/build_dictionaries.py build pt-BR   # ≈ 1.5 minutes once the Portuguese sections are cached
 ```
 
 `build-data/` is git-ignored (downloads and caches; the Wiktionary passes are cached in
-`build-data/cache/dewiktionary-20261001.tsv.gz`, `eswiktionary-20261001.tsv.gz` and
-`enwiktionary-20261001-spanish.tsv.gz`; the English dump takes ≈ 15 minutes). Downloads are read in place (bz2/tar streams); from the SCOWL
+`build-data/cache/dewiktionary-20261001.tsv.gz`, `eswiktionary-20261001.tsv.gz`,
+`enwiktionary-20261001-spanish.tsv.gz`, and for Portuguese the raw Portuguese sections `ptwiktionary-20261001-pt.tsv.gz`
+and `enwiktionary-20261001-pt.tsv.gz`, which are classified on every build; the English dump takes ≈ 15 minutes per
+pass). Downloads are read in place (bz2/tar streams); from the SCOWL
 archive only the plain lists and the `Copyright` file are extracted, no script is run. The build is deterministic
 (sorted iteration, gzip with mtime 0); its counts and output hashes are written to `tools/dictionary-build.json`
 and documented in [DATA-SOURCES.md](DATA-SOURCES.md). Pipeline modules (`tools/dictbuild/`):
 `wiktionary_de.py` (§3.2), `build_de.py` (§3.3–3.7), `build_en.py` (§4), `wiktionary_es.py` (§8.2), `build_es.py`
-(§8), `casing.py` (case decision §3.4, shared by de and es), `pairs.py` (§5, per-language pair profiles), `common.py`
+(§8), `wiktionary_pt.py` (§9.2: section extraction and page kinds of both dumps), `build_pt.py` (§9.1, §9.3–§9.7),
+`casing.py` (case decision §3.4, shared by de and es), `pairs.py` (§5, per-language pair profiles), `common.py`
 (classes and binary formats), `licenses.py` (attribution texts). `build_dictionaries.py` holds one build profile per
 language (`PROFILES`, 05b §7).
 
@@ -156,10 +161,12 @@ conformance checklist of 05 §18 (`ConformanceTest`) and unit tests of all parts
 where the spec's numbers depend on them. The rules of 05 §12.5 are covered with the real dictionaries: "usz" → "ist",
 "Usz" → "Ist", "pqt" does not reach "ist"; an unknown word typed twice is still corrected and known after the third
 use; acceptance by picking or "add to dictionary"; one or two undos; forgetting; the version-1 data format. `MemoryBudgetTest`
-loads every pair of languages with pair tables in a separate JVM with `-Xmx44m` and all three with `-Xmx60m`, runs
-queries and a multilingual swipe (retained heap: de+en 33.1 MB, de+es 35.4 MB, en+es 29.0 MB, de+en+es 48.1 MB);
+loads every pair of languages with pair tables in a separate JVM with `-Xmx44m` and the sets of three with `-Xmx60m`, runs
+queries and a multilingual swipe (retained heap in 0.6.1: de+en 33.2 MB, de+es 35.4 MB, en+es 29.0 MB, de+pt 31.2 MB,
+en+pt 24.8 MB, es+pt 27.0 MB; de+en+es 47.7 MB, de+en+pt 43.9 MB, de+es+pt 46.0 MB, en+es+pt 39.4 MB);
 `SpanishExamplesTest`, `SpanishShapeTest` (06 E8/E9), `ActiveLanguagesTest` (the five-language example of 05 §14.5) and
-`MultilingualTest.threeLanguages` cover 0.6;
+`MultilingualTest.threeLanguages` cover 0.6; `PortugueseExamplesTest` (05 §17.9 and the pt rows of §18),
+`PortugueseShapeTest` (06 E10/E11, acceptance test) and `TouchModelTest.portugueseGeometry` cover 0.6.1;
 `LexiconStructureTest` checks the trees built from the front-coded keys and the streaming key lookup;
 `LearnedWordListTest` the list of every stored unknown word (also from learned data without dictionaries).
 `ShapeWriterTest` covers the multilingual example of 06 §4.1 (d-a-s → das · dass · daß · da · dad) and the language
@@ -209,7 +216,23 @@ penalty. `-PshowOutput` shows test output.
   of this build (05 open point 10): lm(canción) 87, lm(mañana | hasta) 56, lm(dámelo) 101, score(por favor) 177,
   score(España) = lm + 29, score(Hola) = lm + 65. Measured deviations from the expected outcomes are in
   spec/QUESTIONS.md ("Muchas " → "gracias" is fifth, "aveces" scores 218 > 217).
-- **Prefix accent variants** (05 open point 8): accent variants cost 0 and come first in the stable order, so the
-  limit of 24 never removes them; it is reached by the neighbour variants of prefixes of five letters and more.
+- **Prefix accent variants** (05 open point 8, §1.1 notes on pt-BR): accent variants cost 0 and are sorted before
+  every other variant (also a neighbour variant of cost 0), so the limit of 24 never removes them; Portuguese
+  "acao" gives 12 accent variants + 3 swaps + 9 neighbour variants, "informacao" 16 accent variants + 8 of its 9
+  swaps (`PortugueseExamplesTest`).
+- **Elided prefix** (05 §2.2, `ELISION_PREFIXES`): `LanguageEngine.suggest` strips the language's prefix ("d'", also
+  typed with `’`) when the word continues with a letter and is not itself an exact form, runs the query for the
+  remainder without pair context (the character before the prefix still decides `AC_BLOCK_PREV`) and puts the prefix
+  as typed in front of every candidate; the prefix alone gives an empty result. `typedValidity`, `isKnown`
+  (proofing), `learn`, `addWord` and `rejectAutoCorrection` use the remainder (`stripElision`). Other languages see
+  the whole word.
+- **Ordinal indicators** º ª: word characters (letters), never autocorrected (§10.1 step 3, like digits) and never
+  checked by proofing (`TextModel.isCheckable`).
+- **Swipe after a hyphen** (06 §5.1 item 1, all languages): `TextRules.spaceBeforeSwipe` inserts no space after
+  whitespace, `¿ ¡` or a hyphen that directly follows a letter ("deixe-" + "me", "E-" + "Mail").
+- **Portuguese worked examples** (05 §17.9, 06 E10/E11): `PortugueseExamplesTest` and `PortugueseShapeTest` with the
+  computed values of this build: lm(você) 41, score(não) 91, lm(amanhã | até) 51, lm(ação) 89, lm(por favor) 68,
+  score(d'água) = lm(água) + 37; E10 searchCost(faço) = 120 + LM; E11 searchCost(você) = 121.5 + LM (spec 120.4 with
+  rounded angles). Shape-writing acceptance test for Portuguese (51 words with ç, ã, õ): see the test output.
 
 Questions with assumptions that matter are recorded in the specification (`spec/QUESTIONS.md`, not published).

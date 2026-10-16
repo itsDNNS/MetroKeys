@@ -35,6 +35,8 @@ PROFILES = {
     "de": PairProfile(DE_WORD, DE_OPENERS, ".!?:", lambda tok: tok in DE_STOCK, False),
     "en": PairProfile(EN_WORD, EN_OPENERS, ".!?:", lambda tok: tok.split("'")[0] in EN_STOCK_BASE, True),
     "es": PairProfile(DE_WORD, ES_OPENERS, ".!?:¿¡", lambda tok: tok in ES_STOCK_BASE, False),
+    # pt: a hyphen between letter runs and the elided "d'" clear the context like any other character (05b §5 step 2)
+    "pt": PairProfile(DE_WORD, ES_OPENERS, ".!?:", lambda tok: tok in ES_STOCK_BASE, False),
 }
 
 

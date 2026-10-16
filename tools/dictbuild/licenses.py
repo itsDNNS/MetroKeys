@@ -21,7 +21,13 @@ ES_WORDS = ("Word list: FrequencyWords (c) Hermit Dave (OpenSubtitles 2018), CC 
             "CC BY-SA 4.0; sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified "
             "(filtered, accents, case, frequency classes), CC BY-SA 4.0.")
 
-WORDS = {"de": DE_WORDS, "en": EN_WORDS, "es": ES_WORDS}
+PT_WORDS = ("Word list: FrequencyWords (c) Hermit Dave (OpenSubtitles 2018, Brazilian Portuguese), CC BY-SA 4.0; "
+            "spellings from Wiktionary (pt.wiktionary.org and the Portuguese sections of en.wiktionary.org), authors see "
+            "page histories, CC BY-SA 4.0; sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice "
+            "(CC0). Modified (filtered, hyphen tokens split, accents, spelling reform, case, frequency classes), "
+            "CC BY-SA 4.0.")
+
+WORDS = {"de": DE_WORDS, "en": EN_WORDS, "es": ES_WORDS, "pt": PT_WORDS}
 
 
 def text(tag, scowl_notice=None):

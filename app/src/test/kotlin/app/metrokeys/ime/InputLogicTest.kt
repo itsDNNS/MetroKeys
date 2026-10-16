@@ -265,6 +265,20 @@ class InputLogicTest {
     }
 
     @Test
+    fun swipedWordAfterLetterAndHyphenGetsNoSpace() {
+        // 06 §5.1 item 1 (0.6, all languages): "E-" + swipe "Mail" → "E-Mail"; " - " keeps the space
+        type("Die E-")
+        val r = app.metrokeys.engine.swipe.ShapeResult(emptyList(), true)
+        logic.applySwipe(r, listOf("Mail"))
+        sched.run()
+        assertEquals("Die E-Mail|", editor.toString())
+        type(" -")
+        logic.applySwipe(r, listOf("gut"))
+        sched.run()
+        assertEquals("Die E-Mail - gut|", editor.toString())
+    }
+
+    @Test
     fun swipeAlternativeReplacesTheSwipedWord() {
         val r = app.metrokeys.engine.swipe.ShapeResult(emptyList(), true)
         logic.applySwipe(r, listOf("Hallo", "Halle"))

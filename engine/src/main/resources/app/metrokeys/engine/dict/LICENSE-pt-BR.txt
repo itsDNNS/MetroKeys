@@ -1,0 +1,7 @@
+MetroKeys dictionary pt-BR (pt-BR.words.gz, pt-BR.pairs.gz)
+
+Word list: FrequencyWords (c) Hermit Dave (OpenSubtitles 2018, Brazilian Portuguese), CC BY-SA 4.0; spellings from Wiktionary (pt.wiktionary.org and the Portuguese sections of en.wiktionary.org), authors see page histories, CC BY-SA 4.0; sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, hyphen tokens split, accents, spelling reform, case, frequency classes), CC BY-SA 4.0.
+
+Word pairs: counted from sentences of Tatoeba (tatoeba.org, authors see sentence pages, CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (pair counts, probability classes), CC BY-SA 4.0.
+
+These data files are licensed under the Creative Commons Attribution-ShareAlike 4.0 International licence (CC BY-SA 4.0), https://creativecommons.org/licenses/by-sa/4.0/. The licence applies to the data files only, not to the MetroKeys program code.
