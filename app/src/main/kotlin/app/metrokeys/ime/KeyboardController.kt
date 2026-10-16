@@ -644,6 +644,12 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         typeOnPage(text)
     }
 
+    /** Click of a tap on a sticky picker (03 §3.4 item 6). */
+    fun pickerTapFeedback() {
+        feedback.play(SoundKind.LETTER)
+        feedback.vibrate()
+    }
+
     fun pickerOpened(items: List<String>) {
         feedback.play(SoundKind.PICKER)
         view?.announce(str(R.string.a11y_alternatives_opened, items.joinToString(", ")))

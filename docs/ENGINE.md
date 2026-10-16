@@ -132,11 +132,12 @@ computed on the way), never held as a whole. The front-coded keys are kept only 
 character per tree node) with their lengths and common-prefix lengths; the breadth-first prefix tree (children
 contiguous and sorted, so lookups are binary searches and node order is (depth, text)) is then built level by level —
 a key's node at depth d is new exactly when its common prefix with the previous key is shorter than d — into arrays of
-exactly the node count: de-DE ≈ 1 781 000 nodes (857 274 keys since 0.6.5 with the dictionary-only forms; 717 000 nodes and 236 223 keys in 0.6.4), en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 711 keys),
+exactly the node count: de-DE ≈ 1 089 000 nodes (320 804 keys since 0.6.6 with the dictionary-only lemmas; 1 781 000 nodes and 857 274 keys in 0.6.5 with all dictionary-only forms; 717 000 nodes and 236 223 keys in 0.6.4), en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 711 keys),
 fr-FR (174 316 keys). Explicit forms are a sorted index array with their
 texts; pair-table followers go straight into primitive arrays. Two languages with pair tables retain 24–35 MB of JVM
-heap without German and 56–60 MB with German since 0.6.5 (24–35 MB before) and load within an 80 MB maximum heap (44 MB
-before 0.6.5), three 39–43 MB without and 68–74 MB with German within 88 MB (60 MB before) (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
+heap without German and 38–42 MB with German since 0.6.6 (56–60 MB in 0.6.5, 31–35 MB in 0.6.4) and load within a 56 MB
+maximum heap (0.6.5: 80 MB, 0.6.4: 44 MB), three 39–43 MB without and 50–57 MB with German within 68 MB (0.6.5: 88 MB,
+0.6.4: 60 MB) (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
 string per key and per-character build arrays). Loading both takes ≈ 0.2–0.3 s on a desktop JVM. Completions are a best-first search over the per-node maximum class; the fuzzy search walks the tree with
 optimal-string-alignment rows and prunes with the row minimum (and the row before it, which keeps the pruning
 admissible with transpositions). Shape writing reuses the same tree as its word index; contact words not in the
@@ -165,7 +166,7 @@ are classified on every build; the English dump takes ≈ 15 minutes per pass). 
 archive only the plain lists and the `Copyright` file are extracted, no script is run. The build is deterministic
 (sorted iteration, gzip with mtime 0); its counts and output hashes are written to `tools/dictionary-build.json`
 and documented in [DATA-SOURCES.md](DATA-SOURCES.md). Pipeline modules (`tools/dictbuild/`):
-`wiktionary_de.py` (§3.2; since 0.6.5 also the parts of speech of the German sections for the lemma variant of §3.7), `build_de.py` (§3.3–3.7; since 0.6.5 the dictionary-only forms of §3.7 in both variants; since 0.6.4 step 6a, the damping of non-German keys, also
+`wiktionary_de.py` (§3.2; since 0.6.5 also the parts of speech of the German sections for the lemmas of §3.7), `build_de.py` (§3.3–3.7; since 0.6.6 the dictionary-only lemmas of §3.7; since 0.6.4 step 6a, the damping of non-German keys, also
 in the pair table via `PairCounter(damped=…)`, and the real-word typos with the neighbour keys of
 `spec/data/layouts-de.json`), `build_en.py` (§4), `wiktionary_es.py` (§8.2), `build_es.py`
 (§8), `wiktionary_pt.py` (§9.2: section extraction and page kinds of both dumps), `build_pt.py` (§9.1, §9.3–§9.7),
@@ -184,8 +185,11 @@ conformance checklist of 05 §18 (`ConformanceTest`) and unit tests of all parts
 where the spec's numbers depend on them. The rules of 05 §12.5 are covered with the real dictionaries: "usz" → "ist",
 "Usz" → "Ist", "pqt" does not reach "ist"; an unknown word typed twice is still corrected and known after the third
 use; acceptance by picking or "add to dictionary"; one or two undos; forgetting; the version-1 data format. `MemoryBudgetTest`
-loads every pair of languages with pair tables in a separate JVM with `-Xmx80m` (44 MB before 0.6.5) and the sets of three
-with `-Xmx88m` (60 MB before), runs queries and a multilingual swipe (retained heap in 0.6.5 with the dictionary-only
+loads every pair of languages with pair tables in a separate JVM with `-Xmx56m` (0.6.5: 80, 0.6.4: 44) and the sets of
+three with `-Xmx68m` (0.6.5: 88, 0.6.4: 60), runs queries and a multilingual swipe (retained heap in 0.6.6 with the
+dictionary-only German lemmas, KB / 1000: de+en 40.3 MB, de+es 42.4 MB, de+pt 38.3 MB, it+de 41.3 MB, fr+de 42.4 MB;
+de+en+es 54.5 MB, de+en+pt 50.5 MB, de+es+pt 52.6 MB, it+de+en 53.5 MB, it+de+es 55.5 MB, it+de+pt 51.5 MB, fr+de+en
+54.6 MB, fr+de+es 56.6 MB, fr+de+it 55.5 MB, fr+de+pt 52.7 MB; retained heap in 0.6.5 with all dictionary-only
 German forms: de+en 57.8 MB, de+es 59.8 MB, de+pt 55.9 MB, it+de 58.7 MB, fr+de 59.9 MB; de+en+es 71.7 MB, de+en+pt
 67.7 MB, de+es+pt 69.7 MB, it+de+en 70.7 MB, it+de+es 72.6 MB, it+de+pt 68.7 MB, fr+de+en 71.7 MB, fr+de+es 73.7 MB,
 fr+de+it 72.7 MB, fr+de+pt 69.9 MB; sets without German as below; the peak while loading needs up to 76 MB for it+de;
@@ -349,11 +353,13 @@ penalty. `-PshowOutput` shows test output.
   hidden the same way (spec/QUESTIONS.md). `ShortKeysAndNamesTest` covers 05 §17.7a, step 6a, the damping and the
   real-word typos; "Das war really" now scores 242 (best candidate "reales"; 05 §17.3 gives 236 with "Reilly").
 
-- **Dictionary-only German forms (0.6.5, 05b §3.7)**: every German Wiktionary form without a subtitle occurrence is in
-  the word list with class 1 (621 051 keys; DATA-SOURCES.md). They are valid, offered and correction targets like any
-  rare word: "Die App ist nicht performanz" offers "performant" first (no autocorrection; "Performanz" second),
-  also in de+en (`ShortKeysAndNamesTest.performanzOffersPerformant`). All other German worked examples are unchanged
-  except two next-word costs, because the new keys are also counted in the pair sources: after "Vielen " anderen 53 and
-  Fällen 55 (05 §17.7: 52 and 54, order unchanged) and "Das" 50 at the text start (49); spec/QUESTIONS.md.
+- **Dictionary-only German lemmas (0.6.6, 05b §3.7)**: every German Wiktionary lemma (a title whose German section has a
+  part of speech other than an inflected-form, participle or comparison entry) whose key occurs at most once in the
+  subtitles is in the word list with class 1 (84 581 keys: 69 796 unseen, 14 785 seen once; DATA-SOURCES.md). 0.6.5 added
+  every form without a subtitle occurrence (621 051 keys). They are valid, offered and correction targets like any rare
+  word: "Die App ist nicht performanz" offers "performant" first (no autocorrection; "Performanz" second), also in
+  de+en (`ShortKeysAndNamesTest.performanzOffersPerformant`). All German worked examples are unchanged except "Das" at
+  the text start, 50 (05 §17.7: 49), because the new keys are also counted in the pair sources; after "Vielen " anderen
+  52 and Fällen 54 are again the values of 05 §17.7 (0.6.5: 53 and 55); spec/QUESTIONS.md.
 
 Questions with assumptions that matter are recorded in the specification (`spec/QUESTIONS.md`, not published).

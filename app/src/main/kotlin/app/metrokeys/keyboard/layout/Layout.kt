@@ -72,7 +72,7 @@ data class Key(
     /** A letter key: a character key whose output is a single letter. */
     val isLetter: Boolean get() = role == KeyRole.CHAR && output?.length == 1 && Character.isLetter(output[0])
 
-    /** Keys that take part in hit testing (spec 03 §1.1). */
+    /** Keys that can become active (spec 03 §1.1 rule 6); the others are drawn but inert. */
     val hittable: Boolean get() = enabled && role != KeyRole.BLANK && role != KeyRole.EMOJI_GRID
 
     override fun equals(other: Any?): Boolean = this === other
@@ -227,31 +227,4 @@ class LayoutSet(
             labelInset = (k["labelInset"] as? List<Double>)?.map { it.toFloat() }?.toFloatArray() ?: Key.ZERO_INSET,
         )
     }
-}
-
-/**
- * Hit testing of spec 03 §1.1 on a page, in key-area pixel coordinates ([width] × [height]). Returns null for
- * touches further than [outside] px outside the left, right or bottom edge.
- */
-fun Page.hitTest(x: Float, y: Float, width: Float, height: Float, outside: Float, hidden: (Key) -> Boolean = { false }): Key? {
-    if (x < -outside || x > width + outside || y > height + outside) return null
-    val cy = y.coerceIn(0f, height - 0.001f)
-    val cx = x.coerceIn(0f, width)
-    var best: Key? = null
-    var bestDist = Float.MAX_VALUE
-    for (k in keys) {
-        if (!k.hittable || hidden(k)) continue
-        val top = k.rect.top * height
-        val bottom = k.rect.bottom * height
-        if (cy < top || cy >= bottom) continue
-        val l = k.rect.left * width
-        val r = k.rect.right * width
-        if (cx >= l && cx < r) return k
-        val d = if (cx < l) l - cx else cx - r
-        if (d < bestDist) {
-            bestDist = d
-            best = k
-        }
-    }
-    return best
 }

@@ -12,8 +12,9 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew :engine:test testDebugUnitTest lintDebug ass
 **Release build.** `assembleRelease` minifies with R8 (`proguard-android-optimize.txt`) and shrinks resources. No own
 keep rules are needed (reasons in `app/proguard-rules.pro`): manifest components are kept by AAPT's rules, the engine
 loads its dictionaries by absolute Java resource paths, and the only reflective call targets a framework method. The
-release APK (15.7 MB in 0.6.5 with the dictionary-only German forms, 14.6 MB in 0.6.4, 14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
-writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences; for 0.6.5 fast typing in Google Messages with German and English (ten keys per second,
+release APK (15.0 MB in 0.6.6 with the dictionary-only German lemmas, 15.7 MB in 0.6.5 with all dictionary-only German forms, 14.6 MB in 0.6.4, 14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
+writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences; for 0.6.6 the key
+popup and picker checks listed under "Touch handling (0.6.6)" and a swipe of "vielleicht" with German and English; for 0.6.5 fast typing in Google Messages with German and English (ten keys per second,
 "ich habe dke katze gesehen und dke maus …": every "dke" → "die"), "Die App ist nicht performanz" → "performant" first,
 a swipe of "vielleicht" and the settings app; for 0.6.4 the
 lighter key labels, a pick for a word around the caret, "zi " / "zj " → "zu", "Cursos" → "Cursor" first, "Ich komme heure " →
@@ -38,7 +39,8 @@ MetroKeysService (InputMethodService)        Android lifecycle, insets, hardware
      └─ KeyboardView (custom View)           drawing and touch of everything below
          ├─ StripBar        candidate strip, paste header, recently-copied chip, clipboard button, flash,
          │                  dictation state, forget confirmation, messages
-         ├─ key area        keys, popup, alternates/language picker (in KeyboardView itself)
+         ├─ key area        keys, popup, alternates/language picker (drawn by KeyboardView)
+         │   └─ KeyTouch    touch state machine of the keys (pure Kotlin, 0.6.6): HitTester, PickerModel
          ├─ EmojiPanel      emoji grid
          ├─ ClipboardPanel  clipboard history panel
          ├─ AppBar          application bar and "…" expansion
@@ -99,6 +101,9 @@ With the dictionary-only German forms (0.6.5, 857 274 German keys instead of 236
 every ≈ 0.3 s while loading, then after a swipe of "vielleicht"): de+en 87.3 / 62.7 MB (0.6.4: 63.0 / 39.0),
 de+en+fr 98.7 / 74.2 → 101.2 / 76.6 MB (0.6.4: 75.6 / 51.1 → 78.0 / 53.4). Both stay below the 96 MB and 128 MB of
 00 "Quality requirements", with a smaller margin for two languages (spec/QUESTIONS.md).
+With the dictionary-only German lemmas of 0.6.6 (320 804 German keys; same measurement, release build, multilingual,
+highest of 15 samples while loading, then after a swipe of "vielleicht"; MiB of `dumpsys meminfo`): de+en 68.1 / 44.1 →
+68.0 / 44.0 MB, de+en+fr 79.2 / 55.2 → 81.5 / 57.5 MB.
 
 ### Performance (0.6.5)
 
@@ -159,6 +164,55 @@ by the concurrent GC off the main thread. `TypingPathTest` checks that fast typi
 main thread (`PredictionEngine.queryObserver`), that the strip keeps the typing pause, the fallback when the query has
 not started, and that typing reads the field only after pauses; `CachingEditorTest` compares the copy with the field
 over 6000 random edits. All `InputLogic` tests run through `CachingEditor`.
+
+### Touch handling (0.6.6)
+
+The key area's touch handling is `KeyTouch` (pure Kotlin, no Android types): `KeyboardView` passes touch-down, move and
+lift in key-area pixels with the event times, implements `KeyTouch.Host` (controller calls, trace overlay,
+accessibility) and draws what `KeyTouch` exposes: `pressedKey`, `popup` (key, its cell and the frozen content) and
+`picker`. Timers (hold 450/200 ms, repeat 83 ms, word delete after 3 s every 200 ms, the 75 ms release delay) go through
+`TouchClock` (the view's handler; `FakeClock` in the tests).
+
+- **Hit testing** (`layout/HitTest.kt`, 03 §1.1): `KeyCells` truncates every layout rectangle × key-area size to whole
+  pixels (a product within 1/1000 px below a whole number counts as that number, because 0.35f × 1080 is 377.99999);
+  `HitTester.hit` takes `max(dx, 2·dy)` inside the key area and the truncated straight-line distance in the touch-down
+  tolerance (40 px left, right and below), returns the first key of the smallest distance in layout order, leaves
+  backspace out while the last three evaluations lie within 375 ms (fields of input type text without the
+  short-message variation, `FieldState.fastTypingExclusion`) and clears that history after a function key or a hit with
+  d > 0. A moving finger outside the key area hits nothing. Disabled keys (PIN blank, emoji grid) are found but inert.
+  `LetterCorrection` (§1.1a) works on the same cells, Chebyshev distance not doubled; `Hysteresis` gives the areas of
+  §1.2 (cell ± 10 px, 20 px beyond a selecting point outside the cell) and of a corrected key.
+- **Press, slide, release** (03 §1.2, §1.2a, §1.5, §2; 02 §5.3, §5.5.6): a key that was touched down on gets click, hold
+  timer and its touch-down action; a key reached by leaving the hysteresis area gets none of them and commits on
+  release only when it is a character key. On a trace candidate keys reached by sliding show no pressed look or popup
+  for the rest of the touch; elsewhere look and popup move in the same frame. On a lift, when a trace candidate leaves
+  its key and when the finger leaves the key area, a popup key keeps its pressed look and popup for 75 ms with the
+  content of that moment (`Host.popupSnapshot`: the shifted label, the language of the language key) and over the cell
+  it had (also when the release switched the page); keys without a popup end at once and never show one. A new
+  touch-down ends the delay at once. Becoming a trace changes no feedback by itself. After a page key the first key
+  under the finger beyond half the page key's width becomes active without click and is committed like a normal key
+  (03 §7.1 item 2, see QUESTIONS).
+- **Picker** (`PickerModel`, 03 §3.4, 02 §5.6, §7.5): placement as before; hold zone, row choice, slots (the cell with its
+  left frame) and hit band as specified; hold phase until the finger leaves the zone, then the drag phase (the leaving
+  position changes nothing, no item outside the slots, no vertical limit). A release in the hold phase leaves it open
+  without time limit; the next touch-down on a slot inside the band highlights with a click and continues in the drag
+  phase, any other touch-down closes it and is swallowed until its lift. Cells are drawn with their own 9 px frame, per
+  row from the rightmost final position to the leftmost; popup and picker edges are floored to whole device pixels.
+- **Checked on the emulator** (release build, `input motionevent` with screen recordings, frame by frame): no popup in
+  any frame on the release of shift, backspace and space; a one-shot shifted "Q" keeps its pressed look and the popup
+  "Q" for one more frame (≈ 84 ms) while the keys are already lower case, then both disappear in one frame; g → h on
+  the letter page: g's popup ends ≈ 80 ms after leaving g's area, h shows nothing, "h" is typed; 5 → 6 on the symbol page:
+  the popup moves to 6 in the next frame and 6 is typed; leaving upwards from t and from 5 types nothing; a picker
+  released without a move is still open after 3.5 s, a tap on ß types it, a tap on a key below the band closes it and
+  types nothing; the opening of `o`'s picker shows ö with its frame bar sliding out over o. The popup of a top-row key
+  covers rows −209 … −7 and of q columns 9 … 139.
+
+`KeyTouchTest` drives `KeyTouch` with the German layout data and a fake clock (release delay and frozen label, no popup
+for keys without one, sliding on letter and symbol pages, keys reached by sliding without click, hold timer and output
+for space/Enter/backspace, leaving upwards and coming back, a 170 px vertical move inside the start key, the picker
+examples of 03 §3.4, the sticky picker, key repeat, fast typing, the page-switch hand-over); `HitTestTest` has every
+worked example of 03 §1.1 and §1.1a and the indent rule of rule 9 for every pixel; `PickerModelTest` the zones, slots,
+rows and the opening animation.
 
 ### Own edits versus caret moves
 
@@ -222,7 +276,7 @@ FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < EN
 | 02 §2, §3, 03 §17 sizes | `Metrics` (portrait s = w/1080, landscape s = min(w/1596, short/1080), height factor) |
 | 02 §4 typography | `TextStyles`, `Fonts`, `KeyboardView.drawLabel` (cap-height centring, 96 % fit) |
 | 02 §4.2 key-label weight (0.6.4) | every style the table gives as semibold uses `Weight.LABEL`; `Fonts.get(LABEL)` = the imported semibold font, else Selawik Regular |
-| 02 §5.3–§5.7 keys, popup, picker | `KeyboardView.drawKey`, `drawPopup`, `openPicker`/`drawPicker` (mirroring, two rows, opening slide) |
+| 02 §5.3–§5.7 keys, popup, picker | `KeyboardView.drawKey`, `drawPopup`, `drawPicker` (per-cell frames, drawing order, pixel snapping); `PickerModel.place` (mirroring, two rows), `PickerModel.cellAt` (opening slide) |
 | 02 §5.8, 03 §6 strip | `StripBar` |
 | 03 §6.6 items 2, 8 paste button | `KeyboardController.canPaste` (false while the chip shows); `StripBar.draw` draws it only when pasting is possible |
 | 03 §6.6 items 5, 6 paste, 04 §12.2 items 2, 4 | `InputLogic.paste`/`insertContent`/`insertClip`: the swiped word's composing text is finished before the editor's paste, an image or a clip is inserted |
@@ -240,8 +294,9 @@ FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < EN
 | 02 §6 glyphs | `Glyphs` (own vector drawings; app-bar pictograms are own designs) |
 | 02 §7, 03 §6.8 motion | `Curves`, `ListScroller` |
 | 02 §8, §9 colours | `Theme` |
-| 03 §1 touch, §1.1a key choice | `KeyboardView.keyDown`/`chooseKey`/`keyMove`/`keyUp` |
-| 03 §3, §5 picker, repeat, word delete | `KeyboardView.onHold`, `repeatRunnable` |
+| 03 §1.1 hit testing, §1.1a key choice, §1.2 hysteresis | `layout/HitTest.kt`: `KeyCells`, `HitTester`, `LetterCorrection`, `Hysteresis` |
+| 03 §1.2–§1.5, §2 touch, sliding, popup | `KeyTouch.down`/`move`/`up` (pressed look, popup and release delay: `pressedKey`, `popup`) |
+| 03 §3, §5 picker, repeat, word delete | `KeyTouch.onHold`, `repeatTask`; `PickerModel` (hold zone, drag phase, slots, sticky picker) |
 | 03 §4 shift | `KeyboardController.shiftDown`/`updateAutoShift` |
 | 03 §13 hardware keyboard | `MetroKeysService.onKeyDown`, `KeyboardController.toggleMiniKeyboard`, slide in `KeyboardView` |
 | 03 §14 dictation | `Dictation` |
@@ -332,6 +387,8 @@ to a change counter fed by the preference listener, so summaries follow changes 
 - **Emoji**: Unicode emoji 18.0; emoji the system font cannot draw (`Paint.hasGlyph`) are hidden at run time, so
   older devices do not show empty boxes.
 - **Swipe start**: the per-axis threshold of 06 §2.2 (see QUESTIONS).
+- **Keys reached by sliding** (03 §1.2a, 0.6.6): shift, page and function keys reached by sliding show the pressed look
+  like any other key (item 4) but do nothing; re-hits during a trace count for the fast-typing history (see QUESTIONS).
 - **Language popup/picker**: label in the upper half, sub-label or keyboard pictogram below (02 open point 1).
 - **Strip compression**: items are moved by the compression mapping; their text is not squeezed.
 - **Picker rows**: the upper row is placed with the same right/mirror/push rule as the lower one.

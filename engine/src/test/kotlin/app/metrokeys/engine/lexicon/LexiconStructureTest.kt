@@ -38,9 +38,10 @@ class LexiconStructureTest {
         checkTree(TestDictionaries.de.lexicon)
         checkTree(TestDictionaries.en.lexicon)
         println("de-DE keys ${TestDictionaries.de.lexicon.keyCount}, nodes ${TestDictionaries.de.lexicon.nodeCount}")
-        // 0.6.5: 857 274 with the dictionary-only forms of 05b §3.7 (236 223 in 0.6.4, 236 559 before step 6a)
-        assertEquals(857274, TestDictionaries.de.lexicon.keyCount)
-        assertEquals(1_781_000.0, TestDictionaries.de.lexicon.nodeCount.toDouble(), 5_000.0)
+        // 0.6.6: 320 804 with the dictionary-only lemmas of 05b §3.7 (0.6.5 with all forms 857 274, 236 223 in 0.6.4,
+        // 236 559 before step 6a)
+        assertEquals(320804, TestDictionaries.de.lexicon.keyCount)
+        assertEquals(1_089_000.0, TestDictionaries.de.lexicon.nodeCount.toDouble(), 5_000.0)
     }
 
     @Test

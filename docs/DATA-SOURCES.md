@@ -98,20 +98,20 @@ byte-identical to 0.5.2, and two Spanish runs gave identical bytes).
 
 | | de-DE | reference (05b) | en-US | reference (05b) |
 |---|---:|---:|---:|---:|
-| keys | 857 274 (0.6.5; 236 223 in 0.6.4, 236 559 before) | 236 823 | 163 405 | 163 419 |
-| cased forms | 864 361 (241 563; 241 914) | 242 784 | 164 040 | 164 114 |
+| keys | 320 804 (0.6.6; 857 274 in 0.6.5, 236 223 in 0.6.4, 236 559 before) | 236 823 | 163 405 | 163 419 |
+| cased forms | 326 931 (864 361; 241 563; 241 914) | 242 784 | 164 040 | 164 114 |
 | S | 16.357883 | 16.357883 | 14.976348 | 14.976349 |
 | maxCount | 5 890 279 | – | 24 812 233 | – |
 | corpusTokens | 156 169 536 | 156 169 536 | 695 682 540 | 695 682 540 |
 | alias keys (replacing a word) | – | – | 79 (11) | 79 (11) |
 | possessive forms | – | – | 34 855 | 34 883 |
-| pair previous words | 55 267 (52 820; 53 004) | 53 012 | 42 124 | 42 131 |
-| pairs | 566 548 (558 993; 561 563) | 561 595 | 590 533 | 590 661 |
+| pair previous words | 54 840 (55 267; 52 820; 53 004) | 53 012 | 42 124 | 42 131 |
+| pairs | 565 578 (566 548; 558 993; 561 563) | 561 595 | 590 533 | 590 661 |
 
 | File | Bytes | SHA-256 |
 |---|---:|---|
-| `de-DE.words.gz` (0.6.5) | 1 936 431 | `30b3ac90279991003d60651a0d5b7efa6c82937ff436aa8759f43388a4aa96e8` |
-| `de-DE.pairs.gz` (0.6.5) | 1 942 877 | `457238c79acb756b43668a5d64f45e41f7e098867ef3173d7d42a6e2f89e6a83` |
+| `de-DE.words.gz` (0.6.6) | 1 335 116 | `2a03d6556b3874740ec56166e069894b43e2b3b980b48288e25c46e4ba9a9b21` |
+| `de-DE.pairs.gz` (0.6.6) | 1 889 786 | `5244e4acae6efcc1ea6290357ec5131dbbf697ccacd41ff258d8aa67caf35ca8` |
 | `en-US.words.gz` | 519 514 | `0d0595b450b30387511006ce39691e8c248e5d7175041f50d65899bb2e5b1f9b` |
 | `en-US.pairs.gz` | 1 927 135 | `2dde9255fc17e317a7bec8ad1aa7f24ceb6c0b66379299c1ae25472518457e91` |
 
@@ -471,6 +471,25 @@ performant. The pair table changes too, because the pair sources (Tatoeba, Commo
 unchanged) and "Das" at the text start 50 (49); all other German worked examples are unchanged. Memory: the German tree
 has ≈ 1 781 000 nodes (717 000); the keyboard with de+en peaks at 87.3 MB of Dalvik heap on the emulator (63.0 MB
 before), de+en+fr at 101.2 MB (78.0 MB), see APP.md and spec/QUESTIONS.md.
+
+### German rebuild (0.6.6): lemmas only
+
+05b §3.7 now adds only **lemmas** (the lemma definition above), and also lemmas whose key occurs **exactly once** in the
+subtitle list (step 4 drops keys counted once). Inflected forms without a subtitle occurrence are no longer added. Steps
+1–8, the damping and the real-word typos are unchanged; the other languages were not rebuilt (their files are
+byte-identical, checked with SHA-256). Report `dictionaryOnlyForms` in dictionary-build.json:
+
+| | keys | added keys | forms | pairs | `de-DE.words.gz` | `de-DE.pairs.gz` |
+|---|---:|---:|---:|---:|---:|---:|
+| before (0.6.4) | 236 223 | – | 241 563 | 558 993 | 962 464 | 1 850 717 |
+| 0.6.5, all forms | 857 274 | 621 051 | 864 361 | 566 548 | 1 936 431 | 1 942 877 |
+| **0.6.6, lemmas (unseen or seen once)** | 320 804 | 84 581 (69 796 unseen, 14 785 seen once) | 326 931 | 565 578 | 1 335 116 (+372 652) | 1 889 786 (+39 069) |
+
+Samples of added keys (count in the subtitles, stored forms): Abfertigungsdienst 0, Altertümlichkeit 1, bauseitig 0,
+bosseln 1, Fazilität 0, Finanztransaktionssteuer 0, Hauptkonkurrentin 1, Kagran 1, manufakturieren 0, nachwirken 1,
+performant. The German tree has ≈ 1 089 000 nodes. Next-word costs: after "Vielen " anderen 52 and Fällen 54 (the values
+of 05 §17.7 again), "Das" at the text start 50 (05 §17.7: 49). Memory on the emulator: de+en 68.1 MB of Dalvik heap at
+the peak (0.6.5: 87.3, 0.6.4: 63.0), de+en+fr 81.5 MB after a swipe (0.6.5: 101.2, 0.6.4: 78.0); APP.md.
 
 # App data sources
 

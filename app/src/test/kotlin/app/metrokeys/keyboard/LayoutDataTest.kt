@@ -7,7 +7,6 @@ import app.metrokeys.ime.FieldState
 import app.metrokeys.keyboard.layout.KeyRole
 import app.metrokeys.keyboard.layout.LayoutSet
 import app.metrokeys.keyboard.layout.Page
-import app.metrokeys.keyboard.layout.hitTest
 import app.metrokeys.settings.Prefs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -239,17 +238,6 @@ class LayoutDataTest {
         val dot = p.keys.first { it.output == "." && it.rect.top == 0.75f }
         assertEquals(200, dot.longPressMs)
         assertEquals(6, p.keys.count { it.rect.top == 0.75f })
-    }
-
-    @Test
-    fun hitTestUsesTheNearestKeyOfTheRow() {
-        val p = layout("layouts-de.json").page("text.letters")
-        // left of "a" (half a key free) → "a"
-        assertEquals("a", p.hitTest(10f, 300f, 1080f, 756f, 40f)?.output)
-        assertEquals("q", p.hitTest(5f, 5f, 1080f, 756f, 40f)?.output)
-        // below the key area within the tolerance → bottom row
-        assertEquals(KeyRole.SPACE, p.hitTest(500f, 780f, 1080f, 756f, 40f)?.role)
-        assertNull(p.hitTest(500f, 800f, 1080f, 756f, 40f))
     }
 
     @Test

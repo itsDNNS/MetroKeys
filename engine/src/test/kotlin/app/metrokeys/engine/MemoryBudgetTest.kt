@@ -63,14 +63,14 @@ class MemoryBudgetTest {
 
     companion object {
         /**
-         * JVM heap for the engine part of the 96 MB budget (the app's views and settings need the rest). 0.6.5: 80 (44
-         * before): the dictionary-only German forms (05b §3.7) add about 26 MB; measured on the emulator the keyboard
-         * with de+en peaks at 87 MB of Dalvik heap (docs/APP.md).
+         * JVM heap for the engine part of the 96 MB budget (the app's views and settings need the rest). 0.6.6: 56 (44
+         * in 0.6.4, 80 in 0.6.5 with all dictionary-only German forms): the dictionary-only German lemmas (05b §3.7)
+         * add about 7 MB.
          */
-        const val HEAP_TWO_MB = 80
+        const val HEAP_TWO_MB = 56
 
-        /** JVM heap for the engine part with three languages (budget 128 MB, 05 §14.5); 0.6.5: 88 (60 before). */
-        const val HEAP_THREE_MB = 88
+        /** JVM heap for the engine part with three languages (budget 128 MB, 05 §14.5); 0.6.6: 68 (0.6.4: 60, 0.6.5: 88). */
+        const val HEAP_THREE_MB = 68
     }
 }
 

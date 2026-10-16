@@ -214,10 +214,9 @@ class WorkedExamplesTest {
     @Test
     fun nextWord177() {
         val next = de.predictNext("Vielen ")
-        // 0.6.5: anderen 52 → 53 and Fällen 54 → 55 (05 §17.7 gives 52 and 54): the dictionary-only forms (05b §3.7) are
-        // counted in the pair sources too, so "vielen" has more counted followers and these pair probabilities fell
-        // slightly; the order is unchanged (spec/QUESTIONS.md)
-        assertEquals(listOf("Dank" to 41, "Jahren" to 46, "Ländern" to 51, "anderen" to 53, "Fällen" to 55),
+        // 0.6.5 with all dictionary-only forms gave anderen 53 and Fällen 55; with the lemmas of 0.6.6 the values of
+        // 05 §17.7 hold again
+        assertEquals(listOf("Dank" to 41, "Jahren" to 46, "Ländern" to 51, "anderen" to 52, "Fällen" to 54),
             next.take(5).map { it.text to it.cost })
         assertEquals(211, de.dictionary.pairs!!.bigram("vielen", "Dank"))
 
@@ -227,7 +226,8 @@ class WorkedExamplesTest {
         assertEquals(45, start["Die"])
         assertEquals(48, start["Er"])
         assertEquals(49, start["Sie"])
-        // 0.6.5: 50 (05 §17.7 and 0.6.4: 49), for the same reason as "anderen" above
+        // 0.6.5 and 0.6.6: 50 (05 §17.7 and 0.6.4: 49); the dictionary-only lemmas are counted in the pair sources too
+        // (spec/QUESTIONS.md)
         assertEquals(50, start["Das"])
         assertEquals(50, start["Der"])
         assertEquals(52, start["Es"])

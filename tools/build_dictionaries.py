@@ -230,31 +230,22 @@ def build_german(stats):
     de = build_de.GermanBuilder(os.path.join(SRC, "fw", "de_full.txt"), wiktionary_de.load(wikt_cache))
     de_entries = de.build(os.path.join(ROOT, "spec", "data", "layouts-de.json"))
 
-    # §3.7 dictionary-only German forms (0.6.5): every form first; only lemmas if the word list grows too much
-    def variant(lemmas):
-        entries = dict(de_entries)
-        added = de.add_dictionary_only(entries, lemmas)
-        keys = sorted(entries)
-        table = build_pairs("de", entries, keys, "deu_sentences.tsv.bz2", "deu", "de",
-                            damped=de.damped, damping=build_de.DAMPING)
-        size = trial_sizes("de-DE", de, entries, table)
-        return entries, keys, table, added, size
-
+    # §3.7 dictionary-only German lemmas (0.6.6): lemmas without a subtitle occurrence or with exactly one, class 1
     base_size = trial_sizes("de-DE", de, de_entries, build_pairs("de", de_entries, sorted(de_entries), "deu_sentences.tsv.bz2",
                                                                   "deu", "de", damped=de.damped, damping=build_de.DAMPING))
-    all_entries, all_keys, all_table, all_added, all_size = variant(None)
     lemmas = build_de.lemma_keys(wiktionary_de.load_pos(pos_cache))
-    lem_entries, lem_keys, lem_table, lem_added, lem_size = variant(lemmas)
-    growth = all_size["wordsBytes"] - base_size["wordsBytes"]
-    use_lemmas = growth > build_de.DICT_ONLY_MAX_GROWTH
-    de_entries, de_keys, de_table = (lem_entries, lem_keys, lem_table) if use_lemmas else (all_entries, all_keys, all_table)
+    unseen = sum(1 for k in de.dictionary_only_keys(de_entries, lemmas) if de.count(k) == 0)
+    de_entries = dict(de_entries)
+    added = de.add_dictionary_only(de_entries, lemmas)
+    de_keys = sorted(de_entries)
+    de_table = build_pairs("de", de_entries, de_keys, "deu_sentences.tsv.bz2", "deu", "de",
+                           damped=de.damped, damping=build_de.DAMPING)
     dict_only = {
-        "variantUsed": "lemmas" if use_lemmas else "allForms",
+        "variantUsed": "lemmas",
         "before": base_size,
-        "allForms": dict(all_size, addedKeys=len(all_added)),
-        "lemmasOnly": dict(lem_size, addedKeys=len(lem_added)),
-        "addedSample": [f"{k} {forms_text((lem_entries if use_lemmas else all_entries)[k])}"
-                        for k in (lem_added if use_lemmas else all_added)[::max(1, len(lem_added if use_lemmas else all_added) // 100)][:100]],
+        "after": dict(trial_sizes("de-DE", de, de_entries, de_table), addedKeys=len(added),
+                      addedUnseen=unseen, addedSeenOnce=len(added) - unseen),
+        "addedSample": [f"{k} {de.count(k)} {forms_text(de_entries[k])}" for k in added[::max(1, len(added) // 100)][:100]],
     }
     # 0.6.4 report: step 6a and the damping of non-German keys (§3.6)
     top = sorted(de.damped, key=lambda k: (-de.count(k), k))

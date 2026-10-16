@@ -42,10 +42,10 @@ DAMPING = 0.01
 # case, and whose one-key-aside substitution or swap is a German form at least TYPO_RATIO times as frequent gets class 0
 TYPO_MAX_COUNT = 100
 TYPO_RATIO = 5000
-# §3.7 dictionary-only German forms (0.6.5): the lowest class that is still offered (class 0 is never offered)
+# §3.7 dictionary-only German lemmas (0.6.5/0.6.6): the lowest class that is still offered (class 0 is never offered)
 DICT_ONLY_CLASS = 1
-# §3.7: if the word list grows by more than this (compressed bytes), only lemmas are added
-DICT_ONLY_MAX_GROWTH = 1_500_000
+# §3.7 (0.6.6): a lemma whose key occurs at most this often in the subtitles counts as dictionary-only
+DICT_ONLY_MAX_COUNT = 1
 # §3.7 lemmas: German parts of speech of inflected-form pages (spec/QUESTIONS.md, 0.6.5); a title is a lemma if its
 # German section has any other part of speech
 FORM_POS = {"Deklinierte Form", "Konjugierte Form", "Dekliniertes Gerundivum", "Komparativ", "Superlativ", "Partizip I",
@@ -319,11 +319,11 @@ class GermanBuilder:
 
     # §3.7 (0.6.5)
     def dictionary_only_keys(self, entries, lemma_keys=None):
-        """German-form keys without any subtitle occurrence (valid alphabet, 2…27 letters), not yet in [entries];
-        with [lemma_keys] only those."""
+        """German-form keys with no subtitle occurrence or exactly one (valid alphabet, 2…27 letters), not yet in
+        [entries]; with [lemma_keys] only those (§3.7 since 0.6.6: lemmas only)."""
         out = []
         for key in sorted(self.forms_by_key):
-            if key in self.counts or key in entries:
+            if self.count(key) > DICT_ONLY_MAX_COUNT or key in entries:
                 continue
             if not 2 <= len(key) <= 27 or any(ch not in ALLOWED for ch in key):
                 continue

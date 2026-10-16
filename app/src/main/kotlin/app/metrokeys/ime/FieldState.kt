@@ -37,6 +37,12 @@ data class FieldState(
         else -> action
     }
 
+    /**
+     * The fast-typing backspace exclusion of 03 §1.1 rule 5 applies: input type `text` without the short-message
+     * variation.
+     */
+    val fastTypingExclusion: Boolean get() = inputKind == "text" && inputType and TYPE_MASK_VARIATION != VAR_SHORT_MESSAGE
+
     /** Hardware keys run through the keyboard logic except in password, number and phone fields (03 §13.2). */
     val hardwareThroughLogic: Boolean get() = info.policy !in setOf(FieldPolicy.PASSWORD, FieldPolicy.NUMBER, FieldPolicy.PHONE)
 
@@ -55,6 +61,7 @@ data class FieldState(
         private const val TYPE_TEXT_FLAG_IME_MULTI_LINE = 0x40000
         private const val VAR_URI = 0x10
         private const val VAR_EMAIL = 0x20
+        private const val VAR_SHORT_MESSAGE = 0x40
         private const val VAR_PERSON_NAME = 0x60
         private const val VAR_POSTAL = 0x70
         private const val VAR_PASSWORD = 0x80

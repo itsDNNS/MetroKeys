@@ -103,7 +103,7 @@ class LexiconTest {
     fun bundledWordsAndAllForms() {
         val lex = TestDictionaries.de.lexicon
         assertEquals(lex.formCount, lex.words().count())
-        assertTrue(lex.keyCount in 850_000..865_000) // 0.6.5: with the dictionary-only forms (05b §3.7)
+        assertTrue(lex.keyCount in 315_000..325_000) // 0.6.6: with the dictionary-only lemmas (05b §3.7)
         assertTrue(lex.forms("haus").single().text == "Haus")
         val en = TestDictionaries.en.lexicon
         assertEquals(listOf("I'm"), en.forms("im").map { it.text }.take(1))

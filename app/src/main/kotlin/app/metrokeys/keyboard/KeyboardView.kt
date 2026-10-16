@@ -14,7 +14,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.accessibility.AccessibilityManager
 import app.metrokeys.engine.swipe.ShapeTrace
-import app.metrokeys.engine.swipe.ShapeWriter
 import app.metrokeys.ime.KeyboardController
 import app.metrokeys.ime.Shift
 import app.metrokeys.ime.StripContent
@@ -23,13 +22,10 @@ import app.metrokeys.keyboard.layout.Key
 import app.metrokeys.keyboard.layout.KeyRole
 import app.metrokeys.keyboard.layout.Page
 import app.metrokeys.keyboard.layout.PageKind
-import app.metrokeys.keyboard.layout.hitTest
 import app.metrokeys.settings.HighContrastChoice
 import app.metrokeys.settings.NavMode
 import app.metrokeys.settings.ThemeChoice
-import kotlin.math.abs
 import kotlin.math.ceil
-import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 
@@ -357,7 +353,7 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
                 else -> drawPage(canvas, now)
             }
             traceOverlay.draw(canvas, now)
-            if (picker != null) {
+            if (touch.picker != null) {
                 fill.color = theme.dimmer
                 canvas.drawRect(0f, keyTop, width.toFloat(), keyTop + keyAreaHeight, fill)
             }
@@ -365,11 +361,11 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
         }
         if (barHeight > 0f) appBar.draw(canvas, now, barTop)
         drawCompact(canvas)
-        drawPopup(canvas, now)
+        drawPopup(canvas)
         drawPicker(canvas, now)
         // the key popup is static: it disappears through popupRunnable, not through animation frames
         if (m.s > 0 && (strip.animating(now) || emojiPanel.animating(now) || clipPanel.animating(now) || traceOverlay.animating(now) ||
-                picker?.let { now - it.openTime < 320 } == true)
+                touch.picker?.animating(now) == true)
         ) {
             postInvalidateOnAnimation()
         }
@@ -413,10 +409,9 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
     }
 
     private fun isPressed(k: Key): Boolean = when {
-        tracing -> false
-        k.role == KeyRole.SHIFT -> controller.shift == Shift.CAPS_LOCK || activeKey === k
+        k.role == KeyRole.SHIFT -> controller.shift == Shift.CAPS_LOCK || touch.pressedKey === k
         k.role == KeyRole.EMOJI_CATEGORY -> controller.emojiCategory == k.category
-        else -> activeKey === k
+        else -> touch.pressedKey === k
     }
 
     fun drawKey(c: Canvas, k: Key) {
@@ -513,23 +508,16 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
 
     // ================================================================ key-press popup (02 §5.5, 03 §2)
 
-    private var popupKey: Key? = null
-    private var popupHideAt = 0L
-    private val popupRunnable = Runnable { popupKey = null; invalidate() }
+    /** Floors a coordinate to a whole device pixel (02 §5.5.3 pixel snapping). */
+    private fun snap(v: Float): Float = kotlin.math.floor(v)
 
-    private fun popupKeyNow(now: Long): Key? {
-        if (picker != null || tracing) return null
-        val a = activeKey
-        if (a != null && a.popup && !pageSwitchLock) return a
-        return if (now < popupHideAt) popupKey else null
-    }
-
-    private fun drawPopup(c: Canvas, now: Long) {
-        val k = popupKeyNow(now) ?: return
+    private fun drawPopup(c: Canvas) {
+        val ps = touch.popup ?: return
+        val k = ps.key
         val m = metrics
         val t = theme
-        val label = labelOf(k)
         val isLang = k.role == KeyRole.LANGUAGE
+        val label = if (isLang) "" else ps.frozenLabel ?: labelOf(k)
         val large = k.role == KeyRole.DOMAIN || label.length > 3
         val cw = when {
             isLang -> m.popupLanguageW
@@ -537,27 +525,27 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
             else -> m.popupContentW
         }
         val ch = if (isLang) m.popupLanguageH else if (large) m.popupLargeH else m.popupContentH
-        val cell = cellOf(k)
+        val cell = ps.cell
         val fr = m.frame
         val outerW = cw + 2 * fr
         val outerH = ch + 2 * fr
-        var left = cell.centerX() - outerW / 2
+        var left = cell.centerX - outerW / 2
         left = left.coerceIn(0f, max(0f, width - outerW))
-        val bottom = cell.bottom - 0.98f * cell.height()
+        val bottom = keyTop + cell.bottom - 0.98f * cell.height
         val top = bottom - outerH
         fill.color = t.popupFrame
-        c.drawRect(left, top, left + outerW, bottom, fill)
-        val content = RectF(left + fr, top + fr, left + fr + cw, bottom - fr)
+        c.drawRect(snap(left), snap(top), snap(left + outerW), snap(bottom), fill)
+        val content = RectF(snap(left + fr), snap(top + fr), snap(left + fr + cw), snap(bottom - fr))
         fill.color = t.popupBackground
         c.drawRect(content, fill)
         t.popupOutline?.let { drawOutline(c, content, it, 2f * m.s) }
         if (isLang) {
-            drawLanguageCell(c, content, controller.language, t.popupLabel)
+            drawLanguageCell(c, content, ps.frozenLabel ?: controller.language, t.popupLabel)
             return
         }
         val set = TextStyles.of(k.textStyle)
-        val ps = set.popup ?: TextStyles.popupFallback
-        drawLabel(c, label, content, typeface(ps.weight), ps.size * m.s, t.popupLabel)
+        val style = set.popup ?: TextStyles.popupFallback
+        drawLabel(c, label, content, typeface(style.weight), style.size * m.s, t.popupLabel)
     }
 
     private fun drawOutline(c: Canvas, r: RectF, color: Int, w: Float) {
@@ -592,113 +580,27 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
         }
     }
 
-    // ================================================================ alternates picker (02 §5.6, 03 §3)
+    // ================================================================ alternates picker (02 §5.6, §7.5, 03 §3)
 
-    class Picker(
-        val key: Key,
-        val items: List<String>,
-        val cells: List<RectF>,
-        /** Row index per item: 0 = lower row, 1 = upper row. */
-        val rows: IntArray,
-        val openTime: Long,
-        val language: Boolean,
-        val downX: Float,
-        val downY: Float,
-    ) {
-        var highlighted = 0
-        var moved = false
-        var sticky = false
-        var stickyUntil = 0L
-    }
+    /** The open picker, if any (cells in key-area px). */
+    val picker: PickerModel? get() = touch.picker
 
-    var picker: Picker? = null
-        private set
-    private val pickerTimeout = Runnable {
-        if (picker?.sticky == true && !touchExploration) {
-            closePicker()
-            invalidate()
-        }
-    }
-
-    private fun openPicker(k: Key, items: List<String>, downX: Float, downY: Float) {
-        val m = metrics
-        val lang = k.role == KeyRole.LANGUAGE
-        val long = items.any { it.length > 3 }
-        val cw = if (lang) m.popupLanguageW else if (long) m.popupLargeW else m.popupContentW
-        val ch = if (lang) m.popupLanguageH else if (long) m.popupLargeH else m.popupContentH
-        val fr = m.frame
-        val pitch = cw + fr
-        val cap = max(1, ((width - fr) / pitch).toInt())
-        val list = items.take(2 * cap)
-        val lowerCount = if (list.size > cap) ceil(list.size / 2.0).toInt() else list.size
-        val cell = cellOf(k)
-        val lowerBottom = cell.bottom - 0.98f * cell.height() - fr
-        val cells = ArrayList<RectF>()
-        val rows = IntArray(list.size)
-        fun placeRow(count: Int, bottom: Float): List<RectF> {
-            val x0 = cell.centerX() - cw / 2
-            val rightEdge = x0 + (count - 1) * pitch + cw + fr
-            val leftEdge = x0 - (count - 1) * pitch - fr
-            val out = ArrayList<RectF>()
-            when {
-                rightEdge <= width && x0 - fr >= 0 -> for (i in 0 until count) out.add(RectF(x0 + i * pitch, bottom - ch, x0 + i * pitch + cw, bottom))
-                leftEdge >= 0 && x0 + cw + fr <= width -> for (i in 0 until count) out.add(RectF(x0 - i * pitch, bottom - ch, x0 - i * pitch + cw, bottom))
-                else -> {
-                    val rowW = count * pitch + fr
-                    val start = max(0f, min(x0 - fr, width - rowW)) + fr
-                    for (i in 0 until count) out.add(RectF(start + i * pitch, bottom - ch, start + i * pitch + cw, bottom))
-                }
-            }
-            return out
-        }
-        cells.addAll(placeRow(lowerCount, lowerBottom))
-        if (list.size > lowerCount) {
-            cells.addAll(placeRow(list.size - lowerCount, lowerBottom - ch - fr))
-            for (i in lowerCount until list.size) rows[i] = 1
-        }
-        picker = Picker(k, list, cells, rows, SystemClock.uptimeMillis(), lang, downX, downY)
-        controller.pickerOpened(list)
-        a11y.invalidateRoot()
-        controller.onPickerChanged()
-        invalidate()
-    }
-
-    fun closePicker() {
-        if (picker == null) return
-        picker = null
-        removeCallbacks(pickerTimeout)
-        controller.onPickerChanged()
-        a11y.invalidateRoot()
-    }
-
-    /** Current (animated) cell rectangle of picker item [i] (02 §7.5). */
-    fun pickerCell(p: Picker, i: Int, now: Long): RectF {
-        val f = p.cells[i]
-        val first = p.cells[0]
-        val u = ((now - p.openTime - 100f) / 200f).coerceIn(0f, 1f)
-        val dx = (first.left - f.left) * (1 - u)
-        return RectF(f.left + dx, f.top, f.right + dx, f.bottom)
-    }
+    /** Final cell [i] of the picker in view coordinates (accessibility). */
+    fun pickerCellRect(p: PickerModel, i: Int): RectF = p.cells[i].let { RectF(it.left, keyTop + it.top, it.right, keyTop + it.bottom) }
 
     private fun drawPicker(c: Canvas, now: Long) {
-        val p = picker ?: return
+        val p = touch.picker ?: return
         val m = metrics
         val t = theme
-        val fr = m.frame
-        var l = Float.MAX_VALUE
-        var tp = Float.MAX_VALUE
-        var r = -Float.MAX_VALUE
-        var b = -Float.MAX_VALUE
-        val rects = p.items.indices.map { pickerCell(p, it, now) }
-        for (rc in rects) {
-            l = min(l, rc.left); tp = min(tp, rc.top); r = max(r, rc.right); b = max(b, rc.bottom)
-        }
-        fill.color = t.popupFrame
-        c.drawRect(l - fr, tp - fr, r + fr, b + fr, fill)
+        val fr = p.frame
         val long = p.items.any { it.length > 3 }
         val style = if (long) TextStyles.pickerLong else TextStyles.popupFallback
-        for (i in p.items.indices.reversed()) {
-            val rc = rects[i]
+        // every cell with its own frame, the rightmost of a row first (02 §5.6.5, §7.5)
+        for (i in p.drawOrder()) {
+            val a = p.cellAt(i, now)
+            val rc = RectF(snap(a.left), snap(keyTop + a.top), snap(a.right), snap(keyTop + a.bottom))
+            fill.color = t.popupFrame
+            c.drawRect(snap(a.left - fr), snap(keyTop + a.top - fr), snap(a.right + fr), snap(keyTop + a.bottom + fr), fill)
             val hl = i == p.highlighted
             fill.color = if (hl) t.pickerHighlight else t.pickerItem
             c.drawRect(rc, fill)
@@ -709,40 +611,7 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
         }
     }
 
-    /** Highlight by x within the active row (03 §3.4). */
-    private fun pickerHighlight(p: Picker, x: Float, y: Float) {
-        val lowerTop = p.cells[0].top
-        val pitch = p.cells[0].height() + metrics.frame
-        val row = if (p.rows.any { it == 1 } && y < lowerTop - pitch / 4) 1 else 0
-        var best = -1
-        var bestD = Float.MAX_VALUE
-        for (i in p.items.indices) {
-            if (p.rows[i] != row) continue
-            val rc = p.cells[i]
-            val d = if (x >= rc.left && x < rc.right) 0f else min(abs(x - rc.left), abs(x - rc.right))
-            if (d < bestD) {
-                bestD = d
-                best = i
-            }
-        }
-        if (best >= 0 && best != p.highlighted) {
-            p.highlighted = best
-            p.moved = true
-            invalidate()
-        }
-    }
-
-    private fun pickerPanelContains(p: Picker, x: Float, y: Float): Boolean {
-        val fr = metrics.frame
-        return p.cells.any { x >= it.left - fr && x <= it.right + fr && y >= it.top - fr && y <= it.bottom + fr }
-    }
-
-    private fun commitPicker(p: Picker) {
-        val item = p.items[p.highlighted]
-        closePicker()
-        controller.pickerCommit(p.key, item)
-        invalidate()
-    }
+    fun closePicker() = touch.closePicker()
 
     // ================================================================ touch (03 §1)
 
@@ -750,42 +619,64 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
 
     private var region = Region.NONE
     private var pointerId = -1
-    var activeKey: Key? = null
-        private set
-    private var downX = 0f
-    private var downY = 0f
-    private var downTime = 0L
-    private val hysteresis = RectF()
-    private var pageSwitchLock = false
-    private var pageSwitchThreshold = 0f
-    private var consumed = false
-    private var repeating = false
-    private var repeatStart = 0L
-    private var wordDeleting = false
-    private var traceCandidate = false
-    var tracing = false
-        private set
-    private val traceX = FloatArrayList()
-    private val traceY = FloatArrayList()
-    private val traceT = LongArrayList()
-    private var stickyPickerTap = false
     private var velocity: android.view.VelocityTracker? = null
 
-    private val holdRunnable = Runnable { onHold() }
-    private val repeatRunnable = object : Runnable {
-        override fun run() {
-            val k = activeKey ?: return
-            val now = SystemClock.uptimeMillis()
-            if (k.role == KeyRole.BACKSPACE && now - repeatStart >= 3000) {
-                wordDeleting = true
-                controller.wordDelete()
-                postDelayed(this, 200)
-            } else {
-                controller.keyRepeat(k)
-                postDelayed(this, 83)
-            }
+    private val touchClock = object : TouchClock {
+        override fun now(): Long = SystemClock.uptimeMillis()
+        override fun post(task: Runnable, delayMs: Long) {
+            removeCallbacks(task)
+            postDelayed(task, delayMs)
+        }
+        override fun cancel(task: Runnable) {
+            removeCallbacks(task)
         }
     }
+
+    private val touchHost = object : KeyTouch.Host {
+        override val page: Page get() = controller.page
+        override val keyAreaWidth: Float get() = this@KeyboardView.keyAreaWidth
+        override val keyAreaHeight: Float get() = this@KeyboardView.keyAreaHeight
+        override val scale: Float get() = metrics.s
+        override val fastTypingField: Boolean get() = controller.field.fastTypingExclusion
+        override val shapeWritingActive: Boolean get() = controller.shapeWritingActive
+        override fun keyChoiceAllowed(): Boolean = controller.keyChoiceAllowed() && controller.currentWordNonEmpty()
+        override fun prefixClass(k: Key): Int = app.metrokeys.ime.Perf.section("mk:chooseKey") { controller.prefixClass(k.output!!.lowercase()) }
+        override fun touchDown(k: Key) = controller.keyDown(k)
+        override fun pickerTap() = controller.pickerTapFeedback()
+        override fun commit(k: Key, x: Float, y: Float) = controller.keyCommit(k, x, y)
+        override fun repeat(k: Key) = controller.keyRepeat(k)
+        override fun wordDelete() = controller.wordDelete()
+        override fun holdOutput(k: Key) = controller.holdOutput(k)
+        override fun pickerItems(k: Key): List<String>? = controller.pickerItems(k)
+        override fun pickerCellSize(k: Key, items: List<String>): Pair<Float, Float> {
+            val m = metrics
+            return when {
+                k.role == KeyRole.LANGUAGE -> m.popupLanguageW to m.popupLanguageH
+                items.any { it.length > 3 } -> m.popupLargeW to m.popupLargeH
+                else -> m.popupContentW to m.popupContentH
+            }
+        }
+        override fun pickerOpened(items: List<String>) {
+            controller.pickerOpened(items)
+            a11y.invalidateRoot()
+            controller.onPickerChanged()
+        }
+        override fun pickerClosed() {
+            controller.onPickerChanged()
+            a11y.invalidateRoot()
+        }
+        override fun pickerCommit(k: Key, item: String) = controller.pickerCommit(k, item)
+        override fun popupSnapshot(k: Key): String = if (k.role == KeyRole.LANGUAGE) controller.language else labelOf(k)
+        override fun traceStart(xs: FloatArrayList, ys: FloatArrayList, ts: LongArrayList, downTime: Long) = traceOverlay.start(xs, ys, ts, downTime)
+        override fun traceAdd(x: Float, y: Float, t: Long) = traceOverlay.add(x, y, t)
+        override fun traceEnd() = traceOverlay.end()
+        override fun swipe(xs: FloatArray, ys: FloatArray, ts: LongArray) = controller.swipe(ShapeTrace(xs, ys, ts))
+        override fun activeKeyChanged(k: Key) = a11y.onActiveKey(k)
+        override fun invalidate() = this@KeyboardView.invalidate()
+    }
+
+    /** The key-area touch state machine (03 §1–§5). */
+    val touch = KeyTouch(touchHost, touchClock)
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(ev: MotionEvent): Boolean {
@@ -794,7 +685,10 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
                 val idx = ev.actionIndex
-                if (pointerId != -1) release(ev.getX(ev.findPointerIndex(pointerId).coerceAtLeast(0)), ev.getY(ev.findPointerIndex(pointerId).coerceAtLeast(0)), now, secondFinger = true)
+                if (pointerId != -1) {
+                    val old = ev.findPointerIndex(pointerId).coerceAtLeast(0)
+                    release(ev.getX(old), ev.getY(old), now, secondFinger = true)
+                }
                 pointerId = ev.getPointerId(idx)
                 velocity?.recycle()
                 velocity = android.view.VelocityTracker.obtain().also { it.addMovement(ev) }
@@ -828,20 +722,11 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
     }
 
     private fun down(x: Float, y: Float, now: Long) {
-        downX = x
-        downY = y
-        downTime = now
-        val p = picker
-        if (p != null) {
-            if (p.sticky && pickerPanelContains(p, x, y)) {
-                region = Region.PICKER
-                stickyPickerTap = true
-                removeCallbacks(pickerTimeout)
-                pickerHighlightAt(p, x, y)
-                return
-            }
-            closePicker()
-            invalidate()
+        // an open picker takes the next touch-down anywhere on the keyboard (03 §3.4 item 6)
+        if (touch.picker != null) {
+            region = Region.PICKER
+            touch.down(x, y - keyTop, now)
+            return
         }
         if (y < stripTop) {
             region = Region.NONE
@@ -852,7 +737,7 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
             strip.down(x, y - stripTop, now)
             return
         }
-        if (y < bodyBottom || (bodyHeight > 0 && y < bodyBottom + metrics.outsideTolerance && barHeight == 0f && y < height - navInset)) {
+        if (y < bodyBottom || (bodyHeight > 0 && y <= bodyBottom + metrics.outsideTolerance && barHeight == 0f && y < height - navInset)) {
             when {
                 bodyHeight == 0f -> region = Region.NONE
                 controller.clipboardPanelOpen -> {
@@ -865,7 +750,7 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
                 }
                 else -> {
                     region = Region.KEYS
-                    keyDown(x, y, now)
+                    touch.down(x, y - keyTop, now)
                 }
             }
             return
@@ -883,25 +768,13 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
         region = Region.NONE
     }
 
-    private fun pickerHighlightAt(p: Picker, x: Float, y: Float) {
-        for (i in p.items.indices) {
-            val rc = p.cells[i]
-            if (x >= rc.left - metrics.frame && x <= rc.right + metrics.frame && y >= rc.top - metrics.frame && y <= rc.bottom + metrics.frame) {
-                p.highlighted = i
-                invalidate()
-                return
-            }
-        }
-    }
-
     private fun move(x: Float, y: Float, t: Long) {
         when (region) {
             Region.STRIP -> strip.move(x, y - stripTop, t)
             Region.EMOJI_GRID -> emojiPanel.move(x, y - keyTop, t)
             Region.CLIP_PANEL -> clipPanel.move(x, y - keyTop, t)
             Region.BAR -> appBar.move(x, y - barTop, t)
-            Region.KEYS -> keyMove(x, y, t)
-            Region.PICKER -> picker?.let { pickerHighlightAt(it, x, y) }
+            Region.KEYS, Region.PICKER -> touch.move(x, y - keyTop, t)
             else -> {}
         }
     }
@@ -912,272 +785,45 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
             Region.EMOJI_GRID -> emojiPanel.up(x, y - keyTop, t)
             Region.CLIP_PANEL -> clipPanel.up(x, y - keyTop, t)
             Region.BAR -> appBar.up(x, y - barTop, t)
-            Region.KEYS -> keyUp(x, y, t, secondFinger)
-            Region.PICKER -> picker?.let { if (stickyPickerTap) commitPicker(it) }
+            Region.KEYS, Region.PICKER -> touch.up(x, y - keyTop, t, secondFinger)
             Region.COMPACT -> {
                 if (x < width * 0.25f) controller.runAction("hide") else if (x > width * 0.75f) controller.runAction("switch")
             }
             else -> {}
         }
-        stickyPickerTap = false
         region = Region.NONE
     }
 
     fun cancelTouch() {
-        removeCallbacks(holdRunnable)
-        removeCallbacks(repeatRunnable)
-        if (tracing) traceOverlay.end()
-        tracing = false
-        traceCandidate = false
-        activeKey = null
-        repeating = false
-        pageSwitchLock = false
+        touch.cancel()
         strip.cancel()
         emojiPanel.cancel()
         clipPanel.cancel()
         appBar.cancel()
-        closePicker()
         region = Region.NONE
         pointerId = -1
         invalidate()
     }
 
-    // ---------------------------------------------------------------- keys
-
-    private fun hitKey(x: Float, y: Float): Key? =
-        page.hitTest(x, y - keyTop, keyAreaWidth, keyAreaHeight, metrics.outsideTolerance) { it.role == KeyRole.EMOJI_GRID }
-
-    private fun keyDown(x: Float, y: Float, now: Long) {
-        consumed = false
-        repeating = false
-        wordDeleting = false
-        tracing = false
-        pageSwitchLock = false
-        var k = hitKey(x, y) ?: run {
-            activeKey = null
-            return
-        }
-        k = chooseKey(k, x, y)
-        when (k.role) {
-            KeyRole.PAGE, KeyRole.EMOJI -> {
-                pageSwitchThreshold = k.rect.width * keyAreaWidth / 2
-                controller.keyDown(k)
-                activeKey = null
-                pageSwitchLock = true
-                invalidate()
-                return
-            }
-            KeyRole.EMOJI_CATEGORY -> {
-                controller.keyDown(k)
-                activeKey = null
-                consumed = true
-                invalidate()
-                return
-            }
-            else -> {}
-        }
-        controller.keyDown(k)
-        setActive(k, x, y)
-        if (k.role == KeyRole.SHIFT) consumed = true
-        traceCandidate = controller.shapeWritingActive && k.isLetter &&
-            ShapeWriter.isSwipeCandidate(y - keyTop, keyAreaHeight, true)
-        traceX.clear(); traceY.clear(); traceT.clear()
-        if (traceCandidate) addTrace(x, y, now)
-    }
-
-    private fun setActive(k: Key, x: Float, y: Float) {
-        activeKey = k
-        val cell = cellOf(k)
-        hysteresis.set(min(cell.left, x), min(cell.top, y), max(cell.right, x), max(cell.bottom, y))
-        hysteresis.inset(-metrics.moveTolerance, -metrics.moveTolerance)
-        removeCallbacks(holdRunnable)
-        removeCallbacks(repeatRunnable)
-        repeating = false
-        if (k.role != KeyRole.SHIFT) postDelayed(holdRunnable, k.longPressMs.toLong())
-        popupKey = if (k.popup) k else null
-        a11y.onActiveKey(k)
-        invalidate()
-    }
-
-    /** Key choice at touch-down (03 §1.1a). */
-    private fun chooseKey(touched: Key, x: Float, y: Float): Key = app.metrokeys.ime.Perf.section("mk:chooseKey") { chooseKeyNow(touched, x, y) }
-
-    private fun chooseKeyNow(touched: Key, x: Float, y: Float): Key {
-        if (!touched.isLetter || !controller.keyChoiceAllowed() || !controller.currentWordNonEmpty()) return touched
-        val own = controller.prefixClass(touched.output!!.lowercase())
-        if (own >= 0) return touched
-        val max = 13f * metrics.s
-        val close = 7f * metrics.s
-        var best: Key? = null
-        var bestScore = Int.MIN_VALUE
-        var bestClass = -1
-        val ky = y - keyTop
-        for (k in page.keys) {
-            if (!k.isLetter || k === touched) continue
-            val l = k.rect.left * keyAreaWidth
-            val r = k.rect.right * keyAreaWidth
-            val t = k.rect.top * keyAreaHeight
-            val b = k.rect.bottom * keyAreaHeight
-            val dx = max(max(l - x, 0f), x - r)
-            val dy = max(max(t - ky, 0f), ky - b)
-            val d = max(dx, dy)
-            if (d > max) continue
-            val score = if (d <= close) -1500 else -2500
-            val cls = controller.prefixClass(k.output!!.lowercase())
-            if (cls < 0) continue
-            if (score > bestScore || (score == bestScore && cls > bestClass)) {
-                best = k
-                bestScore = score
-                bestClass = cls
-            }
-        }
-        return best ?: touched
-    }
-
-    private fun addTrace(x: Float, y: Float, t: Long) {
-        traceX.add(x)
-        traceY.add(y - keyTop)
-        traceT.add(t - downTime)
-    }
-
-    private fun keyMove(x: Float, y: Float, t: Long) {
-        if (picker != null) {
-            val p = picker!!
-            if (abs(x - p.downX) > 16 * metrics.s || abs(y - p.downY) > 16 * metrics.s) p.moved = true
-            pickerHighlight(p, x, y)
-            return
-        }
-        if (tracing) {
-            addTrace(x, y, t)
-            traceOverlay.add(x, y - keyTop, t)
-            return
-        }
-        if (traceCandidate) {
-            addTrace(x, y, t)
-            if (ShapeWriter.isSwipeStart(x - downX, y - downY, keyAreaWidth, keyAreaHeight)) {
-                tracing = true
-                removeCallbacks(holdRunnable)
-                removeCallbacks(repeatRunnable)
-                activeKey = null
-                popupKey = null
-                traceOverlay.start(traceX, traceY, traceT, downTime)
-                invalidate()
-                return
-            }
-        }
-        if (pageSwitchLock) {
-            if (hypot(x - downX, y - downY) < pageSwitchThreshold) return
-            pageSwitchLock = false
-            val k = hitKey(x, y) ?: return
-            if (k.role == KeyRole.PAGE || k.role == KeyRole.EMOJI || k.role == KeyRole.SHIFT) return
-            setActive(k, x, y)
-            return
-        }
-        val a = activeKey ?: return
-        if (hysteresis.contains(x, y)) return
-        val k = hitKey(x, y) ?: return
-        if (k === a) return
-        if (k.role == KeyRole.PAGE || k.role == KeyRole.EMOJI || k.role == KeyRole.SHIFT || k.role == KeyRole.EMOJI_CATEGORY) return
-        if (a.role == KeyRole.SHIFT) return
-        if (repeating) {
-            repeating = false
-            consumed = true
-        }
-        setActive(k, x, y)
-        consumed = false
-    }
-
-    private fun keyUp(x: Float, y: Float, t: Long, secondFinger: Boolean) {
-        removeCallbacks(holdRunnable)
-        removeCallbacks(repeatRunnable)
-        val p = picker
-        if (p != null) {
-            if (p.moved || secondFinger) {
-                commitPicker(p)
-            } else {
-                p.sticky = true
-                if (!touchExploration) postDelayed(pickerTimeout, 1000)
-            }
-            activeKey = null
-            invalidate()
-            return
-        }
-        if (tracing) {
-            tracing = false
-            traceOverlay.end()
-            if (traceX.size >= 2) controller.swipe(ShapeTrace(traceX.toArray(), traceY.toArray(), traceT.toArray()))
-            invalidate()
-            return
-        }
-        val k = activeKey
-        activeKey = null
-        if (k != null) {
-            popupKey = k
-            popupHideAt = SystemClock.uptimeMillis() + 75
-            removeCallbacks(popupRunnable)
-            postDelayed(popupRunnable, 76)
-            if (!consumed && !repeating) controller.keyCommit(k, x, y - keyTop)
-        }
-        repeating = false
-        pageSwitchLock = false
-        invalidate()
-    }
-
-    private fun onHold() {
-        val k = activeKey ?: return
-        if (tracing) return
-        if (k.holdOutput != null) {
-            controller.holdOutput(k)
-            consumed = true
-            invalidate()
-            return
-        }
-        val items = controller.pickerItems(k)
-        if (items != null) {
-            traceCandidate = false
-            openPicker(k, items, downX, downY)
-            return
-        }
-        if (k.repeat) {
-            repeating = true
-            traceCandidate = false
-            repeatStart = SystemClock.uptimeMillis()
-            controller.keyRepeat(k)
-            postDelayed(repeatRunnable, 83)
-        }
-    }
-
     /** Accessibility activation of a key: down + up at its centre; [long] opens the picker at once (03 §19.3). */
     fun activateKey(k: Key, long: Boolean) {
-        val c = cellOf(k)
+        val c = touch.cells.cell(k)
+        val x = c.centerX
+        val y = (c.top + c.bottom) / 2
         val t = SystemClock.uptimeMillis()
-        region = Region.KEYS
-        keyDown(c.centerX(), c.centerY(), t)
+        touch.down(x, y, t)
         if (long) {
             if (k.role == KeyRole.SHIFT) {
                 controller.lockShift()
-                activeKey = null
-                region = Region.NONE
+                touch.cancel()
                 return
             }
-            removeCallbacks(holdRunnable)
-            onHold()
-            if (picker != null) {
-                picker!!.sticky = true
-                activeKey = null
-                region = Region.NONE
-                return
-            }
+            touch.holdNow()
         }
-        keyUp(c.centerX(), c.centerY(), t, secondFinger = false)
-        region = Region.NONE
+        touch.up(x, y, t)
     }
 
-    fun activatePickerItem(i: Int) {
-        val p = picker ?: return
-        p.highlighted = i
-        commitPicker(p)
-    }
+    fun activatePickerItem(i: Int) = touch.commitPickerItem(i)
 
     override fun dispatchHoverEvent(event: MotionEvent): Boolean = a11y.dispatchHoverEvent(event) || super.dispatchHoverEvent(event)
 
@@ -1185,43 +831,4 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
         cancelTouch()
         super.onDetachedFromWindow()
     }
-}
-
-/** Growable primitive arrays for trace samples. */
-class FloatArrayList {
-    private var a = FloatArray(256)
-    var size = 0
-        private set
-
-    fun add(v: Float) {
-        if (size == a.size) a = a.copyOf(size * 2)
-        a[size++] = v
-    }
-
-    operator fun get(i: Int): Float = a[i]
-
-    fun clear() {
-        size = 0
-    }
-
-    fun toArray(): FloatArray = a.copyOf(size)
-}
-
-class LongArrayList {
-    private var a = LongArray(256)
-    var size = 0
-        private set
-
-    fun add(v: Long) {
-        if (size == a.size) a = a.copyOf(size * 2)
-        a[size++] = v
-    }
-
-    operator fun get(i: Int): Long = a[i]
-
-    fun clear() {
-        size = 0
-    }
-
-    fun toArray(): LongArray = a.copyOf(size)
 }

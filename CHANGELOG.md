@@ -3,6 +3,33 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.6.6 – 2026-10-16
+
+### Keyboard
+- Key popup: the popup and the pressed look of a released key stay for 75 ms exactly as they were, also when the typed
+  letter turns the shift off ("Q" stays "Q" until it disappears). Shift, backspace, space and Enter never show a popup;
+  before, an empty popup (or one with the space-bar word) flashed for a moment when they were released.
+- Sliding: a key reached by sliding the finger gets no click, never opens its alternates and never repeats; space,
+  Enter and backspace reached by sliding do nothing. On the letter page (where a touch can become a swiped word) the
+  keys passed by a sliding finger show no popup; the first key's popup ends shortly after the finger leaves it, and a
+  release without a swipe types the key under the finger. On the symbol pages the popup follows the finger.
+- Moving the finger off the keyboard (above the top row or below it) cancels the key: nothing is typed.
+- Hit testing as in the reference: the gaps between keys belong to the key whose cell they lie in, the free space left
+  of "a" and right of "l" goes to the nearest key with vertical distance counted double (it can be q/p or shift/
+  backspace near the row edges), and touches up to 40 px below the keyboard go to the nearest key. A backspace tapped
+  very quickly after two other keys in normal text fields types the nearest letter instead, as the reference does.
+- Alternates picker: a picker released without moving stays open until the next touch (before: one second). A touch
+  outside it closes it without typing anything. Sliding selects only within the cells; a finger dragged past the last
+  cell selects nothing, and releasing then types nothing. Each cell slides out with its own frame, and the alternates
+  of keys at the right edge slide over the key's own cell as in the reference.
+- Popup and picker edges are aligned to whole pixels.
+
+### German dictionary
+- The words added in 0.6.5 from Wiktionary are limited to base forms (lemmas), which now also include lemmas seen once in
+  the subtitles: 84 581 words instead of 621 051. "performant" is still offered for "performanz". The keyboard needs
+  about 19 MB less memory with German (68 MB with German and English instead of 87 MB) and the release APK shrinks from
+  15.7 MB to 15.0 MB. The next-word suggestions after "Vielen " are back at their earlier values.
+
 ## 0.6.5 – 2026-10-16
 
 ### Performance

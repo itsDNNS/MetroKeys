@@ -27,7 +27,8 @@ class KeyboardAccessibility(private val v: KeyboardView) : ExploreByTouchHelper(
         if (!v.isLaidOut) return emptyList()
         val out = ArrayList<Node>()
         val p = v.picker
-        if (p != null) for (i in p.items.indices) out.add(Node(PICKER + i, RectF(p.cells[i])))
+        val pickerRects = if (p != null) p.items.indices.map { v.pickerCellRect(p, it) } else emptyList()
+        for ((i, r) in pickerRects.withIndex()) out.add(Node(PICKER + i, r))
         for ((kind, i, r) in v.strip.accessibilityNodes()) out.add(Node(STRIP + (kind + 10) * 1000 + i, r))
         val ctl = c()
         if (ctl.hardwareMode && !ctl.miniKeyboardOpen) {
@@ -39,7 +40,7 @@ class KeyboardAccessibility(private val v: KeyboardView) : ExploreByTouchHelper(
             for ((i, k) in v.page.keys.withIndex()) {
                 if (!k.hittable) continue
                 val r = v.cellOf(k)
-                if (p != null && p.cells.any { RectF.intersects(it, r) && it.contains(r) }) continue
+                if (pickerRects.any { RectF.intersects(it, r) && it.contains(r) }) continue
                 out.add(Node(KEY + i, r))
             }
         }
