@@ -8,6 +8,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.security.DigestInputStream
 import java.security.MessageDigest
+import java.util.BitSet
 import java.util.PriorityQueue
 import java.util.zip.GZIPInputStream
 
@@ -49,8 +50,19 @@ public class Lexicon private constructor(
     /** Elision prefix table (05b §1.1, version-2 word lists): prefixes (lower case, `'`) in file order and their classes. */
     private val prefixTexts: Array<String> = emptyArray(),
     private val prefixClasses: ByteArray = ByteArray(0),
+    /** Keys kept by the count rule without being a form of the language (05b §3.6 step 7; 05 §10.1 step 5, 0.6.9). */
+    private val unattestedKeys: BitSet = BitSet(),
 ) {
     public val nodeCount: Int get() = nodeChar.size
+
+    /** Number of unattested keys (05 §10.1 step 5). */
+    public val unattestedCount: Int get() = unattestedKeys.cardinality()
+
+    /** True if key [keyIndex] is unattested: kept by the count rule of its build without being a form (05b §3.6). */
+    public fun isUnattested(keyIndex: Int): Boolean = keyIndex >= 0 && unattestedKeys.get(keyIndex)
+
+    /** True if the key of [word] is in the word list and unattested. */
+    public fun isUnattestedWord(word: String): Boolean = isUnattested(keyIndex(word))
 
     // ---- elision prefix table (05b §1.1, §6 `prefixClass`) ----
 
@@ -336,6 +348,10 @@ public class Lexicon private constructor(
     public companion object {
         private const val MAX_DEPTH = 64
 
+        /** Bit 7 of a key's form-count byte: the key is unattested (0.6.9). */
+        private const val UNATTESTED_FLAG = 0x80
+        private const val FORM_COUNT_MASK = 0x7F
+
         /**
          * Reads a gzip-compressed word list (format: tools/dictbuild/common.py). The data is decoded as it streams
          * in and the prefix tree is built from the front-coded keys without materialising one string per key, so
@@ -360,12 +376,16 @@ public class Lexicon private constructor(
             val formKind = ByteArray(formCount)
             val explicitIndex = GrowableInts()
             val explicitText = ArrayList<String>()
+            val unattested = BitSet()
             var f = 0
             for (k in 0 until keyCount) {
                 val shared = r.varintInt()
                 keys.add(shared, r.utf8())
                 formStart[k] = f
-                val nf = r.u8()
+                // bit 7 of the form count marks an unattested key (0.6.9); files written before never set it
+                val countByte = r.u8()
+                if (countByte and UNATTESTED_FLAG != 0) unattested.set(k)
+                val nf = countByte and FORM_COUNT_MASK
                 if (f + nf > formCount) throw IOException("form count mismatch")
                 repeat(nf) {
                     formClass[f] = r.u8().toByte()
@@ -394,7 +414,7 @@ public class Lexicon private constructor(
             }
             r.drain()
             return build(tag, scale, maxCount, corpus, digest.digest(), keys, formStart, formClass, formKind,
-                explicitIndex.toArray(), explicitText.toTypedArray(), prefixTexts, prefixClasses)
+                explicitIndex.toArray(), explicitText.toTypedArray(), prefixTexts, prefixClasses, unattested)
         }
 
         /** An elision prefix as stored: lower case with the ASCII apostrophe (`L’` → `l'`). */
@@ -412,6 +432,7 @@ public class Lexicon private constructor(
             corpusTokens: Long,
             entries: Map<String, List<WordForm>>,
             prefixes: List<Pair<String, Int>> = emptyList(),
+            unattested: Set<String> = emptySet(),
         ): Lexicon {
             val sorted = entries.keys.sorted()
             val keys = KeyBuffer(sorted.size)
@@ -440,7 +461,8 @@ public class Lexicon private constructor(
             formStart[sorted.size] = f
             return build(tag, scale, maxCount, corpusTokens, ByteArray(32), keys, formStart, formClass, formKind,
                 IntArray(total) { it }, explicitText.toTypedArray(),
-                prefixes.map { it.first }.toTypedArray(), ByteArray(prefixes.size) { prefixes[it].second.toByte() })
+                prefixes.map { it.first }.toTypedArray(), ByteArray(prefixes.size) { prefixes[it].second.toByte() },
+                BitSet().also { b -> for ((k, key) in sorted.withIndex()) if (key in unattested) b.set(k) })
         }
 
         /**
@@ -462,6 +484,7 @@ public class Lexicon private constructor(
             explicitText: Array<String>,
             prefixTexts: Array<String>,
             prefixClasses: ByteArray,
+            unattested: BitSet,
         ): Lexicon {
             val keyCount = keys.size
             val n = keys.nodeCount
@@ -522,7 +545,7 @@ public class Lexicon private constructor(
             return Lexicon(
                 tag, scale, maxCount, corpus, keyCount, formStart[keyCount], digest,
                 ch, firstChild, childCount, parent, nodeKey, maxClass,
-                keyNode, formStart, formClass, formKind, explicitIndex, explicitText, prefixTexts, prefixClasses,
+                keyNode, formStart, formClass, formKind, explicitIndex, explicitText, prefixTexts, prefixClasses, unattested,
             )
         }
 
@@ -552,7 +575,7 @@ public class Lexicon private constructor(
                 prev.append(r.utf8())
                 val key = prev.toString()
                 if (key in keys) found.add(key)
-                repeat(r.u8()) {
+                repeat(r.u8() and FORM_COUNT_MASK) {
                     r.u8()
                     if (r.u8() == 3) r.utf8()
                 }

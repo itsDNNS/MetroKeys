@@ -41,6 +41,7 @@ class MetroKeysService : InputMethodService(), SharedPreferences.OnSharedPrefere
     private var keyboardView: KeyboardView? = null
     private var chipScroll: HorizontalScrollView? = null
     private var chipRow: LinearLayout? = null
+    private val chipSlots = InlineAutofill.ChipSlots<View>()
 
     override fun onCreate() {
         super.onCreate()
@@ -57,7 +58,7 @@ class MetroKeysService : InputMethodService(), SharedPreferences.OnSharedPrefere
 
     override fun onSharedPreferenceChanged(p: SharedPreferences?, key: String?) {
         if (key == Prefs.ACTIVE_LANGUAGE || key == Prefs.EMOJI_HISTORY) return
-        controller.applySettings(KeyboardSettings.read(Prefs.of(this)))
+        controller.applySettings(KeyboardSettings.read(this))
     }
 
     // ================================================================ view
@@ -251,14 +252,11 @@ class MetroKeysService : InputMethodService(), SharedPreferences.OnSharedPrefere
 
     @RequiresApi(30)
     override fun onCreateInlineSuggestionsRequest(uiExtras: Bundle): InlineSuggestionsRequest? {
-        if (!controller.settings.autofillInline) return null
-        val v = keyboardView ?: return null
-        if (!v.isLaidOut) return null
-        val stripH = v.metrics.stripHeight
-        val h = (stripH * 0.84f).toInt()
-        val style = InlineAutofill.style(this, controller, v)
-        val spec = android.widget.inline.InlinePresentationSpec.Builder(Size(1, h), Size(v.width, h)).setStyle(style).build()
-        return InlineSuggestionsRequest.Builder(listOf(spec)).setMaxSuggestionCount(InlineSuggestionsRequest.SUGGESTION_COUNT_UNLIMITED).build()
+        val attached = window?.window?.decorView?.isAttachedToWindow == true
+        if (!InlineAutofill.shouldRequest(controller.settings.autofillInline, attached)) return null
+        // asked at input start, also before the input view exists or is laid out (a view recreated after a
+        // rotation): sizes and style come from the settings then
+        return InlineAutofill.request(this, controller.settings, keyboardView)
     }
 
     @RequiresApi(30)
@@ -267,31 +265,34 @@ class MetroKeysService : InputMethodService(), SharedPreferences.OnSharedPrefere
         val scroll = chipScroll ?: return false
         val v = keyboardView ?: return false
         val list: List<InlineSuggestion> = response.inlineSuggestions.sortedBy { if (it.info.isPinned) 1 else 0 }
-        clearChips()
-        if (list.isEmpty()) return true
-        val h = (v.metrics.stripHeight * 0.84f).toInt()
+        if (list.isEmpty()) {
+            clearChips()
+            return true
+        }
+        val number = chipSlots.response(list.size)
+        val h = InlineAutofill.chipHeight(v.metrics)
         val size = Size(ViewGroup.LayoutParams.WRAP_CONTENT, h)
-        var remaining = list.size
-        val views = arrayOfNulls<View>(list.size)
         for ((i, s) in list.withIndex()) {
             s.inflate(this, size, mainExecutor) { view ->
-                views[i] = view
-                if (--remaining == 0) {
-                    row.removeAllViews()
-                    for (cv in views) if (cv != null) row.addView(cv, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, h).apply {
-                        marginEnd = (v.metrics.s * 9).toInt()
-                    })
-                    if (row.childCount > 0) {
-                        scroll.visibility = View.VISIBLE
-                        controller.setAutofillActive(true)
-                    }
+                val chips = chipSlots.inflated(number, i, view) ?: return@inflate
+                row.removeAllViews()
+                for (cv in chips) {
+                    (cv.parent as? ViewGroup)?.removeView(cv)
+                    // keep the size the platform gave the chip (its rendered size): the chip view does not measure
+                    // its content, so wrap content would make it 0 px wide
+                    val (w, ch) = InlineAutofill.chipLayoutSize(cv.layoutParams?.width, cv.layoutParams?.height, h)
+                    row.addView(cv, LinearLayout.LayoutParams(w, ch).apply { marginEnd = (v.metrics.s * 9).toInt() })
                 }
+                val any = row.childCount > 0
+                scroll.visibility = if (any) View.VISIBLE else View.GONE
+                controller.setAutofillActive(any)
             }
         }
         return true
     }
 
     private fun clearChips() {
+        chipSlots.clear()
         chipRow?.removeAllViews()
         chipScroll?.visibility = View.GONE
         if (this::controller.isInitialized) controller.setAutofillActive(false)

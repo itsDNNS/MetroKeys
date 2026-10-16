@@ -3,6 +3,7 @@ package app.metrokeys.ime
 import app.metrokeys.engine.PredictionEngine
 import app.metrokeys.engine.touch.KeyboardGeometry
 import app.metrokeys.settings.KeyboardSettings
+import app.metrokeys.settings.Prefs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -48,7 +49,7 @@ class InputLogicTest {
         editor.onUpdate = { a, b, c, d -> sched.main(0) { logic.onSelectionUpdate(a, b, c, d) } }
         engine.deleteLearnedData()
         logic.engine = engine
-        logic.settings = KeyboardSettings.DEFAULT
+        logic.settings = KeyboardSettings.DEFAULT.copy(languages = listOf(Prefs.GERMAN))
         logic.startInput(FieldState.from(TEXT_MULTILINE, 0), 0, 0)
     }
 

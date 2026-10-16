@@ -111,7 +111,7 @@ class LearnedWords private constructor(private val models: Map<String, UserModel
         /** Opens the learned words of the enabled languages with the current files. */
         fun open(context: Context): LearnedWords {
             val files = LearnedFiles(context.applicationContext)
-            val langs = Prefs.languages(Prefs.of(context))
+            val langs = Prefs.languages(context)
             return LearnedWords(langs.associateWith { UserModel.read(files.load(it), null) }, files)
         }
     }

@@ -21,8 +21,11 @@ import kotlin.math.pow
 /** Case mode of the typed word (spec 05 §6). */
 public enum class CaseMode { AS_TYPED, FIRST_UPPER, ALL_CAPS }
 
-/** Validity of a typed word (spec 05 §7) with its validity cost (255 if invalid). */
-public data class Validity(val valid: Boolean, val cost: Int, val rule: Int = 0) {
+/**
+ * Validity of a typed word (spec 05 §7) with its validity cost (255 if invalid). [unattested]: valid only through an
+ * unattested dictionary key and no learned or contact word (05 §10.1 step 5, 0.6.9).
+ */
+public data class Validity(val valid: Boolean, val cost: Int, val rule: Int = 0, val unattested: Boolean = false) {
     public companion object {
         @JvmField
         public val INVALID: Validity = Validity(false, 255, 0)
@@ -248,17 +251,19 @@ public class LanguageEngine @JvmOverloads constructor(
     public fun validity(word: String, mode: CaseMode, prev: PrevContext = PrevContext.None, nameField: Boolean = false): Validity {
         if (word.isEmpty()) return Validity.INVALID
         val decap = if (startsUpper(word) && mode != CaseMode.ALL_CAPS) decapitalize(word) else null
+        fun dictionary(form: String, rule: Int) =
+            Validity(true, lm(form, prev, nameField), rule, params.unattestedKeysRule && unattestedLowerCase(form) && !learnedOrContact(word, decap))
         // 1 exact form
-        if (lexicon.exact(word)) return Validity(true, lm(word, prev, nameField), 1)
-        if (decap != null && lexicon.exact(decap)) return Validity(true, lm(decap, prev, nameField), 1)
+        if (lexicon.exact(word)) return dictionary(word, 1)
+        if (decap != null && lexicon.exact(decap)) return dictionary(decap, 1)
         // 2 caps form
         if (mode == CaseMode.ALL_CAPS) {
             val canon = lexicon.canonical(word)
-            if (canon != null && upperDisplay(canon) == word) return Validity(true, lm(canon, prev, nameField), 2)
+            if (canon != null && upperDisplay(canon) == word) return dictionary(canon, 2)
         }
         // 1, 2 with unaccented capitals (CAPS_UNACCENTED, fr): "Etat" for "État", "ECOLE" for "école"
         if (params.capsUnaccented) unaccentedCapitalForm(word, mode, decap != null)?.let {
-            return Validity(true, lm(it, prev, nameField), 1)
+            return dictionary(it, 1)
         }
         val caseError = isCaseError(word, mode)
         // 3 learned
@@ -290,6 +295,21 @@ public class LanguageEngine @JvmOverloads constructor(
         }
         return Validity.INVALID
     }
+
+    /**
+     * True if the key of [form] is unattested and its most frequent form (the first stored form) is all lower case
+     * (05 §10.1 step 5, 0.6.9): unattested keys written mainly with a capital (names) keep blocking corrections.
+     */
+    private fun unattestedLowerCase(form: String): Boolean {
+        val k = lexicon.keyIndex(form)
+        if (!lexicon.isUnattested(k)) return false
+        return lexicon.formText(k, 0).none { Character.isUpperCase(it) }
+    }
+
+    /** True if [word] (or [decap]) is also a known learned word or a contact name (05 §10.1 step 5, 0.6.9). */
+    private fun learnedOrContact(word: String, decap: String?): Boolean =
+        user.isKnownLearned(word) || (decap != null && user.isKnownLearned(decap)) ||
+            contacts.contains(word) || (decap != null && contacts.contains(decap))
 
     /**
      * 05 §7 rules 1 and 2 with `CAPS_UNACCENTED`: the stored form whose display (as stored, first letter upper-cased if
@@ -980,7 +1000,11 @@ public class LanguageEngine @JvmOverloads constructor(
         if (!elidedRemainder && !validity.valid && isPrefixLetters(toKey(w))) return null
         if (w.any { it.isDigit() || TextModel.isOrdinalIndicator(it) } || user.isRejected(w)) return null
         val best = corrections.firstOrNull() ?: return null
-        if (validity.valid && !(validity.cost > params.acValidRare && best.lm < params.acValidTarget)) return null
+        if (validity.valid) {
+            // a word valid only through an unattested key counts as rare unless the correction is unattested too (0.6.9)
+            val rare = validity.cost > params.acValidRare || (validity.unattested && !lexicon.isUnattestedWord(best.word))
+            if (!(rare && best.lm < params.acValidTarget)) return null
+        }
         val sb = acScore(best, len)
         if (sb > params.acLimit) return null
         val second = corrections.getOrNull(1)

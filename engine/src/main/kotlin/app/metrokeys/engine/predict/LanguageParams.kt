@@ -83,6 +83,12 @@ public data class LanguageParams(
      * diacritic ("Etat" for "État").
      */
     val capsUnaccented: Boolean = false,
+    /**
+     * The unattested-key rule of §10.1 step 5: a word valid only through an unattested lower-case key no longer blocks a
+     * clearly better correction. Off in 0.6.9 (owner decision: in effect from 0.7.0 with the spelling dictionaries);
+     * the one switch is [Params.UNATTESTED_KEYS_RULE].
+     */
+    val unattestedKeysRule: Boolean = Params.UNATTESTED_KEYS_RULE,
     /** Letter rows of the fallback grid (§4), top to bottom. */
     val fallbackRows: List<String>,
     /** Start of fallback row 2 as a fraction of the width (§4: 0.05, Spanish 0). */
@@ -297,6 +303,12 @@ public object Params {
     public const val RECENT_FACTOR: Int = 2
     public const val RECENT_WINDOW: Int = 1000
     public const val LEARN_MIN_COUNT: Int = 2
+
+    /**
+     * Default of [LanguageParams.unattestedKeysRule] for every language (05 §10.1 step 5): false in 0.6.9, the flags of
+     * the word lists are stored but not used for autocorrection until 0.7.0.
+     */
+    public const val UNATTESTED_KEYS_RULE: Boolean = false
 
     /** Uses before a word the dictionary does not know becomes valid / suggestible (extension, 05 §12.5). */
     public const val LEARN_MIN_UNKNOWN: Int = 3

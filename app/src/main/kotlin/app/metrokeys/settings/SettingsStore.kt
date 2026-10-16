@@ -31,6 +31,12 @@ class SettingsStore(private val context: Context) {
     val prefs: SharedPreferences = Prefs.of(context)
     private var version by mutableIntStateOf(0)
 
+    init {
+        // stores the device default of `languages` (07 §9.1) before any page reads it, so no read during
+        // composition writes a preference
+        Prefs.languages(context)
+    }
+
     /** Incremented on resume and on window focus so that permission and setup state are re-read. */
     var resumes by mutableIntStateOf(0)
         private set
@@ -67,7 +73,7 @@ class SettingsStore(private val context: Context) {
 
     fun languages(): List<String> {
         version
-        return Prefs.languages(prefs)
+        return Prefs.languages(context)
     }
 
     fun set(key: String, value: Boolean) = prefs.edit().putBoolean(key, value).apply()

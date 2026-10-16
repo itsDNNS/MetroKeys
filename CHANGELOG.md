@@ -3,6 +3,36 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.6.9 – 2026-10-16
+
+### Keyboard languages
+- On first use the keyboard language follows the device: the first language of the system's language list that
+  MetroKeys supports, whatever the region (German for de-AT or de-CH, English for en-GB, Portuguese (Brazil) for pt-PT,
+  Spanish for es-MX, French for fr-CA); English if none is supported. Before, the default was always German. The
+  choice is stored once and then kept; a later change of the device language does not change it, and installations
+  that already have their languages stored keep them.
+
+### Password manager suggestions
+- Fixed: the suggestions of a password manager (inline autofill, e.g. Bitwarden) were not visible in login fields; the
+  strip above the keys stayed empty. The suggestion chips were laid out with a width of zero. They are now shown with
+  the size Android gives them, also right after a rotation, and a tap fills the field again.
+- The suggestions are also requested when the keyboard has not been laid out yet (after a rotation). On the very first
+  field after the keyboard was started Android cannot show them inside the keyboard; the password manager's own
+  drop-down appears there instead.
+
+### German
+- Spellings without umlauts that the subtitles use instead of the real word ("konnen", "fur", "uber", "zuruck",
+  "naturlich") are no longer words of their own: their counts go to the word with umlauts, so "Wir konnen" is
+  corrected to "können" and "Konnen" at the start of a sentence to "Können". Real words without umlauts stay ("schon"
+  next to "schön", "zahlen" next to "zählen").
+
+### Dictionaries
+- The dictionaries now mark the words they know only from film subtitles (names, foreign words and misspellings kept
+  because they are frequent there, but not words of the language), in German, Spanish, Portuguese, Italian and
+  French. The mark is not used yet: a planned rule lets such words no longer prevent a clearly better correction, but
+  it stays off until the spelling dictionaries of 0.7.0 recognise real words reliably. Autocorrection behaves as in
+  0.6.8 apart from the German umlaut spellings above.
+
 ## 0.6.8 – 2026-10-16
 
 ### Shape writing

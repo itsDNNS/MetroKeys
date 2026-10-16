@@ -116,6 +116,10 @@ Both files are gzip streams (written by `tools/dictbuild/common.py`, read by `Le
   UTF-16 order, front-coded (shared prefix length + UTF-8 suffix), each with its forms (class byte + a kind byte:
   the key itself, first letter upper-cased, all upper-cased, or an explicit string — used for alias keys such as
   `dont` → `don't`).
+- **Unattested flag** (0.6.9): bit 7 of a key's form-count byte marks a key kept by its build's count rule without
+  being a form of the language (the damped keys, 05b §3.6 step 7; DATA-SOURCES.md). `Lexicon.isUnattested` /
+  `isUnattestedWord`, `unattestedCount`; stored as a `BitSet` over the key indices (≈ 40 KB for German). Files without
+  flags (English, and every file before 0.6.9) read unchanged.
 - **Pair table** (`MKPT` v1): binding = key count, form count and the SHA-256 of the uncompressed word-list
   payload; then per previous word (sentence start first) up to 48 followers as (key index, pair class, form index),
   best class first. A table whose binding does not match is rejected (`PairTableMismatchException`);
@@ -218,6 +222,19 @@ penalty. `-PshowOutput` shows test output.
 - **ED_CASE on substitutions** (05 §5): added to every substitution branch (diacritic, space, neighbour) when exactly
   one of the two letters is upper case.
 - **Autocorrection runner-up** (05 §10.1 step 7): the second candidate in correction-cost order.
+- **Unattested keys** (05 §10.1 step 5; off in 0.6.9, in effect from 0.7.0): the rule is behind
+  `LanguageParams.unattestedKeysRule`, whose default for every language is the one switch `Params.UNATTESTED_KEYS_RULE`
+  (false); the flags are stored and read, but with the switch off `Validity.unattested` is never set and step 5 is as in
+  0.6.8. The rule's tests enable it with `LanguageParams.GERMAN.copy(unattestedKeysRule = true)`. With the switch on,
+  `Validity.unattested` is set when the word is valid through rule 1 or 2
+  of §7 (also the unaccented capitals of French) with an unattested key whose most frequent form (the first stored
+  form) has no upper-case letter (names keep blocking, owner decision) and is neither a known learned word nor a
+  contact word (also its decapitalised form); step 5 then counts the word as rare unless `best.word`'s key is
+  unattested too. Rules 3–7 (learned, contacts, rejected, compounds, -in) never set it; rejections are checked before
+  step 5 as before. `UnattestedKeysTest` (synthetic lexicon: corrected, not to an unattested word, not for a capitalised key, not when learned or a
+  contact, not after a rejection; flags of the bundled files); `UnattestedReport` (`MK_UNATTESTED_REPORT=1`) lists every
+  unattested German key that a space now corrects (spec/QUESTIONS.md: 1 087, of them 111 blocked before; 95 of
+  those also with German + English).
 - **Compound validity cost** (05 §7.6): lm of head and tail without pair context.
 - **Missing-space split** (05 §8.2): only for languages without compounds (`LanguageParams.missingSpaceSplit`: English
   and Spanish yes, German no). `LanguageEngine.splitLm` costs a split from the static lists only: the pair cost when the

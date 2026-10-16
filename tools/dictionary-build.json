@@ -2,20 +2,21 @@
  "de-DE": {
   "S": 16.357883368212075,
   "corpusTokens": 156169536,
-  "forms": 328429,
-  "keys": 322189,
+  "forms": 328313,
+  "keys": 322073,
   "maxCount": 5890279,
-  "pairPrevWords": 54866,
-  "pairs": 565691,
+  "pairPrevWords": 54865,
+  "pairs": 565690,
   "pairsFile": {
-   "bytes": 1890080,
-   "sha256": "1bea862b76e30f1e1c0355c77704e129f2ebf913b364a88810bcafe8cc3ed6f8"
+   "bytes": 1890114,
+   "sha256": "28ac4ed6a42ba3344e9533c7a5f268b50951399b23b53558987d6f7edf50a238"
   },
+  "unattestedKeys": 9150,
   "wordsFile": {
-   "bytes": 1339994,
-   "sha256": "c11040f083d695160db6a6393aad349fc99303405e89172473f1463fdde247e9"
+   "bytes": 1342081,
+   "sha256": "6c4a9d5e8c89788473a5f07a19b02bf4e23cab74ce6904bfad98a8f753b7f7a3"
   },
-  "wordsPayloadSha256": "8e2af5f83035e264eb6c9843d295c63a67a0669eace3b0540257f6efacb70c20"
+  "wordsPayloadSha256": "6c4623b2b434e261b6fa72dd5de7d51b4ad4f4b51de45c3ba1bf7eae49af1188"
  },
  "de-DE-extra": {
   "abbreviationKeys": 895,
@@ -742,7 +743,7 @@
    "bem 37 Bem:59"
   ],
   "abbreviationTitles": 1285,
-  "dampedKeys": 9176,
+  "dampedKeys": 9150,
   "dampedTop50": [
    "dad 46472 Dad:99",
    "the 28674 the:86",
@@ -902,18 +903,18 @@
     "addedKeys": 85243,
     "addedSeenOnce": 14857,
     "addedUnseen": 70386,
-    "forms": 328429,
-    "keys": 322189,
-    "pairs": 565691,
-    "pairsBytes": 1890080,
-    "wordsBytes": 1339994
+    "forms": 328313,
+    "keys": 322073,
+    "pairs": 565690,
+    "pairsBytes": 1890113,
+    "wordsBytes": 1339511
    },
    "before": {
-    "forms": 242363,
-    "keys": 236946,
-    "pairs": 559100,
-    "pairsBytes": 1851703,
-    "wordsBytes": 965453
+    "forms": 242247,
+    "keys": 236830,
+    "pairs": 559099,
+    "pairsBytes": 1851885,
+    "wordsBytes": 964956
    },
    "variantUsed": "lemmas"
   },
@@ -938,7 +939,7 @@
    "lit 26 (dropped)",
    "korean 6 (dropped)"
   ],
-  "keysByPrefixCompounds": 306,
+  "keysByPrefixCompounds": 302,
   "keysByPrefixCompoundsTop60": [
    "subcentral 1101 Subcentral:115",
    "travers 244 Travers:90",
@@ -1034,7 +1035,7 @@
    "lb 17 -> ob 97001",
    "fas 16 -> das 3122198",
    "anch 14 -> nach 326208",
-   "iber 14 -> über 196855",
+   "iber 14 -> über 197318",
    "meinet 13 -> meiner 86264",
    "sichre 13 -> sicher 145360",
    "lein 12 -> mein 384765",
@@ -1107,7 +1108,7 @@
    "apl 2 -> all 43808",
    "atzt 2 -> arzt 19080",
    "beschichte 2 -> geschichte 33070",
-   "beschütten 2 -> beschützen 10577",
+   "beschütten 2 -> beschützen 10582",
    "einzöge 2 -> einzige 37724",
    "erriechen 2 -> erreichen 10556",
    "fehlet 2 -> fehler 22947",
@@ -1125,11 +1126,11 @@
    "tuet 2 -> tust 26635",
    "vergrauen 2 -> vertrauen 18459",
    "verstehet 2 -> verstehst 19139",
-   "wünschet 2 -> wünschte 12812",
+   "wünschet 2 -> wünschte 12829",
    "zage 2 -> tage 29111",
    "zause 2 -> hause 73059",
    "zue 2 -> zur 115474",
-   "übet 2 -> über 196855"
+   "übet 2 -> über 197318"
   ],
   "shortKeysDroppedByStep6a": 326,
   "shortKeysDroppedByStep6aList": [
@@ -1464,6 +1465,109 @@
    "dad 46472 Dad:99",
    "the 28674 the:86",
    "wär 23099 wär:89"
+  ],
+  "umlautMerged": 2622,
+  "umlautMergedTop100": [
+   "fur 1319 -> für 735252",
+   "uber 463 -> über 196855",
+   "konnen 447 -> können 240905",
+   "mussen 322 -> müssen 191257",
+   "konnt 289 -> könnt 20255",
+   "zuruck 228 -> zurück 133326",
+   "gehort 160 -> gehört 89459",
+   "madchen 160 -> mädchen 72685",
+   "tur 148 -> tür 41457",
+   "naturlich 145 -> natürlich 82710",
+   "holle 128 -> hölle 21656",
+   "dafur 124 -> dafür 75302",
+   "spater 120 -> später 44320",
+   "lowen 109 -> löwen 2132",
+   "hande 93 -> hände 22645",
+   "ruber 90 -> rüber 11953",
+   "fraulein 84 -> fräulein 6438",
+   "verruckt 72 -> verrückt 38126",
+   "nachste 69 -> nächste 22714",
+   "uberhaupt 69 -> überhaupt 35566",
+   "erzahlen 64 -> erzählen 29301",
+   "funf 59 -> fünf 33424",
+   "vollig 56 -> völlig 20317",
+   "daruber 55 -> darüber 51711",
+   "durfen 52 -> dürfen 23930",
+   "geschaft 52 -> geschäft 15254",
+   "erzahlt 51 -> erzählt 33821",
+   "konig 51 -> könig 20785",
+   "moglich 50 -> möglich 25388",
+   "brucke 49 -> brücke 7012",
+   "walder 46 -> wälder 927",
+   "bose 45 -> böse 16940",
+   "nachsten 43 -> nächsten 22247",
+   "backer 39 -> bäcker 451",
+   "romer 39 -> römer 1313",
+   "uberall 39 -> überall 21161",
+   "erklaren 38 -> erklären 18526",
+   "glucklich 38 -> glücklich 25915",
+   "kapitan 38 -> kapitän 5200",
+   "klart 38 -> klärt 395",
+   "buro 37 -> büro 22253",
+   "fruh 37 -> früh 24189",
+   "horner 37 -> hörner 576",
+   "standig 36 -> ständig 13119",
+   "getotet 35 -> getötet 31223",
+   "hore 35 -> höre 16609",
+   "druben 33 -> drüben 17704",
+   "buros 31 -> büros 863",
+   "fruher 31 -> früher 24599",
+   "offnen 31 -> öffnen 10809",
+   "uberraschung 31 -> überraschung 9952",
+   "haltst 29 -> hältst 12043",
+   "kummern 29 -> kümmern 17618",
+   "offne 29 -> öffne 3561",
+   "tatsachlich 29 -> tatsächlich 14483",
+   "gefahrlich 28 -> gefährlich 14049",
+   "hubsch 28 -> hübsch 11244",
+   "mude 28 -> müde 11612",
+   "furs 27 -> fürs 12485",
+   "hangen 27 -> hängen 7677",
+   "aufhoren 26 -> aufhören 19532",
+   "handen 26 -> händen 8094",
+   "namlich 26 -> nämlich 10147",
+   "notig 26 -> nötig 14694",
+   "tschuss 26 -> tschüss 11927",
+   "unmoglich 26 -> unmöglich 14555",
+   "wahle 26 -> wähle 1207",
+   "gebaude 25 -> gebäude 9086",
+   "handler 25 -> händler 1111",
+   "kampfen 25 -> kämpfen 15639",
+   "personlich 25 -> persönlich 10269",
+   "korper 24 -> körper 17147",
+   "nachstes 24 -> nächstes 10971",
+   "tater 24 -> täter 3984",
+   "hundin 23 -> hündin 342",
+   "morder 23 -> mörder 15310",
+   "schwore 23 -> schwöre 10398",
+   "erzahl 22 -> erzähl 11759",
+   "offnet 22 -> öffnet 3847",
+   "ungefahr 22 -> ungefähr 8567",
+   "kuche 21 -> küche 9052",
+   "kummere 21 -> kümmere 9445",
+   "mogen 21 -> mögen 14944",
+   "sanger 21 -> sänger 934",
+   "schones 21 -> schönes 8905",
+   "selbstverstandlich 21 -> selbstverständlich 5421",
+   "stort 21 -> stört 5745",
+   "bucher 20 -> bücher 7147",
+   "durft 20 -> dürft 2289",
+   "ubrigens 20 -> übrigens 9753",
+   "verandern 20 -> verändern 4711",
+   "zerstort 20 -> zerstört 9755",
+   "zurich 20 -> zürich 504",
+   "fahrst 19 -> fährst 5379",
+   "blodsinn 18 -> blödsinn 5227",
+   "foderation 18 -> föderation 1223",
+   "fuhle 18 -> fühle 19176",
+   "fuhlen 18 -> fühlen 15884",
+   "gefuhl 18 -> gefühl 18285",
+   "lacheln 18 -> lächeln 6881"
   ]
  },
  "en-US": {
@@ -1509,13 +1613,14 @@
   "pairs": 383400,
   "pairsFile": {
    "bytes": 1212411,
-   "sha256": "bf82166a0415ae233c2fa4eeb928a813b4ffa258ae319ee6a37a05f9f4415381"
+   "sha256": "6c726f6ab2c9e88a6a04605fdf55e31b01d8cbe2147bdf31f6b0f4ecda2ea80f"
   },
+  "unattestedKeys": 21863,
   "wordsFile": {
-   "bytes": 808139,
-   "sha256": "6139c4cf3ecedf82d3d3375e7c4e6e5932c9a43d6705985af45344558756c74d"
+   "bytes": 811368,
+   "sha256": "f39e8681a5b6a5598a49295a0728e14ef94efd80842f89856490bb1191a0b22f"
   },
-  "wordsPayloadSha256": "d8712106008fb2da7b82c8f89ae4046d3997a5f5912df2d4455da86030fc3970"
+  "wordsPayloadSha256": "4e92f6458e0641385057bb40b7c9c3ba5c12cbd799f121acd4e70a88dd50efb2"
  },
  "es-ES-extra": {
   "abbreviationKeys": 100,
@@ -3119,14 +3224,15 @@
   "pairPrevWords": 41429,
   "pairs": 489958,
   "pairsFile": {
-   "bytes": 1508320,
-   "sha256": "290c1b2f6b48bbdbc6ee8737c1a3a8bc9e8db0bd1b70c0e3ecf0c840604de567"
+   "bytes": 1508324,
+   "sha256": "731144a88eefd06b8c6683a195883f56d697383593242243a29497ed2874ead4"
   },
+  "unattestedKeys": 8812,
   "wordsFile": {
-   "bytes": 607867,
-   "sha256": "367b9bd01a34dea5bf367c55186d07367ead3f3c1a61f850d681e7f1dc3cea64"
+   "bytes": 610121,
+   "sha256": "08355554e7ee0465071acea751384951ae7a9197edc0b2202371b5737a6c8bb8"
   },
-  "wordsPayloadSha256": "0879423718be20909fa21db58aa8aa71a5beb8f8a6b47b40e655d8a8b1db1f7e"
+  "wordsPayloadSha256": "5adab4df3bfc82cb871e086244ceba5692204f37d14f371279d837c15103258a"
  },
  "fr-FR-extra": {
   "abbreviationKeys": 76,
@@ -6659,12 +6765,12 @@
     139,
     [
      [
-      "ça",
-      60423
-     ],
-     [
       "çà",
       228
+     ],
+     [
+      "ça",
+      60423
      ]
     ],
     190161
@@ -6674,16 +6780,16 @@
     10,
     [
      [
-      "même",
-      49228
+      "mème",
+      23
      ],
      [
       "mémé",
       44
      ],
      [
-      "mème",
-      23
+      "même",
+      49228
      ]
     ],
     6193
@@ -6763,12 +6869,12 @@
     2,
     [
      [
-      "mère",
-      18558
-     ],
-     [
       "méré",
       15
+     ],
+     [
+      "mère",
+      18558
      ]
     ],
     2300
@@ -6999,12 +7105,12 @@
     12,
     [
      [
-      "brûlé",
-      751
-     ],
-     [
       "brulé",
       45
+     ],
+     [
+      "brûlé",
+      751
      ],
      [
       "brûle",
@@ -7184,12 +7290,12 @@
     20,
     [
      [
-      "réserve",
-      1853
-     ],
-     [
       "réservé",
       849
+     ],
+     [
+      "réserve",
+      1853
      ]
     ],
     231
@@ -7353,12 +7459,12 @@
     0,
     [
      [
-      "carrière",
-      10377
-     ],
-     [
       "carriére",
       1
+     ],
+     [
+      "carrière",
+      10377
      ]
     ],
     154
@@ -7489,16 +7595,16 @@
     5,
     [
      [
-      "goûte",
-      193
+      "goûté",
+      726
      ],
      [
       "gouté",
       63
      ],
      [
-      "goûté",
-      726
+      "goûte",
+      193
      ]
     ],
     128
@@ -7556,12 +7662,12 @@
     3,
     [
      [
-      "mêlé",
-      196
-     ],
-     [
       "mêle",
       687
+     ],
+     [
+      "mêlé",
+      196
      ]
     ],
     119
@@ -7692,12 +7798,12 @@
     0,
     [
      [
-      "lâchés",
-      94
-     ],
-     [
       "lâches",
       260
+     ],
+     [
+      "lâchés",
+      94
      ]
     ],
     98
@@ -7755,12 +7861,12 @@
     2,
     [
      [
-      "crée",
-      1579
-     ],
-     [
       "créé",
       2213
+     ],
+     [
+      "crée",
+      1579
      ]
     ],
     96
@@ -7818,12 +7924,12 @@
     0,
     [
      [
-      "entraînés",
-      126
-     ],
-     [
       "entraînes",
       21
+     ],
+     [
+      "entraînés",
+      126
      ],
      [
       "entrainés",
@@ -7903,12 +8009,12 @@
     1,
     [
      [
-      "moisé",
-      1
-     ],
-     [
       "moïse",
       171
+     ],
+     [
+      "moisé",
+      1
      ]
     ],
     84
@@ -7999,12 +8105,12 @@
     0,
     [
      [
-      "fâché",
-      522
-     ],
-     [
       "fâche",
       156
+     ],
+     [
+      "fâché",
+      522
      ]
     ],
     69
@@ -8198,12 +8304,12 @@
     0,
     [
      [
-      "poète",
-      1715
-     ],
-     [
       "poété",
       3
+     ],
+     [
+      "poète",
+      1715
      ]
     ],
     56
@@ -8246,12 +8352,12 @@
     1,
     [
      [
-      "pécher",
-      62
-     ],
-     [
       "pêcher",
       688
+     ],
+     [
+      "pécher",
+      62
      ]
     ],
     52
@@ -14637,14 +14743,15 @@
   "pairPrevWords": 37330,
   "pairs": 403163,
   "pairsFile": {
-   "bytes": 1274931,
-   "sha256": "6788225dcd29ec4657394c6b54be9b613a852bfbede1e85b077ba3aefc215641"
+   "bytes": 1274932,
+   "sha256": "4f340a0edec198039bc55cdda9825ec7105affd787424ce635bd9593a73a4d76"
   },
+  "unattestedKeys": 14947,
   "wordsFile": {
-   "bytes": 610682,
-   "sha256": "358611e5a3d321e8f92d99969932c77a2f2750adc35b87b45fc60a34699e725e"
+   "bytes": 612927,
+   "sha256": "5247a23bcb62248a51fc20e9351412f16da6d229685cd8542a5f0a7bc829762d"
   },
-  "wordsPayloadSha256": "4e3750e4a31c28e070ae1fa232ad8768b0c7fedf242361f75cef109f8ef34ff1"
+  "wordsPayloadSha256": "b789ff7a61166aa5adc36a03736100a3b949ec9ca9e2ab9958cb2c74f7214cc2"
  },
  "it-IT-extra": {
   "abbreviationKeys": 40,
@@ -21474,14 +21581,15 @@
   "pairPrevWords": 21078,
   "pairs": 278635,
   "pairsFile": {
-   "bytes": 859184,
-   "sha256": "8c35ad2bbec8eba24412dde6066159e8125e6bcd9673ebd3de4645d6b7ef7b4b"
+   "bytes": 859185,
+   "sha256": "d02beecb6fb43db094df4c63c20e30dad58c134df7e6581d09696b0146c6629a"
   },
+  "unattestedKeys": 27124,
   "wordsFile": {
-   "bytes": 582110,
-   "sha256": "2d9aa4a012e526c2a3053fa860022b68313edaf2ef5682b7f7a5f70ad92c11e4"
+   "bytes": 585747,
+   "sha256": "075e8b8e6789a2b38d638212918334e93181b0a1f277cd0d2838bd438d85ea6c"
   },
-  "wordsPayloadSha256": "b69207063872fe482e276d00699030323b1836db12fd8f59c259069c974cde6c"
+  "wordsPayloadSha256": "ad54cc3d3043abc1ff2686570257f6877947828249de37d35be307d23e96e041"
  },
  "pt-BR-extra": {
   "abbreviationKeys": 46,
@@ -23015,8 +23123,8 @@
    "sónia",
    "tempura",
    "rau",
-   "jerónimo",
    "rea",
+   "jerónimo",
    "joalharia",
    "queca",
    "cip",
@@ -23651,8 +23759,8 @@
    "freqüentemente",
    "líqüido",
    "coréia",
-   "pôlo",
    "pólo",
+   "pôlo",
    "estréia",
    "jóia",
    "geléia",

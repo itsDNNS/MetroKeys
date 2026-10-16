@@ -159,17 +159,21 @@ def build_pairs(lang, entries, keys, tatoeba_name, tatoeba_lang, cv_lang, stock=
     return counter.table(order)
 
 
-def write_outputs(tag, scale, max_count, corpus_tokens, entries, table, stats, prefixes=None):
+def write_outputs(tag, scale, max_count, corpus_tokens, entries, table, stats, prefixes=None, unattested=None):
+    """[unattested]: the keys kept by the count rule without being a form (the damped keys, 05 §10.1 step 5, 0.6.9);
+    only those that are in [entries] are flagged."""
     os.makedirs(OUT, exist_ok=True)
     words_path = os.path.join(OUT, f"{tag}.words.gz")
     pairs_path = os.path.join(OUT, f"{tag}.pairs.gz")
-    digest, keys = common.write_word_list(words_path, tag, scale, max_count, corpus_tokens, entries, prefixes)
+    flagged = {k for k in (unattested or ()) if k in entries}
+    digest, keys = common.write_word_list(words_path, tag, scale, max_count, corpus_tokens, entries, prefixes, flagged)
     common.write_pair_table(pairs_path, tag, digest, keys, entries, table, [p for p, _ in prefixes] if prefixes else None)
     stats[tag] = {
         "S": scale,
         "maxCount": int(max_count),
         "corpusTokens": int(corpus_tokens),
         "keys": len(keys),
+        "unattestedKeys": len(flagged),
         "forms": sum(len(v) for v in entries.values()),
         "pairPrevWords": len(table),
         "pairs": sum(len(v) for v in table.values()),
@@ -345,6 +349,9 @@ def build_german(stats):
     # 0.6.4 report: step 6a and the damping of non-German keys (§3.6)
     top = sorted(de.damped, key=lambda k: (-de.count(k), k))
     stats["de-DE-extra"] = {
+        "umlautMerged": len(de.umlaut_merged),
+        "umlautMergedTop100": [f"{k} {de.merged_counts[k]} -> {t} {de.count(t) - de.merged_into[t]}"
+                               for k, t in sorted(de.umlaut_merged.items(), key=lambda kt: (-de.merged_counts[kt[0]], kt[0]))[:100]],
         "shortKeysDroppedByStep6a": len(de.short_dropped),
         "shortKeysDroppedByStep6aList": [f"{k} {de.count(k)}" for k in sorted(de.short_dropped, key=lambda k: (-de.count(k), k))],
         "dampedKeys": len(de.damped),
@@ -361,7 +368,7 @@ def build_german(stats):
         "keysByPrefixCompoundsTop60": [f"{k} {de.count(k)} {forms_text(de_entries[k])}"
                                        for k in sorted(de.prefix_compounds, key=lambda k: (-de.count(k), k))[:60]],
     }
-    write_outputs("de-DE", de.scale, de.max_count, de.corpus_tokens, de_entries, de_table, stats)
+    write_outputs("de-DE", de.scale, de.max_count, de.corpus_tokens, de_entries, de_table, stats, unattested=de.damped)
     write_licenses(tags=["de-DE"])
 
 
@@ -449,7 +456,7 @@ def build_spanish(stats):
     report.update(abbreviation_report(es.abbreviation_keys, es_entries, es.count, len(es_abbr_used), "es", es.is_form,
                                       ["es", "en"] if use_en else ["es"]))
     stats["es-ES-extra"] = report
-    write_outputs("es-ES", es.scale, es.max_count, es.corpus_tokens, es_entries, es_table, stats)
+    write_outputs("es-ES", es.scale, es.max_count, es.corpus_tokens, es_entries, es_table, stats, unattested=es.damped)
     write_licenses(tags=["es-ES"])
 
 
@@ -529,7 +536,7 @@ def build_portuguese(stats):
     report.update(abbreviation_report(pt.abbreviation_keys, pt_entries, pt.count, len(set(pt_abbr["pt"]) | set(pt_abbr["en"])), "pt",
                                       pt.is_form))
     stats["pt-BR-extra"] = report
-    write_outputs("pt-BR", pt.scale, pt.max_count, pt.corpus_tokens, pt_entries, pt_table, stats)
+    write_outputs("pt-BR", pt.scale, pt.max_count, pt.corpus_tokens, pt_entries, pt_table, stats, unattested=pt.damped)
     write_licenses(tags=["pt-BR"])
 
 
@@ -616,7 +623,8 @@ def build_italian(stats):
     report.update(abbreviation_report(it.abbreviation_keys, it_entries, it.count, len(set(it_abbr["it"]) | set(it_abbr["en"])), "it",
                                       it.is_form))
     stats["it-IT-extra"] = report
-    write_outputs("it-IT", it.scale, it.max_count, it.corpus_tokens, it_entries, it_table, stats, it.prefix_table)
+    write_outputs("it-IT", it.scale, it.max_count, it.corpus_tokens, it_entries, it_table, stats, it.prefix_table,
+                  unattested=it.damped)
     write_licenses(tags=["it-IT"])
 
 
@@ -735,7 +743,8 @@ def build_french(stats):
                                       len(set(fr_abbr["fr"]) | (set(fr_abbr["en"]) if use_en else set())), "fr", fr.is_form,
                                       ["fr", "en"] if use_en else ["fr"]))
     stats["fr-FR-extra"] = report
-    write_outputs("fr-FR", fr.scale, fr.max_count, fr.corpus_tokens, fr_entries, fr_table, stats, fr.prefix_table)
+    write_outputs("fr-FR", fr.scale, fr.max_count, fr.corpus_tokens, fr_entries, fr_table, stats, fr.prefix_table,
+                  unattested=fr.damped)
     write_licenses(tags=["fr-FR"])
 
 

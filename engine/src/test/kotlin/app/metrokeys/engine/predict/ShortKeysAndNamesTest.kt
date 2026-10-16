@@ -112,6 +112,21 @@ class ShortKeysAndNamesTest {
         assertTrue("performant" in m.suggestions.take(3).map { it.text }, m.suggestions.toString())
     }
 
+    /** 05 §17.7a (0.6.9): spellings without umlauts are merged into the umlaut form (05b §3.6 umlaut merge). */
+    @Test
+    fun konnenIsCorrectedToKoennen() {
+        show("Wir konnen")
+        assertTrue(de.lexicon.forms("konnen").isEmpty())
+        assertEquals("können", engine.query(Query("Wir konnen")).autoCorrection)
+        assertEquals("Können", engine.query(Query("Konnen")).autoCorrection)
+        // German forms are never merged
+        for (w in listOf("schon", "schön", "zahlen", "zählen", "dass")) assertTrue(de.lexicon.forms(w).isNotEmpty(), w)
+        val multi = TestDictionaries.multilingual("de-DE", TestDictionaries.german(), TestDictionaries.english())
+        val m = multi.query(Query("Wir konnen"))
+        println("konnen de+en: ac=${m.autoCorrection} bar=${m.suggestions.map { it.text }}")
+        assertEquals("können", m.autoCorrection)
+    }
+
     @Test
     fun cursosOffersCursorFirst() {
         show("Cursos")

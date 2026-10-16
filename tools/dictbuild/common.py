@@ -9,7 +9,9 @@ Word list format (gzip of the payload below; all integers big-endian or unsigned
     keyCount records, keys in ascending UTF-16 order:
         varint shared prefix length with the previous key (chars)
         varint suffix byte length, suffix (UTF-8)
-        u8 number of forms, then per form (best first):
+        u8 number of forms (bits 0-6; bit 7 set = the key is unattested: kept by the count rule of its build
+           without being a form of the language, 05b §3.6 step 7, 05 §10.1 step 5; since 0.6.9, never set before),
+           then per form (best first):
             u8 class
             u8 kind: 0 = the key itself, 1 = key with the first char upper-cased,
                      2 = key with every char upper-cased (per char), 3 = explicit: varint byte length + UTF-8
@@ -138,9 +140,14 @@ def deterministic_gzip(payload):
     return buf.getvalue()
 
 
-def write_word_list(path, lang, scale, max_count, corpus_tokens, entries, prefixes=None):
+def write_word_list(path, lang, scale, max_count, corpus_tokens, entries, prefixes=None, unattested=None):
     """entries: dict key -> list of (form, class), best first; prefixes: None, or a list of (elision prefix, class)
-    written as a version-2 prefix table. Returns (payload sha256 bytes, keys list)."""
+    written as a version-2 prefix table; unattested: keys flagged as unattested (0.6.9). Returns (payload sha256 bytes,
+    keys list)."""
+    unattested = unattested or set()
+    unknown = set(unattested) - set(entries)
+    if unknown:
+        raise ValueError(f"unattested keys without entry: {sorted(unknown)[:5]}")
     keys = sorted(entries)
     out = io.BytesIO()
     out.write(b"MKWL")
@@ -164,9 +171,9 @@ def write_word_list(path, lang, scale, max_count, corpus_tokens, entries, prefix
         _varint(out, shared)
         _utf8(out, key[shared:])
         forms = entries[key]
-        if not 1 <= len(forms) <= 255:
+        if not 1 <= len(forms) <= 0x7F:
             raise ValueError(key)
-        out.write(bytes([len(forms)]))
+        out.write(bytes([len(forms) | (0x80 if key in unattested else 0)]))
         for form, cls in forms:
             if jlower(form) != key and jlower(form).replace("'", "").replace("-", "") != key:
                 raise ValueError(f"form {form!r} does not belong to key {key!r}")

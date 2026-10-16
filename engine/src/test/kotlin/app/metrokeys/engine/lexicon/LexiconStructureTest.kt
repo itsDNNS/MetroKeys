@@ -38,9 +38,10 @@ class LexiconStructureTest {
         checkTree(TestDictionaries.de.lexicon)
         checkTree(TestDictionaries.en.lexicon)
         println("de-DE keys ${TestDictionaries.de.lexicon.keyCount}, nodes ${TestDictionaries.de.lexicon.nodeCount}")
+        // 0.6.9: 322 073 after the umlaut merge of 05b §3.6 (116 merged keys were in the word list)
         // 0.6.7: 322 189 with the abbreviation titles (English guard) and prefix compounds of 05b §3.6 (0.6.6: 320 804
         // with the dictionary-only lemmas of §3.7; 0.6.5 with all forms 857 274, 236 223 in 0.6.4, 236 559 before step 6a)
-        assertEquals(322189, TestDictionaries.de.lexicon.keyCount)
+        assertEquals(322073, TestDictionaries.de.lexicon.keyCount)
         assertEquals(1_091_600.0, TestDictionaries.de.lexicon.nodeCount.toDouble(), 5_000.0)
     }
 

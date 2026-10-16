@@ -96,7 +96,8 @@ Version 0.6.7 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer
    - **turn on**: opens the Android keyboard settings; switch MetroKeys on and confirm the notice Android shows for
      every third-party keyboard.
    - **choose**: pick MetroKeys as the current keyboard.
-3. Tap the **Try it** field on the same page and start typing.
+3. Tap the **Try it** field on the same page and start typing. The keyboard starts in your device language if MetroKeys
+   supports it (otherwise English).
 4. Optional: under **languages**, enable further keyboard languages (German, English, Spanish, French, Italian, Portuguese) and choose the app
    language (English or German); under
    **suggestions**, turn on contact names as a word source (asks for the contacts permission); under **layout →

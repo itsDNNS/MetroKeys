@@ -1,9 +1,14 @@
 package app.metrokeys.settings
 
+import android.app.LocaleManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.Resources
+import android.os.Build
+import android.os.LocaleList
 import app.metrokeys.R
 import app.metrokeys.engine.ActiveLanguages
+import java.util.Locale
 
 /**
  * The settings shared by the settings app and the keyboard service (spec 07 §9.1). Keys and defaults are the
@@ -78,10 +83,44 @@ object Prefs {
 
     fun of(context: Context): SharedPreferences = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-    /** Enabled keyboard languages in the fixed language order; unknown tags are ignored; never empty. */
-    fun languages(p: SharedPreferences): List<String> {
-        val set = p.getStringSet(LANGUAGES, null) ?: setOf(GERMAN)
-        return SUPPORTED_LANGUAGES.filter { it in set }.ifEmpty { listOf(GERMAN) }
+    /** The supported keyboard language of each ISO 639 language code, whatever the region (07 §9.1, 0.6.9). */
+    private val BY_LANGUAGE = SUPPORTED_LANGUAGES.associateBy { it.substringBefore('-') }
+
+    /**
+     * The default of [LANGUAGES] (07 §9.1, 0.6.9): the first locale of the system locale list whose language is
+     * supported, mapped by language only (`de-AT` → `de-DE`, `pt-PT` → `pt-BR`, `es-MX` → `es-ES`); `en-US` when no
+     * locale is supported.
+     */
+    fun defaultLanguage(systemLocales: List<Locale>): String =
+        systemLocales.firstNotNullOfOrNull { BY_LANGUAGE[it.language] } ?: ENGLISH
+
+    /**
+     * The device's own locale list, not the per-app language of the settings app and the keyboard's texts
+     * (07 §9.1, §9.5).
+     */
+    fun systemLocales(context: Context): List<Locale> {
+        val list: LocaleList = (if (Build.VERSION.SDK_INT >= 33) {
+            context.getSystemService(LocaleManager::class.java)?.systemLocales
+        } else null) ?: Resources.getSystem().configuration.locales
+        return (0 until list.size()).map { list[it] }
+    }
+
+    /** [languages] of the app's settings with the device's locale list. */
+    fun languages(context: Context): List<String> = languages(of(context)) { systemLocales(context) }
+
+    /**
+     * Enabled keyboard languages in the fixed language order; unknown tags are ignored; never empty. The one place
+     * that decides the default (07 §9.1, 0.6.9): while [LANGUAGES] has never been stored, the default of
+     * [systemLocales] is stored now, by whichever of keyboard and settings app reads it first, and kept from then on.
+     * A stored set without any supported tag is left as stored and read as that default.
+     */
+    fun languages(p: SharedPreferences, systemLocales: () -> List<Locale>): List<String> {
+        val set = p.getStringSet(LANGUAGES, null) ?: synchronized(this) {
+            p.getStringSet(LANGUAGES, null) ?: setOf(defaultLanguage(systemLocales())).also {
+                p.edit().putStringSet(LANGUAGES, it).apply()
+            }
+        }
+        return SUPPORTED_LANGUAGES.filter { it in set }.ifEmpty { listOf(defaultLanguage(systemLocales())) }
     }
 }
 
@@ -147,9 +186,12 @@ data class KeyboardSettings(
     val isMultilingual: Boolean get() = multilingual && languages.size >= 2
 
     companion object {
-        /** The defaults of spec 07 §9.1. */
+        /**
+         * The defaults of spec 07 §9.1. `languages` has no fixed default (it follows the device, [Prefs.languages]);
+         * here it is the fallback `{en-US}`.
+         */
         val DEFAULT = KeyboardSettings(
-            languages = listOf(Prefs.GERMAN), multilingual = true, showCommaKey = false, activeLanguage = null, suggestions = true,
+            languages = listOf(Prefs.ENGLISH), multilingual = true, showCommaKey = false, activeLanguage = null, suggestions = true,
             autocorrect = true, spaceAfterSuggestion = true, autoCaps = true, doubleSpacePeriod = true,
             shapeWriting = true, spellingUnderline = true, contactsWordSource = false, autoswitchAfterEmoji = true,
             clipboardHistory = true, autofillInline = true, keySounds = true, keySoundVolume = 100, vibration = false,
@@ -158,8 +200,11 @@ data class KeyboardSettings(
             navHold = listOf("none", "none", "none"), learnedResetAt = 0, customAssetsStamp = 0,
         )
 
-        fun read(p: SharedPreferences): KeyboardSettings = KeyboardSettings(
-            languages = Prefs.languages(p),
+        /** The settings of the app's preference file; stores the default of `languages` if it is missing. */
+        fun read(context: Context): KeyboardSettings = read(Prefs.of(context)) { Prefs.systemLocales(context) }
+
+        fun read(p: SharedPreferences, systemLocales: () -> List<Locale>): KeyboardSettings = KeyboardSettings(
+            languages = Prefs.languages(p, systemLocales),
             multilingual = p.getBoolean(Prefs.MULTILINGUAL, true),
             showCommaKey = p.getBoolean(Prefs.SHOW_COMMA_KEY, false),
             activeLanguage = p.getString(Prefs.ACTIVE_LANGUAGE, null),

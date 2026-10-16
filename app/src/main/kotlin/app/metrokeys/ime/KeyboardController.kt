@@ -125,7 +125,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     }
 
     var view: KeyboardView? = null
-    var settings: KeyboardSettings = KeyboardSettings.read(Prefs.of(service))
+    var settings: KeyboardSettings = KeyboardSettings.read(service)
         private set
 
     /** Localised resources for the keyboard's own texts (app language, 07 §9.5). */
@@ -146,7 +146,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     // ---------------------------------------------------------------- layouts
 
     private val layoutCache = HashMap<String, LayoutSet>()
-    var language: String = Prefs.GERMAN
+    var language: String = settings.languages.first()
         private set
     lateinit var layout: LayoutSet
         private set
@@ -215,7 +215,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         clipHistory = ClipboardHistory.read(clipFile().takeIf { it.isFile }?.readBytes())
         clipImages.sweep(clipHistory.imageFiles())
         emojiCategories = loadEmoji()
-        applySettings(KeyboardSettings.read(Prefs.of(context)), initial = true)
+        applySettings(KeyboardSettings.read(context), initial = true)
         clipboard.addPrimaryClipChangedListener(clipListener)
     }
 

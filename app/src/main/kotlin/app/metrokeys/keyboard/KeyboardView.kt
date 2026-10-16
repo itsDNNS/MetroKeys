@@ -23,6 +23,7 @@ import app.metrokeys.keyboard.layout.KeyRole
 import app.metrokeys.keyboard.layout.Page
 import app.metrokeys.keyboard.layout.PageKind
 import app.metrokeys.settings.HighContrastChoice
+import app.metrokeys.settings.KeyboardSettings
 import app.metrokeys.settings.NavMode
 import app.metrokeys.settings.ThemeChoice
 import kotlin.math.ceil
@@ -117,34 +118,16 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
     /** Theme, accent, fonts and metrics from the settings (02 §8, §9; 07 §9.10). */
     fun reloadStyle() {
         val s = controller.settings
-        val night = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        val dark = when (s.theme) {
-            ThemeChoice.DARK -> true
-            ThemeChoice.LIGHT -> false
-            ThemeChoice.SYSTEM -> night
-        }
-        val hc = when (s.highContrast) {
-            HighContrastChoice.ON -> true
-            HighContrastChoice.OFF -> false
-            HighContrastChoice.SYSTEM -> systemHighContrast()
-        }
-        theme = Theme.create(dark, hc, s.accentIndex)
+        theme = themeFor(context, s)
         fonts = Fonts(context, s.customFonts)
         capCache.clear()
         requestLayout()
         invalidate()
     }
 
-    private fun systemHighContrast(): Boolean = Theme.systemHighContrast(context)
-
     // ================================================================ layout (02 §2, 03 §17, §18)
 
-    private fun metricsFor(w: Int): Metrics {
-        val dm = resources.displayMetrics
-        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        val shortSide = min(dm.widthPixels, dm.heightPixels)
-        return Metrics(w, landscape, shortSide, controller.settings.keyboardHeightPercent / 100f, dm.xdpi)
-    }
+    private fun metricsFor(w: Int): Metrics = metricsFor(context, controller.settings, w)
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
@@ -837,5 +820,31 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
     override fun onDetachedFromWindow() {
         cancelTouch()
         super.onDetachedFromWindow()
+    }
+
+    companion object {
+        /** The metrics of a keyboard [w] px wide with the settings [s]; also used before the view is laid out. */
+        fun metricsFor(context: Context, s: KeyboardSettings, w: Int = context.resources.displayMetrics.widthPixels): Metrics {
+            val dm = context.resources.displayMetrics
+            val landscape = context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+            val shortSide = min(dm.widthPixels, dm.heightPixels)
+            return Metrics(w, landscape, shortSide, s.keyboardHeightPercent / 100f, dm.xdpi)
+        }
+
+        /** The keyboard theme of the settings [s] (02 §8, §9; 07 §9.10). */
+        fun themeFor(context: Context, s: KeyboardSettings): Theme {
+            val night = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            val dark = when (s.theme) {
+                ThemeChoice.DARK -> true
+                ThemeChoice.LIGHT -> false
+                ThemeChoice.SYSTEM -> night
+            }
+            val hc = when (s.highContrast) {
+                HighContrastChoice.ON -> true
+                HighContrastChoice.OFF -> false
+                HighContrastChoice.SYSTEM -> Theme.systemHighContrast(context)
+            }
+            return Theme.create(dark, hc, s.accentIndex)
+        }
     }
 }

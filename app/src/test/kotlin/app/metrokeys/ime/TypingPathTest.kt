@@ -2,6 +2,7 @@ package app.metrokeys.ime
 
 import app.metrokeys.engine.Query
 import app.metrokeys.settings.KeyboardSettings
+import app.metrokeys.settings.Prefs
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -46,7 +47,7 @@ class TypingPathTest {
         engine.deleteLearnedData()
         engine.queryObserver = { q: Query -> (if (sched.inBackground) backgroundQueries else mainQueries).add(q.before) }
         logic.engine = engine
-        logic.settings = KeyboardSettings.DEFAULT
+        logic.settings = KeyboardSettings.DEFAULT.copy(languages = listOf(Prefs.GERMAN))
         logic.startInput(FieldState.from(InputLogicTest.TEXT_MULTILINE, 0), 0, 0)
     }
 

@@ -12,7 +12,7 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew :engine:test testDebugUnitTest lintDebug ass
 **Release build.** `assembleRelease` minifies with R8 (`proguard-android-optimize.txt`) and shrinks resources. No own
 keep rules are needed (reasons in `app/proguard-rules.pro`): manifest components are kept by AAPT's rules, the engine
 loads its dictionaries by absolute Java resource paths, and the only reflective call targets a framework method. The
-release APK (15.0 MB in 0.6.8 and 0.6.6 with the dictionary-only German lemmas, 15.7 MB in 0.6.5 with all dictionary-only German forms, 14.6 MB in 0.6.4, 14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
+release APK (15.0 MB in 0.6.9, 0.6.8 and 0.6.6 with the dictionary-only German lemmas, 15.7 MB in 0.6.5 with all dictionary-only German forms, 14.6 MB in 0.6.4, 14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
 writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences; for 0.6.8 (`input motionevent`, screenshots): a vertical move inside
 `s` beyond the threshold shows the trace and, held, opens the picker (the trace fades, the drag selects); a swipe
 from Shift through a-l-t gives "alt" in lower case (shift set back); "(" + swipe → "(gut"; swipe + "?" → "gut?";
@@ -255,6 +255,51 @@ trace is aborted; the sticky picker tap clicks once and commits silently. `LiveS
 while a recognition runs, none after the lift, the strip restored without a result and after an abort, the samples
 before a Shift start, and the German engine's word for a partial trace of "hallo".
 
+### Default keyboard language (0.6.9)
+
+`languages` has no fixed default (07 §9.1). `Prefs.languages(prefs, systemLocales)` is the one place that reads it: while
+the key has never been stored it takes the first locale of the device's locale list whose language is supported, by
+language only (`de-AT` → `de-DE`, `en-GB` → `en-US`, `pt-PT` → `pt-BR`, `es-MX` → `es-ES`, `fr-CA` → `fr-FR`; none →
+`en-US`), stores it and returns it, so whichever of keyboard (`KeyboardSettings.read` at the controller's creation,
+before the first engine is loaded) and settings app (`SettingsStore` at the activity's creation, before any page reads
+it) comes first writes it. The device list is `LocaleManager.getSystemLocales()` on Android 13+ (not the per-app
+language of the settings app), else `Resources.getSystem()`'s locales. A stored value is never rewritten, also not a
+set without supported tags (it is read as the device default, 07 §9.1 "unknown tags are ignored"); installations that
+stored `languages` before keep it, and a restored backup of the settings file brings its stored value along. The
+keyboard's initial language is the first of the enabled languages (before: German). `KeyboardSettings.DEFAULT` (tests
+only) has the fallback `{en-US}`. `DefaultLanguageTest` covers the mapping and the write-once rule. Checked on the
+emulator with the release build and cleared app data (`pm clear`): system language French, the keyboard opened first
+in a plain text field shows AZERTY with "espace" and stores `{fr-FR}`; system language switched to English with the
+data kept: still French; data cleared again and the settings app opened first: `{en-US}` stored, the languages
+summary reads "English (United States)" and the try-it field opens the English layout ("space").
+
+### Inline autofill (0.6.9)
+
+Owner report (0.6.8, Bitwarden): the strip stayed empty in login fields. Reproduced on the emulator (Android 15) with
+a test-only autofill service that offers two inline suggestions for every username/password field: the platform
+rendered both chips and handed them over, but the chip views were added to the row with a wrap-content width, which
+replaced the size the platform gives each chip view (the renderer's measured size, e.g. 245 × 105 px). The chip view
+does not measure its rendered content, so every chip was 0 px wide; the keyboard's own strip content was hidden for the
+chips (`autofillActive`), so the strip was empty. Second cause: the request is made at input start, which on the first
+input after the process start and after a rotation comes before the input view exists or is laid out; the request then
+returned null (no inline suggestions for that field).
+
+- Chips keep the platform's size (`InlineAutofill.chipLayoutSize`; 03 open point "accept the platform size").
+- The request needs no view: sizes and style come from `KeyboardView.metricsFor`/`themeFor` with the settings
+  (the laid-out view's metrics when there is one). It is skipped only while the keyboard window has never been shown:
+  the platform renders chips for the window's input token, and without one it sends an empty response after the
+  chips (seen on the emulator); without a request the autofill service shows the system's drop-down for that field.
+- `ChipSlots` shows each chip as soon as it is inflated: after a rotation the platform sends the same suggestions twice
+  and calls back once per chip for either response, so waiting for all chips of the newest response showed nothing
+  in about one of three rotations. A clear (keyboard hidden, input view started, empty response) drops every earlier
+  response.
+
+Checked on the emulator, debug and release builds, with the test service: password field with the keyboard process
+running (chips "alice", "bob"; a tap fills both fields), hidden and shown again, username after password, username
+after typing in a plain field (no chips there), back from another app, six rotations in a row, a tap after rotations
+(fills); first input after the keyboard process started: the system drop-down. `InlineAutofillTest` covers the request
+rule, the chip spec from the settings, the platform size and the slot rules (repeated response, restart, clear).
+
 ### Own edits versus caret moves
 
 `InputLogic` tracks the selection itself. After each own edit it records the selection it expects; an
@@ -348,7 +393,7 @@ FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < EN
 | 03 §4 shift | `KeyboardController.shiftDown`/`updateAutoShift` |
 | 03 §13 hardware keyboard | `MetroKeysService.onKeyDown`, `KeyboardController.toggleMiniKeyboard`, slide in `KeyboardView` |
 | 03 §14 dictation | `Dictation` |
-| 03 §16 inline autofill | `MetroKeysService.onCreateInlineSuggestionsRequest`/`onInlineSuggestionsResponse`, `InlineAutofill` |
+| 03 §16 inline autofill | `MetroKeysService.onCreateInlineSuggestionsRequest`/`onInlineSuggestionsResponse`, `InlineAutofill` (request, chip sizes, `ChipSlots`), see "Inline autofill (0.6.9)" |
 | 03 §18 insets | `MetroKeysService.onComputeInsets`, navigation inset from window insets |
 | 03 §19 accessibility | `KeyboardAccessibility` (ExploreByTouchHelper; keys are text-entry keys) |
 | 04 text rules | `InputLogic` (with `TextRules`/`TextModel` of the engine) |
@@ -357,6 +402,7 @@ FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < EN
 | 05 §13 contacts | `ContactsWordSource` (harvest, observer with 1 s debounce, 5 retries 30 s apart) → `PredictionEngine.refreshContacts` |
 | 07 §9.5 languages page | `TypingPages.LanguagesPage` (one check box per `Prefs.SUPPORTED_LANGUAGES`, fixed order by tag: de, en, es, fr, it, pt; any number may be checked, only the last one cannot be unchecked; note for more than three), `LanguageNames`, `SettingsStore.setLanguages` (also prunes `language_recency`) |
 | 07 §9.1 preferences | `Prefs`, `KeyboardSettings`; the service listens for changes; `SettingsStore` observes them for Compose |
+| 07 §9.1 default of `languages` (0.6.9) | `Prefs.languages` (the only place: stores `Prefs.defaultLanguage(Prefs.systemLocales)` when nothing is stored), used by `KeyboardSettings.read`, `SettingsStore` (also at its creation) and the learned-words page |
 | 07 §1, §8 activity, back stack | `SettingsActivity` (Navigation 3 `NavDisplay`, saved string back stack, edge-to-edge, `Theme.MetroKeys.Settings` window background) |
 | 07 §3, §4 colours, type | `settings.ui.MetroTheme` (`MetroColors`, `MetroFonts`, `MetroType`, `Accents`, `MetroEasing`) |
 | 07 §5 page structure | `settings.ui.PageLayout` (`MetroPage`, `baselines` modifier, `PageMargins`, title shrinking) |
@@ -384,6 +430,7 @@ FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < EN
 | Imported sounds | `noBackupFilesDir/sounds/<slot>.wav`, slot = letter, space, function, picker, candidate, dictionary |
 | Contact names | memory only (keyboard process) |
 | Keyboard language selection order | preference `language_recency` (written by the keyboard) |
+| Keyboard languages | preference `languages`, stored on first use from the device's locale list (0.6.9) |
 | App language | Android's per-app locale (`LocaleManager`, Android 13+); `generateLocaleConfig` declares `en` and `de` |
 
 No-backup storage is never backed up or transferred; the backup rules include only the settings file. After an

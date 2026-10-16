@@ -50,8 +50,46 @@ DICT_ONLY_MAX_COUNT = 1
 # German section has any other part of speech
 FORM_POS = {"Deklinierte Form", "Konjugierte Form", "Dekliniertes Gerundivum", "Komparativ", "Superlativ", "Partizip I",
             "Partizip II", "Erweiterter Infinitiv"}
+# §3.6 umlaut merge (0.6.9): a non-form key that lacks umlauts or ß of a German form is merged into it when the form is
+# counted at least this many times as often
+UMLAUT_MERGE_RATIO = 10
+UMLAUT_BASE = {"ä": "a", "ö": "o", "ü": "u"}
 # neighbour keys as the engine's touch model sees them (05 §4): proximity at the key centres <= NEAR_MAX
 TOUCH_KX, TOUCH_KY, TOUCH_UNIT, NEAR_MAX = 13516.8, 18432.0, 35.0, 1000
+
+
+def fold_umlauts(s):
+    """ä → a, ö → o, ü → u, ß → ss (§3.6 umlaut merge)."""
+    return s.replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss")
+
+
+def lacks_umlauts(key, form):
+    """True if [key] is [form] with one or more of its umlauts written without the dots or ß written as ss (any number
+    of positions), and nothing else changed."""
+    if key == form:
+        return False
+    i = j = 0
+    while i < len(form):
+        c = form[i]
+        if j >= len(key):
+            return False
+        if c in UMLAUT_BASE:
+            if key[j] != c and key[j] != UMLAUT_BASE[c]:
+                return False
+            j += 1
+        elif c == "ß":
+            if key[j] == "ß":
+                j += 1
+            elif key.startswith("ss", j):
+                j += 2
+            else:
+                return False
+        elif key[j] != c:
+            return False
+        else:
+            j += 1
+        i += 1
+    return j == len(key)
 
 
 def key_letter(ch):
@@ -144,6 +182,7 @@ class GermanBuilder:
                 if key != tok or not all(ch in ALLOWED for ch in key):
                     continue
                 self.counts[key] = self.counts.get(key, 0) + c
+        self._merge_umlauts()
         self.max_count = max(self.counts.values())
         self.scale = 255.0 / math.log(self.max_count)
         self._case_cache = {}
@@ -153,6 +192,32 @@ class GermanBuilder:
         self.short_dropped = []
         self.typos = {}
         self.prefix_compounds = set()  # keys kept by step 5 only through a prefix as first part (report)
+
+    # §3.6 umlaut merge (0.6.9)
+    def _merge_umlauts(self):
+        """Keys that are no German form and differ from a German form only by missing umlauts or ß, counted at most a
+        tenth as often as that form, are removed and their count is added to the form (the most frequent one if
+        several qualify). German forms are never merged."""
+        index = {}
+        for f in self.forms_by_key:
+            if any(c in f for c in "äöüß"):
+                index.setdefault(fold_umlauts(f), []).append(f)
+        merged = {}
+        for key in sorted(self.counts):
+            if key in self.forms_by_key:
+                continue
+            c = self.counts[key]
+            options = [f for f in index.get(fold_umlauts(key), ())
+                       if lacks_umlauts(key, f) and self.counts.get(f, 0) >= UMLAUT_MERGE_RATIO * c]
+            if options:
+                merged[key] = max(options, key=lambda f: (self.counts.get(f, 0), f))
+        self.merged_counts = {k: self.counts[k] for k in merged}
+        self.merged_into = {}
+        for key, target in merged.items():
+            c = self.counts.pop(key)
+            self.counts[target] += c
+            self.merged_into[target] = self.merged_into.get(target, 0) + c
+        self.umlaut_merged = merged
 
     def is_german_form(self, key):
         return key in self.forms_by_key

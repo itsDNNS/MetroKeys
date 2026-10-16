@@ -687,6 +687,51 @@ abbreviation rule, reproducible; not analysed further, within its 68 MB heap). A
 "zj" lists "vj" (abbreviation "vj.") as fourth correction instead of "ZK", the Italian elided shape index has 6 506
 entries (6 501).
 
+### Umlaut merge (0.6.9, German) and unattested keys (0.6.9, all languages with a count rule)
+
+**Umlaut merge** (05b §3.6, `build_de.GermanBuilder._merge_umlauts`, before steps 1–8): a subtitle key that is no
+German form and is a German form with one or more of its umlauts written without the dots or ß written as "ss" (any
+number of positions, nothing else changed; `lacks_umlauts`) is removed when that form is counted at least 10 times as
+often (`UMLAUT_MERGE_RATIO`); its count is added to the form (the most frequent qualifying form; ties by text). German
+forms are never merged ("schon"/"schön", "zahlen"/"zählen", "dass"/"daß" stay). As in the Spanish accent merge (§8.4) the
+merged key's pairs are not carried over. 2 622 keys are merged (most of them below the count rule and never in the word
+list; 116 were keys of the word list, 26 of them damped); S and maxCount are unchanged. Report (`de-DE-extra`):
+`umlautMerged`, `umlautMergedTop100` (merged key and count → form and its count before the merge). The 100 most
+frequent: fur 1319 → für 735252, uber 463 → über 196855, konnen 447 → können 240905, mussen 322 → müssen 191257, konnt 289 → könnt 20255, zuruck 228 → zurück 133326, gehort 160 → gehört 89459, madchen 160 → mädchen 72685, tur 148 → tür 41457, naturlich 145 → natürlich 82710, holle 128 → hölle 21656, dafur 124 → dafür 75302, spater 120 → später 44320, lowen 109 → löwen 2132, hande 93 → hände 22645, ruber 90 → rüber 11953, fraulein 84 → fräulein 6438, verruckt 72 → verrückt 38126, nachste 69 → nächste 22714, uberhaupt 69 → überhaupt 35566, erzahlen 64 → erzählen 29301, funf 59 → fünf 33424, vollig 56 → völlig 20317, daruber 55 → darüber 51711, durfen 52 → dürfen 23930, geschaft 52 → geschäft 15254, erzahlt 51 → erzählt 33821, konig 51 → könig 20785, moglich 50 → möglich 25388, brucke 49 → brücke 7012, walder 46 → wälder 927, bose 45 → böse 16940, nachsten 43 → nächsten 22247, backer 39 → bäcker 451, romer 39 → römer 1313, uberall 39 → überall 21161, erklaren 38 → erklären 18526, glucklich 38 → glücklich 25915, kapitan 38 → kapitän 5200, klart 38 → klärt 395, buro 37 → büro 22253, fruh 37 → früh 24189, horner 37 → hörner 576, standig 36 → ständig 13119, getotet 35 → getötet 31223, hore 35 → höre 16609, druben 33 → drüben 17704, buros 31 → büros 863, fruher 31 → früher 24599, offnen 31 → öffnen 10809, uberraschung 31 → überraschung 9952, haltst 29 → hältst 12043, kummern 29 → kümmern 17618, offne 29 → öffne 3561, tatsachlich 29 → tatsächlich 14483, gefahrlich 28 → gefährlich 14049, hubsch 28 → hübsch 11244, mude 28 → müde 11612, furs 27 → fürs 12485, hangen 27 → hängen 7677, aufhoren 26 → aufhören 19532, handen 26 → händen 8094, namlich 26 → nämlich 10147, notig 26 → nötig 14694, tschuss 26 → tschüss 11927, unmoglich 26 → unmöglich 14555, wahle 26 → wähle 1207, gebaude 25 → gebäude 9086, handler 25 → händler 1111, kampfen 25 → kämpfen 15639, personlich 25 → persönlich 10269, korper 24 → körper 17147, nachstes 24 → nächstes 10971, tater 24 → täter 3984, hundin 23 → hündin 342, morder 23 → mörder 15310, schwore 23 → schwöre 10398, erzahl 22 → erzähl 11759, offnet 22 → öffnet 3847, ungefahr 22 → ungefähr 8567, kuche 21 → küche 9052, kummere 21 → kümmere 9445, mogen 21 → mögen 14944, sanger 21 → sänger 934, schones 21 → schönes 8905, selbstverstandlich 21 → selbstverständlich 5421, stort 21 → stört 5745, bucher 20 → bücher 7147, durft 20 → dürft 2289, ubrigens 20 → übrigens 9753, verandern 20 → verändern 4711, zerstort 20 → zerstört 9755, zurich 20 → zürich 504, fahrst 19 → fährst 5379, blodsinn 18 → blödsinn 5227, foderation 18 → föderation 1223, fuhle 18 → fühle 19176, fuhlen 18 → fühlen 15884, gefuhl 18 → gefühl 18285, lacheln 18 → lächeln 6881.
+
+**Unattested keys** (05 §10.1 step 5): the keys a build kept by its count rule without being a form of the language —
+exactly the damped keys of §3.6 step 7 and of the "as German §3.6 step 7" steps of es, pt, it and fr — are flagged in
+the word list: bit 7 of the key's form-count byte (`common.write_word_list(unattested=…)`; at most 127 forms per key).
+Files written before never set the bit, so they stay readable (`Lexicon.read` masks it; no version change). English has
+no count-rule keys of this kind and stays byte-identical. Rebuilt es-ES, pt-BR, it-IT and fr-FR word lists are
+identical to 0.6.7 except for the flag bits, their pair tables except for the binding hash (checked by decoding both
+versions). `<tag>.unattestedKeys` in `tools/dictionary-build.json`.
+
+| | de-DE | es-ES | pt-BR | it-IT | fr-FR | en-US |
+|---|---:|---:|---:|---:|---:|---:|
+| unattested (flagged) keys | 9 150 | 21 863 | 27 124 | 14 947 | 8 812 | 0 |
+| keys | 322 189 → 322 073 | 247 380 | 172 374 | 185 063 | 174 238 | 163 405 |
+| forms | 328 429 → 328 313 | 250 115 | 173 935 | 187 677 | 179 163 | 164 040 |
+| words file, bytes | 1 339 994 → 1 342 081 | 808 139 → 811 368 | 582 110 → 585 747 | 610 682 → 612 927 | 607 867 → 610 121 | 519 514 |
+| pairs file, bytes | 1 890 080 → 1 890 114 | 1 212 411 | 859 184 → 859 185 | 1 274 931 → 1 274 932 | 1 508 320 → 1 508 324 | 1 927 135 |
+
+German pairs: 54 866 → 54 865 previous words, 565 691 → 565 690 pairs. All files together grow by 13.5 KB.
+
+| File (0.6.9) | Bytes | SHA-256 |
+|---|---:|---|
+| `de-DE.words.gz` | 1 342 081 | `6c4a9d5e8c89788473a5f07a19b02bf4e23cab74ce6904bfad98a8f753b7f7a3` |
+| `de-DE.pairs.gz` | 1 890 114 | `28ac4ed6a42ba3344e9533c7a5f268b50951399b23b53558987d6f7edf50a238` |
+| `es-ES.words.gz` | 811 368 | `f39e8681a5b6a5598a49295a0728e14ef94efd80842f89856490bb1191a0b22f` |
+| `es-ES.pairs.gz` | 1 212 411 | `6c726f6ab2c9e88a6a04605fdf55e31b01d8cbe2147bdf31f6b0f4ecda2ea80f` |
+| `pt-BR.words.gz` | 585 747 | `075e8b8e6789a2b38d638212918334e93181b0a1f277cd0d2838bd438d85ea6c` |
+| `pt-BR.pairs.gz` | 859 185 | `d02beecb6fb43db094df4c63c20e30dad58c134df7e6581d09696b0146c6629a` |
+| `it-IT.words.gz` | 612 927 | `5247a23bcb62248a51fc20e9351412f16da6d229685cd8542a5f0a7bc829762d` |
+| `it-IT.pairs.gz` | 1 274 932 | `4f340a0edec198039bc55cdda9825ec7105affd787424ce635bd9593a73a4d76` |
+| `fr-FR.words.gz` | 610 121 | `08355554e7ee0465071acea751384951ae7a9197edc0b2202371b5737a6c8bb8` |
+| `fr-FR.pairs.gz` | 1 508 324 | `731144a88eefd06b8c6683a195883f56d697383593242243a29497ed2874ead4` |
+
+en-US unchanged. The German rebuild without the merge and the flags reproduced the 0.6.7 files byte for byte.
+
 # App data sources
 
 ## Selawik font
