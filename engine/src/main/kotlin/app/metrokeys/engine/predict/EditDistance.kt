@@ -75,6 +75,14 @@ public class EditDistance(private val params: LanguageParams, private val touch:
 
         private fun isFiller(c: Char): Boolean = c == '\'' || c == '.' || c == '-'
 
+        /** The letter with its diacritic removed, a ligature as its first letter (œ → o, æ → a): the fuzzy search's fold. */
+        @JvmStatic
+        public fun fold(c: Char): Char = when (c) {
+            'œ' -> 'o'
+            'æ' -> 'a'
+            else -> stripDiacritic(c)
+        }
+
         /** c with its diacritic removed (U+00C0–U+024F, canonical decomposition, first character); ß unchanged. */
         @JvmStatic
         public fun stripDiacritic(c: Char): Char = if (c.code in 0xC0 until 0x250) STRIPPED[c.code - 0xC0] else c
@@ -107,11 +115,12 @@ public class EditDistance(private val params: LanguageParams, private val touch:
 
         /**
          * UNITS(typed, cand): the same recursion with unit costs, case 0 and filler 0 (05 §5); the ß rule and the ligature
-         * rule cost 1, an unaccented capital ([capsUnaccented], fr) 0.
+         * rule cost 1, an unaccented capital ([capsUnaccented], fr) 0. A diacritic difference (typed base letter for an
+         * accented letter of the candidate, or an `ACCENT_SWAP` pair when [accentSwap]) counts 0 units (0.6.4).
          */
         @JvmStatic
         @JvmOverloads
-        public fun units(typed: String, cand: String, capsUnaccented: Boolean = false): Int {
+        public fun units(typed: String, cand: String, capsUnaccented: Boolean = false, accentSwap: Boolean = false): Int {
             val n = typed.length
             val m = cand.length
             if (n > Params.ED_MAX_LEN || m > Params.ED_MAX_LEN) return Params.ED_OVERFLOW
@@ -126,8 +135,9 @@ public class EditDistance(private val params: LanguageParams, private val touch:
                     val cj = c[j - 1]
                     val ins = d[i][j - 1] + if (isFiller(cj)) 0 else 1
                     val del = d[i - 1][j] + 1
-                    val same = ti == cj || (capsUnaccented && Character.isUpperCase(typed[i - 1]) &&
-                        Character.isUpperCase(cand[j - 1]) && isUnaccentedCapital(ti, cj))
+                    val same = ti == cj || isDiacriticOf(ti, cj) || (accentSwap && isAccentSwap(ti, cj)) ||
+                        (capsUnaccented && Character.isUpperCase(typed[i - 1]) && Character.isUpperCase(cand[j - 1]) &&
+                            isUnaccentedCapital(ti, cj))
                     val sub = d[i - 1][j - 1] + if (same) 0 else 1
                     var v = minOf(ins, del, sub)
                     if (i > 1 && j > 1 && ti == c[j - 2] && t[i - 2] == cj && ti != cj) v = minOf(v, d[i - 2][j - 2] + 1)

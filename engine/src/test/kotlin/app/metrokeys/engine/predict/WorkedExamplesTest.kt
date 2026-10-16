@@ -103,7 +103,10 @@ class WorkedExamplesTest {
         val r = de.query("Das war really")
         assertNull(r.autoCorrection)
         assertTrue(r.corrections.isNotEmpty())
-        assertEquals(236, de.acScore(r.corrections.first(), 6))
+        // 05 §17.3 gives 236 (best candidate "Reilly"); since the damping of non-German keys (0.6.4, 05b §3.6) "Reilly"
+        // costs more and "reales" is best with 242, still above AC_LIMIT 212 (spec/QUESTIONS.md)
+        assertEquals("reales", r.corrections.first().display)
+        assertEquals(242, de.acScore(r.corrections.first(), 6))
         assertEquals(listOf("Meeting"), de.lexicon.forms("meeting").map { it.text })
         assertEquals("Meeting", de.query("Ich habe heute ein meeting").autoCorrection?.display)
         assertNull(en.query("I have a meeting").autoCorrection)

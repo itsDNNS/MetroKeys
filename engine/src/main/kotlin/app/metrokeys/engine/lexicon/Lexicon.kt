@@ -1,5 +1,6 @@
 package app.metrokeys.engine.lexicon
 
+import app.metrokeys.engine.predict.EditDistance
 import app.metrokeys.engine.text.capitalizeFirst
 import app.metrokeys.engine.text.toKey
 import app.metrokeys.engine.text.upperPerChar
@@ -234,18 +235,25 @@ public class Lexicon private constructor(
         ((inverseClass * 2 + subtree).toLong() shl 32) or node.toLong()
 
     /**
-     * All keys within [maxEdits] optimal-string-alignment unit edits of the lower-cased [word], ordered by distance,
-     * then class (descending); their best forms, at most [limit]. Prunes the tree walk by the row minimum.
+     * All keys within [maxEdits] optimal-string-alignment unit edits of the lower-cased [word], compared on
+     * accent-folded letters ([EditDistance.fold]: a diacritic difference costs nothing, 05 §8.1, 0.6.4); ordered by
+     * [rank] of the key (the unit distance; the folded distance when null), then class (descending), then key index;
+     * their best forms, at most [limit]. Prunes the tree walk by the row minimum.
      */
-    public fun fuzzy(word: String, maxEdits: Int, limit: Int): List<FuzzyMatch> {
+    public fun fuzzy(word: String, maxEdits: Int, limit: Int, rank: ((String) -> Int)? = null): List<FuzzyMatch> {
         val w = toKey(word)
         val n = w.length
+        val wf = CharArray(n) { EditDistance.fold(w[it]) }
         val hits = ArrayList<Long>()
         val rows = Array(MAX_DEPTH + 2) { IntArray(n + 1) }
         for (j in 0..n) rows[0][j] = j
-        fuzzyWalk(0, 0, w, maxEdits, rows, hits)
-        // sort by distance, then class descending, then key index
-        val sorted = hits.sortedWith(compareBy<Long>({ it ushr 40 }, { 255 - formClass(((it and 0xFFFFFFFFFFL)).toInt(), 0) },
+        fuzzyWalk(0, 0, wf, maxEdits, rows, hits)
+        val ranked = if (rank == null) hits else hits.map { h ->
+            val k = (h and 0xFFFFFFFFFFL).toInt()
+            (rank(toKey(formText(k, 0))).toLong() shl 40) or k.toLong()
+        }
+        // sort by rank, then class descending, then key index
+        val sorted = ranked.sortedWith(compareBy<Long>({ it ushr 40 }, { 255 - formClass(((it and 0xFFFFFFFFFFL)).toInt(), 0) },
             { it and 0xFFFFFFFFFFL }))
         val out = ArrayList<FuzzyMatch>(minOf(limit, sorted.size))
         for (h in sorted) {
@@ -255,16 +263,16 @@ public class Lexicon private constructor(
         return out
     }
 
-    private fun fuzzyWalk(node: Int, depth: Int, w: String, maxEdits: Int, rows: Array<IntArray>, hits: MutableList<Long>) {
+    private fun fuzzyWalk(node: Int, depth: Int, w: CharArray, maxEdits: Int, rows: Array<IntArray>, hits: MutableList<Long>) {
         if (depth >= MAX_DEPTH) return
-        val n = w.length
+        val n = w.size
         val prev = rows[depth]
         val prevPrev = if (depth > 0) rows[depth - 1] else null
-        val prevChar = if (depth > 0) nodeChar[node] else '\u0000'
+        val prevChar = if (depth > 0) EditDistance.fold(nodeChar[node]) else '\u0000'
         val row = rows[depth + 1]
         val first = nodeFirstChild[node]
         for (child in first until first + nodeChildCount[node]) {
-            val ch = nodeChar[child]
+            val ch = EditDistance.fold(nodeChar[child])
             row[0] = prev[0] + 1
             var rowMin = row[0]
             for (j in 1..n) {

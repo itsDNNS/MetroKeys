@@ -6,8 +6,13 @@ import android.util.Log
 import app.metrokeys.R
 import java.io.File
 
-/** Font weight ids of spec 02 §4.1. */
-enum class Weight(val slot: String) { LIGHT("light"), SEMILIGHT("semilight"), REGULAR("regular"), SEMIBOLD("semibold"), BOLD("bold") }
+/**
+ * Font weight ids of spec 02 §4.1, plus [LABEL], the weight of the key labels (02 §4.2 "Key-label weight", 0.6.4):
+ * an imported semibold font if there is one, else Selawik Regular. [LABEL] has no import slot of its own.
+ */
+enum class Weight(val slot: String?) {
+    LIGHT("light"), SEMILIGHT("semilight"), REGULAR("regular"), SEMIBOLD("semibold"), BOLD("bold"), LABEL(null)
+}
 
 /**
  * The typefaces of the keyboard: bundled Selawik, or the user's own imported fonts per weight (spec 02 §4.1,
@@ -31,13 +36,16 @@ class Fonts(context: Context, useCustom: Boolean) {
         var emojiFace: Typeface? = null
         if (useCustom) {
             val dir = UserAssets.fontsDir(context)
-            for (w in Weight.entries) load(File(dir, w.slot))?.let { custom[w] = it }
+            for (w in Weight.entries) w.slot?.let { slot -> load(File(dir, slot))?.let { custom[w] = it } }
             emojiFace = load(File(dir, "emoji"))
         }
         emoji = emojiFace ?: Typeface.DEFAULT
     }
 
-    fun get(weight: Weight): Typeface = custom[weight] ?: bundled.getValue(weight)
+    fun get(weight: Weight): Typeface = when (weight) {
+        Weight.LABEL -> custom[Weight.SEMIBOLD] ?: bundled.getValue(Weight.REGULAR)
+        else -> custom[weight] ?: bundled.getValue(weight)
+    }
 
     private fun load(f: File): Typeface? = if (!f.isFile) null else try {
         Typeface.createFromFile(f)

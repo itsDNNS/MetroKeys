@@ -11,12 +11,13 @@ written from a functional specification (see [How it is made](#how-it-is-made)).
 
 > **Made with AI:** MetroKeys is written and maintained with the help of Claude Opus 5.5 (Anthropic). See [How it is made](#how-it-is-made).
 
-Version 0.6.3 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer.
+Version 0.6.4 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer.
 
 <p>
   <img src="docs/screenshots/letters-dark.png" width="240" alt="Letter page, dark theme, with next-word predictions">
   <img src="docs/screenshots/letters-light.png" width="240" alt="Letter page, light theme with the red accent">
   <img src="docs/screenshots/suggestions.png" width="240" alt="Suggestions while typing a misspelled word">
+  <img src="docs/screenshots/letters-german-dark.png" width="240" alt="German letter page with für offered for fur">
   <img src="docs/screenshots/letters-spanish-dark.png" width="240" alt="Spanish letter page with ñ and next-word predictions">
   <img src="docs/screenshots/letters-portuguese-dark.png" width="240" alt="Portuguese (Brazil) letter page with ç and next-word predictions">
   <img src="docs/screenshots/letters-italian-dark.png" width="240" alt="Italian letter page with elided words offered after dell'">

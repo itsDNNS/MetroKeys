@@ -1,7 +1,7 @@
 [versions]
 # App version: the single source of versionName/versionCode (app/build.gradle.kts).
-appVersionName = "0.6.3"
-appVersionCode = "11"
+appVersionName = "0.6.4"
+appVersionCode = "12"
 agp = "9.4.1"
 kotlin = "2.4.21"
 junit = "5.13.4"

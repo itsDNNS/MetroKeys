@@ -147,8 +147,8 @@ def scowl_final():
     return final, os.path.join(target, "Copyright")
 
 
-def build_pairs(lang, entries, keys, tatoeba_name, tatoeba_lang, cv_lang, stock=None):
-    counter = pairs.PairCounter(lang, entries, stock)
+def build_pairs(lang, entries, keys, tatoeba_name, tatoeba_lang, cv_lang, stock=None, damped=None, damping=1.0):
+    counter = pairs.PairCounter(lang, entries, stock, damped, damping)
     for text in tatoeba_sentences(tatoeba_name, tatoeba_lang):
         counter.add(text, 3, True)
     for _, weight, lines in cv_files(cv_lang):
@@ -179,6 +179,18 @@ def write_outputs(tag, scale, max_count, corpus_tokens, entries, table, stats, p
     print(tag, json.dumps(stats[tag], indent=1))
 
 
+def forms_text(forms):
+    return " ".join(f"{f}:{c}" for f, c in forms)
+
+
+def short_nonforms(entries, is_form, count):
+    """05b §3.6 "Other languages" (0.6.4): kept keys of 2-3 letters that are no form of the language, with their count
+    and the build's decision (the stored forms with their classes), most frequent first."""
+    rows = [k for k in entries if 2 <= sum(1 for ch in k if ch.isalpha()) <= 3 and not is_form(k)]
+    rows.sort(key=lambda k: (-count(k), k))
+    return [f"{k} {int(count(k))} {forms_text(entries[k])}" for k in rows]
+
+
 def write_licenses(copyright_path=None, tags=None):
     tags = tags or [t for t in PROFILES if t != "en-US" or copyright_path]
     scowl_notice = None
@@ -199,9 +211,22 @@ def build_german(stats):
         print("Wiktionary pass (a few minutes)")
         wiktionary_de.run(os.path.join(SRC, WIKT_DUMP), wikt_cache)
     de = build_de.GermanBuilder(os.path.join(SRC, "fw", "de_full.txt"), wiktionary_de.load(wikt_cache))
-    de_entries = de.build()
+    de_entries = de.build(os.path.join(ROOT, "spec", "data", "layouts-de.json"))
     de_keys = sorted(de_entries)
-    de_table = build_pairs("de", de_entries, de_keys, "deu_sentences.tsv.bz2", "deu", "de")
+    de_table = build_pairs("de", de_entries, de_keys, "deu_sentences.tsv.bz2", "deu", "de",
+                           damped=de.damped, damping=build_de.DAMPING)
+    # 0.6.4 report: step 6a and the damping of non-German keys (§3.6)
+    top = sorted(de.damped, key=lambda k: (-de.count(k), k))
+    stats["de-DE-extra"] = {
+        "shortKeysDroppedByStep6a": len(de.short_dropped),
+        "shortKeysDroppedByStep6aList": [f"{k} {de.count(k)}" for k in sorted(de.short_dropped, key=lambda k: (-de.count(k), k))],
+        "dampedKeys": len(de.damped),
+        "dampedTop50": [f"{k} {de.count(k)} {forms_text(de_entries[k])}" for k in top[:50]],
+        "shortKeysNotForms": short_nonforms(de_entries, de.is_german_form, de.count),
+        "realWordTypos": len(de.typos),
+        "realWordTyposTop150": [f"{k} {de.count(k)} -> {w} {de.count(w)}"
+                                for k, w in sorted(de.typos.items(), key=lambda kw: (-de.count(kw[0]), kw[0]))[:150]],
+    }
     write_outputs("de-DE", de.scale, de.max_count, de.corpus_tokens, de_entries, de_table, stats)
     write_licenses(tags=["de-DE"])
 
@@ -223,6 +248,8 @@ def build_english(stats):
         "aliasKeys": getattr(en, "alias_added", 0),
         "aliasKeysReplacingAWord": getattr(en, "alias_replaced", 0),
         "possessiveForms": sum(1 for k in en_entries if k.endswith("'s") and k not in build_en.PRONOUN_S),
+        # 05b §3.6 (0.6.4): a form of English = a SCOWL key
+        "shortKeysNotForms": short_nonforms(en_entries, lambda k: k in en.main_keys or k in en.large_forms, en.count),
     }
     write_outputs("en-US", en.scale, en.max_count, en.corpus_tokens, en_entries, en_table, stats)
     write_licenses(copyright_path, tags=["en-US"])
@@ -280,6 +307,7 @@ def build_spanish(stats):
         "formsKeptWithTwoCases": sum(1 for v in es_entries.values() if len(v) > 1),
         "properNounKeys": sum(1 for v in es_entries.values() if v[0][0][0].isupper()),
     })
+    report["shortKeysNotForms"] = short_nonforms(es_entries, es.is_form, es.count)  # 05b §3.6 (0.6.4)
     stats["es-ES-extra"] = report
     write_outputs("es-ES", es.scale, es.max_count, es.corpus_tokens, es_entries, es_table, stats)
     write_licenses(tags=["es-ES"])
@@ -355,6 +383,7 @@ def build_portuguese(stats):
         "formsKeptWithTwoCases": sum(1 for v in pt_entries.values() if len(v) > 1),
         "properNounKeys": sum(1 for v in pt_entries.values() if v[0][0][0].isupper()),
     })
+    report["shortKeysNotForms"] = short_nonforms(pt_entries, pt.is_form, pt.count)  # 05b §3.6 (0.6.4)
     stats["pt-BR-extra"] = report
     write_outputs("pt-BR", pt.scale, pt.max_count, pt.corpus_tokens, pt_entries, pt_table, stats)
     write_licenses(tags=["pt-BR"])
@@ -435,6 +464,7 @@ def build_italian(stats):
         "elidedPairsDroppedList": counter.dropped_elided[:150],
         "prefixesAsFollowers": sum(1 for v in it_table.values() for k, _, _ in v if k in build_it.PREFIX_SET),
     })
+    report["shortKeysNotForms"] = short_nonforms(it_entries, it.is_form, it.count)  # 05b §3.6 (0.6.4)
     stats["it-IT-extra"] = report
     write_outputs("it-IT", it.scale, it.max_count, it.corpus_tokens, it_entries, it_table, stats, it.prefix_table)
     write_licenses(tags=["it-IT"])
@@ -543,6 +573,7 @@ def build_french(stats):
         "elidedPairsDroppedRule2List": counter.dropped_by_rule[2][:200],
         "prefixesAsFollowers": sum(1 for v in fr_table.values() for k, _, _ in v if k in build_fr.PREFIX_SET),
     })
+    report["shortKeysNotForms"] = short_nonforms(fr_entries, fr.is_form, fr.count)  # 05b §3.6 (0.6.4)
     stats["fr-FR-extra"] = report
     write_outputs("fr-FR", fr.scale, fr.max_count, fr.corpus_tokens, fr_entries, fr_table, stats, fr.prefix_table)
     write_licenses(tags=["fr-FR"])

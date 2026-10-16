@@ -3,6 +3,42 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.6.4 – 2026-10-16
+
+### Keyboard
+- Lighter key labels: letters, `&123`/`abc`, the domain key, `@`, the space-bar word, the language key and its
+  sub-labels, the key-press popup, the accent picker and the language popup are drawn in Selawik Regular instead of
+  Selawik Semibold, which is noticeably heavier than the reference look. An imported semibold font is used for them
+  instead when there is one. Punctuation keys, number and dial pads, the suggestion bar, emoji and the settings app are
+  unchanged.
+- Application bar: only "…" opens and closes the expanded bar. A touch on an empty part of the bar no longer toggles it
+  (no click, no change); the keyboard still takes the touch.
+
+### Typing
+- Caret inside a word: putting the caret into a word (letters on both sides) now offers candidates for the whole word,
+  as for a selected word (its stored list, else corrections of the word, plus "add to dictionary" for an unknown word).
+  A pick replaces the whole word and leaves the caret after it, without adding a space. Typing, backspace or another
+  caret move end this; a space typed there still never autocorrects.
+- After the input restarts in a field (for example when the editor's own spelling popup closes) and whenever the
+  keyboard is shown again, the suggestion bar follows the current caret or selection instead of staying empty, so the
+  candidates of a word around the caret stay available and a pick replaces the word.
+- A missing accent or umlaut no longer counts as an edit when the keyboard looks for corrections: "Uberpeufe" (u for ü
+  twice and one more typo) is corrected to "Überprüfe" like "Überpeufe" was. The cost of the missing accent itself is
+  unchanged.
+
+### German dictionary
+- Short non-German keys of up to three letters need 20 000 subtitle occurrences: 336 such keys are gone ("ähm", "joe",
+  "you", "seh", "nen" …); "dad", "the" and "wär" stay.
+- Names and foreign words of the dubbed films that are no German word count a hundredth of their subtitle frequency:
+  they stay valid but no longer push real words aside ("Cursos" now offers "Cursor" first, before "Crusoe" and
+  "Curtis"). 9 228 keys are damped; those that end at the lowest frequency class are no longer offered.
+- Real-word typos: a rare German word (fewer than 100 subtitle occurrences, mostly written in lower case) that is one
+  key aside, or one swapped pair, from a word at least 5000 times as frequent is still accepted when typed, but is never
+  offered and is autocorrected to the frequent word when the context favours it ("Ich komme heure" → "heute", "zi" →
+  "zu"); 115 words are affected (list in docs/DATA-SOURCES.md). Words mainly written with a capital (nouns, names,
+  abbreviations) are never affected.
+- The other languages' dictionaries are unchanged (byte-identical rebuild).
+
 ## 0.6.3 – 2026-10-16
 
 ### Languages

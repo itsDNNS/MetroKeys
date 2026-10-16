@@ -78,6 +78,9 @@ class InputLogic(
     private var resumed: StoredList? = null
     private var lastKeyTime = 0L
 
+    /** The last user move put the collapsed caret inside a word and no key was used since (04 §10 item 5). */
+    private var caretWord = false
+
     /** True after a backspace until the next other key (key choice at touch-down, 03 §1.1a). */
     var lastWasBackspace = false
         private set
@@ -100,7 +103,10 @@ class InputLogic(
 
     // ================================================================ lifecycle
 
-    /** Start of input in a field (03 §20): all per-word state and stored lists are cleared. */
+    /**
+     * Start or restart of input in a field (03 §20): all per-word state and stored lists are cleared; the strip is then
+     * set from the editor's current selection (04 §10 "Input start, restart and re-shown keyboard", 0.6.4).
+     */
     fun startInput(field: FieldState, selStart: Int, selEnd: Int) {
         this.field = field
         this.selStart = maxOf(0, selStart)
@@ -117,8 +123,23 @@ class InputLogic(
         lastWasBackspace = false
         cancelQuery?.invoke()
         generation++
-        showStrip(StripContent.EMPTY)
+        stripFromSelection()
         scheduleSpellRun()
+    }
+
+    /**
+     * The keyboard view is shown again (04 §10 "Input start, restart and re-shown keyboard", 0.6.4): items 1–4 of a user
+     * move apply, then the strip is set from the editor's current selection (items 5 and 6), so a caret inside a word
+     * shows that word's candidates again.
+     */
+    fun reshown() {
+        finishComposing()
+        resetWordState()
+        lastWasBackspace = false
+        cancelQuery?.invoke()
+        generation++
+        scheduleSpellRun()
+        stripFromSelection()
     }
 
     fun finishInput() {
@@ -136,6 +157,7 @@ class InputLogic(
         autoSpace = false
         swiped = null
         resumed = null
+        caretWord = false
     }
 
     // ================================================================ own edits
@@ -266,19 +288,34 @@ class InputLogic(
         cancelQuery?.invoke()
         generation++
         scheduleSpellRun()
-        if (selStart == selEnd) {
-            val before = editor.textBefore(BEFORE).toString()
-            val after = editor.textAfter(AFTER).toString()
-            when {
-                TextRules.caretInsideWord(after) -> showStrip(StripContent.EMPTY)
-                before.isNotEmpty() && TextModel.isWordChar(before.last()) -> resume(before)
-                before.isNotEmpty() -> requestPredictions()
-                else -> showStrip(StripContent.EMPTY)
-            }
-        } else if (typingList == null || !typedWordSelection(typingList)) {
-            selectionCandidates()
+        if (selStart != selEnd && typingList != null && typedWordSelection(typingList)) {
+            listener.onTextChanged()
+            return
         }
+        stripFromSelection()
         listener.onTextChanged()
+    }
+
+    /** The strip for the editor's current selection (04 §10 items 5 and 6, without the still-typed word of item 6). */
+    private fun stripFromSelection() {
+        if (selStart != selEnd) {
+            selectionCandidates()
+            return
+        }
+        val before = editor.textBefore(BEFORE).toString()
+        val after = editor.textAfter(AFTER).toString()
+        val atWordEnd = before.isNotEmpty() && TextModel.isWordChar(before.last())
+        when {
+            TextRules.caretInsideWord(after) -> if (atWordEnd) {
+                caretWord = true
+                caretWordCandidates()
+            } else {
+                showStrip(StripContent.EMPTY)
+            }
+            atWordEnd -> resume(before)
+            before.isNotEmpty() -> requestPredictions()
+            else -> showStrip(StripContent.EMPTY)
+        }
     }
 
     /**
@@ -333,6 +370,7 @@ class InputLogic(
     private fun noteKey() {
         lastKeyTime = scheduler.now()
         lastWasBackspace = false
+        caretWord = false
     }
 
     private fun wordChar(c: Char, x: Float, y: Float) {
@@ -703,6 +741,18 @@ class InputLogic(
                 newStart = selStart
                 commit(text)
             }
+            StripKind.CARET_WORD -> {
+                // the whole word around the caret (04 §4.1); the caret ends after the inserted word
+                finishComposing()
+                val start = content.wordStart
+                val end = start + content.word.length
+                editor.setSelection(start, end)
+                selStart = start
+                selEnd = end
+                pushExpected()
+                newStart = start
+                commit(text)
+            }
             StripKind.SWIPE -> {
                 if (compStart >= 0) {
                     newStart = compStart
@@ -742,8 +792,10 @@ class InputLogic(
         // a picked elision prefix ("l'") gets no trailing space and no auto space (04 §4.3); the strip then offers the
         // elided words (05 §2.2)
         val prefixPick = item.elisionPrefix && content.kind in setOf(StripKind.TYPING, StripKind.RESUMED)
-        val spaced = if (!prefixPick && s?.effectiveSpaceAfterSuggestion == true) trailingSpace(SpaceOrigin.AUTOCORRECTION_OR_PICK) else false
-        if (prefixPick) autoSpace = false
+        // a word around the caret is replaced in place: no space is added (04 §10 item 5)
+        val noSpace = prefixPick || content.kind == StripKind.CARET_WORD
+        val spaced = if (!noSpace && s?.effectiveSpaceAfterSuggestion == true) trailingSpace(SpaceOrigin.AUTOCORRECTION_OR_PICK) else false
+        if (noSpace) autoSpace = false
         editor.endBatch()
         // learning (not for emoji); the typed word of a resumed autocorrection rejects it. Picking the typed word
         // itself accepts it (05 §12.5).
@@ -751,7 +803,8 @@ class InputLogic(
             reject(r, accepted = true)
         } else if (!item.emoji && !prefixPick) {
             val b = editor.textBefore(BEFORE).toString()
-            val typedWord = content.kind in setOf(StripKind.TYPING, StripKind.RESUMED, StripKind.SELECTION) && text == content.word
+            val typedWord = content.kind in setOf(StripKind.TYPING, StripKind.RESUMED, StripKind.SELECTION, StripKind.CARET_WORD) &&
+                text == content.word
             learn(text, TextModel.precedingWords(b, maxOf(0, b.length - text.length - (if (spaced) 1 else 0)), 2), typedWord)
         }
         val list = content.stored
@@ -948,6 +1001,45 @@ class InputLogic(
         }
     }
 
+    /**
+     * Collapsed caret inside a word (04 §10 item 5, first case, 0.6.4): candidates for the whole word around the caret,
+     * as for a selection of that one word — its stored list if it has one, else the correction search with the word as
+     * typed and no taps; the same length and character limits; the add-to-dictionary item. A pick replaces the word.
+     */
+    private fun caretWordCandidates() {
+        val before = editor.textBefore(BEFORE).toString()
+        val after = editor.textAfter(TextModel.WORD_MAX_LEN + 1).toString()
+        val leftStart = TextModel.currentWordStart(before)
+        var rightLen = 0
+        while (rightLen < after.length && TextModel.isWordChar(after[rightLen])) rightLen++
+        val word = before.substring(leftStart) + after.substring(0, rightLen)
+        val whole = before + after
+        if (!TextRules.isSingleWordSelection(whole, leftStart, leftStart + word.length) || !policyAllowsSuggestions()) {
+            return showStrip(StripContent.EMPTY)
+        }
+        val start = selStart - (before.length - leftStart)
+        val list = stored.firstOrNull { it.start == start && it.word == word }
+        if (list != null) {
+            val items = list.items.filter { it != word }.map { StripItem(it) }.toMutableList()
+            addWordItem(items, word, list.items.firstOrNull() == word && list.autoTyped == null)
+            return showStrip(StripContent(StripKind.CARET_WORD, items, word, start, list))
+        }
+        val engine = engine ?: return showStrip(StripContent.EMPTY)
+        val gen = ++generation
+        val f = field.info
+        val context = before.substring(0, leftStart) + word
+        scheduler.background {
+            val res = engine.resumeCorrections(context, f).map { it.text }.filter { it != word }
+            val known = engine.isKnown(word)
+            scheduler.main(0) {
+                if (gen != generation) return@main
+                val items = res.map { StripItem(it) }.toMutableList()
+                addWordItem(items, word, !known)
+                showStrip(StripContent(StripKind.CARET_WORD, items, word, start))
+            }
+        }
+    }
+
     /** The add-to-dictionary item after the best suggestion (03 §6.5). */
     private fun addWordItem(items: MutableList<StripItem>, word: String, unknown: Boolean) {
         val st = s ?: return
@@ -1049,7 +1141,9 @@ class InputLogic(
         val after = editor.textAfter(AFTER).toString()
         when {
             swiped != null -> {}
-            TextRules.caretInsideWord(after) -> showStrip(StripContent.EMPTY)
+            TextRules.caretInsideWord(after) ->
+                if (caretWord && before.isNotEmpty() && TextModel.isWordChar(before.last())) caretWordCandidates()
+                else showStrip(StripContent.EMPTY)
             before.isNotEmpty() && TextModel.isWordChar(before.last()) ->
                 if (typedSinceMove) requestTyping(0) else resume(before)
             before.isNotEmpty() && strip.kind == StripKind.PREDICTION -> requestPredictions()

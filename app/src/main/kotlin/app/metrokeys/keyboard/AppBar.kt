@@ -13,7 +13,6 @@ import android.os.Build
 import android.text.TextUtils
 import app.metrokeys.R
 import app.metrokeys.ime.AppBarButton
-import kotlin.math.abs
 
 /**
  * The application bar below the keys (03 §12, 02 §5.11): three round buttons with tap and hold bindings, the "…"
@@ -35,7 +34,7 @@ class AppBar(private val v: KeyboardView) {
     }
 
     private val m: Metrics get() = v.metrics
-    private val baseH: Float get() = 126f * m.s
+    private val baseH: Float get() = AppBarTouch.BASE_H * m.s
     private val expanded: Boolean get() = v.controller.appBarExpanded
 
     /** Expanded: label row 48, padding 12, three menu rows of 96, padding 12 (02 §5.11), 360 in total. */
@@ -49,7 +48,7 @@ class AppBar(private val v: KeyboardView) {
         buttons = v.controller.appBarButtons()
     }
 
-    private fun centreX(i: Int): Float = v.width / 2f + (i - 1) * 148f * m.s
+    private fun centreX(i: Int): Float = AppBarTouch.centreX(i, v.width.toFloat(), m.s)
 
     fun draw(c: Canvas, @Suppress("UNUSED_PARAMETER") now: Long, top: Float) {
         val t = v.theme
@@ -120,33 +119,14 @@ class AppBar(private val v: KeyboardView) {
         dr.draw(c)
     }
 
-    private fun hit(x: Float, y: Float): Int {
-        if (y < baseH) {
-            for (b in buttons) {
-                if (b.tap == "none" || !b.enabled) continue
-                if (abs(x - centreX(b.index)) <= 74f * m.s) return b.index
-            }
-            if (b(x)) return MORE
-            return EMPTY
-        }
-        if (expanded) {
-            val my = y - menuTop(0f, 0)
-            if (my >= 0) {
-                val i = (my / (MENU_ROW * m.s)).toInt()
-                if (i in 0..2) return MENU0 + i
-            }
-            return EMPTY
-        }
-        return NONE
-    }
-
-    private fun b(x: Float): Boolean = x >= v.width - 120f * m.s
+    private fun hit(x: Float, y: Float): Int = AppBarTouch.hit(x, y, v.width.toFloat(), m.s, expanded,
+        buttons.filter { it.tap != "none" && it.enabled }.map { it.index })
 
     fun down(x: Float, y: Float, @Suppress("UNUSED_PARAMETER") now: Long) {
         touchActive = true
         holdFired = false
         pressed = hit(x, y)
-        if (pressed != NONE) v.controller.feedback.play(SoundKind.FUNCTION)
+        if (AppBarTouch.hasFeedback(pressed)) v.controller.feedback.play(SoundKind.FUNCTION)
         val btn = buttons.getOrNull(pressed)
         if (btn != null && btn.hold != "none") v.postDelayed(holdRunnable, 450)
         v.invalidate()
@@ -165,7 +145,7 @@ class AppBar(private val v: KeyboardView) {
         when {
             p >= MENU0 -> if (hit(x, y) == p) v.controller.menuAction(p - MENU0)
             p >= 0 -> if (y >= -40f * m.s) buttons.getOrNull(p)?.let { v.controller.appBarTap(it) }
-            p == MORE || p == EMPTY -> v.controller.toggleAppBarExpanded()
+            AppBarTouch.togglesOnRelease(p) -> v.controller.toggleAppBarExpanded()
         }
     }
 
@@ -194,12 +174,11 @@ class AppBar(private val v: KeyboardView) {
     fun button(i: Int): AppBarButton? = buttons.getOrNull(i)
 
     companion object {
-        const val NONE = -1
-        const val MORE = -2
-        const val EMPTY = -3
-        const val MENU0 = 100
-        private const val LABEL_ROW = 48f
-        private const val MENU_PAD = 12f
-        private const val MENU_ROW = 96f
+        const val NONE = AppBarTouch.NONE
+        const val MORE = AppBarTouch.MORE
+        const val MENU0 = AppBarTouch.MENU0
+        private const val LABEL_ROW = AppBarTouch.LABEL_ROW
+        private const val MENU_PAD = AppBarTouch.MENU_PAD
+        private const val MENU_ROW = AppBarTouch.MENU_ROW
     }
 }

@@ -130,7 +130,7 @@ computed on the way), never held as a whole. The front-coded keys are kept only 
 character per tree node) with their lengths and common-prefix lengths; the breadth-first prefix tree (children
 contiguous and sorted, so lookups are binary searches and node order is (depth, text)) is then built level by level —
 a key's node at depth d is new exactly when its common prefix with the previous key is shorter than d — into arrays of
-exactly the node count: de-DE ≈ 717 000 nodes, en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 711 keys),
+exactly the node count: de-DE ≈ 717 000 nodes (236 223 keys since 0.6.4), en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 711 keys),
 fr-FR (174 316 keys). Explicit forms are a sorted index array with their
 texts; pair-table followers go straight into primitive arrays. Two languages with pair tables retain 24–35 MB of JVM
 heap and load within a 44 MB maximum heap, three 39–50 MB within 60 MB (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
@@ -162,7 +162,9 @@ are classified on every build; the English dump takes ≈ 15 minutes per pass). 
 archive only the plain lists and the `Copyright` file are extracted, no script is run. The build is deterministic
 (sorted iteration, gzip with mtime 0); its counts and output hashes are written to `tools/dictionary-build.json`
 and documented in [DATA-SOURCES.md](DATA-SOURCES.md). Pipeline modules (`tools/dictbuild/`):
-`wiktionary_de.py` (§3.2), `build_de.py` (§3.3–3.7), `build_en.py` (§4), `wiktionary_es.py` (§8.2), `build_es.py`
+`wiktionary_de.py` (§3.2), `build_de.py` (§3.3–3.7; since 0.6.4 step 6a, the damping of non-German keys, also
+in the pair table via `PairCounter(damped=…)`, and the real-word typos with the neighbour keys of
+`spec/data/layouts-de.json`), `build_en.py` (§4), `wiktionary_es.py` (§8.2), `build_es.py`
 (§8), `wiktionary_pt.py` (§9.2: section extraction and page kinds of both dumps), `build_pt.py` (§9.1, §9.3–§9.7),
 `wiktionary_it.py` (§10.2), `build_it.py` (§10.1, §10.3–§10.6; also the §5 tokens of Italian),
 `wiktionary_fr.py` (§11.2), `build_fr.py` (§11.1, §11.3–§11.7; also the §5 tokens of French),
@@ -325,5 +327,18 @@ penalty. `-PshowOutput` shows test output.
   skipped angles / 5 + LM (the synthetic trace's corner at d is flatter than the spec's 75°), E17 très = 8 + LM; the
   French acceptance test (46 words with a z q w m, accents, ligatures, elided and hyphenated entries): see the test
   output.
+
+- **Diacritic units (0.6.4, 05 §5, §8.1)**: `EditDistance.units` counts a diacritic difference (typed base letter for an
+  accented letter or a ligature of the candidate, and an `ACCENT_SWAP` pair in languages with that rule) as 0 units;
+  the ß and ligature rules keep 1, a typed accented letter for a plain one stays 1. ED is unchanged. `Lexicon.fuzzy`
+  walks the tree on accent-folded letters (`EditDistance.fold`: diacritic removed, œ → o, æ → a) within `maxEdits`
+  and ranks the hits by their unit distance to the typed word, then class, then key; the correction pool, the learned
+  and contact words and the UNITS filters of §8.1/§8.3 use the same units. No worked example of any language changed
+  ("Uberpeufe" → "Überprüfe", `DiacriticUnitsTest`).
+- **German class 0 (0.6.4)**: `LanguageParams.GERMAN.hideClassZero` is on, so the real-word typos of the German build
+  (05b §3.6, class 0) are valid but never offered and are autocorrected through §10.1 step 5 ("Ich komme heure" →
+  "heute", "zi" → "zu"). The damped keys (names, foreign words) counted below 100 times also end at class 0 and are
+  hidden the same way (spec/QUESTIONS.md). `ShortKeysAndNamesTest` covers 05 §17.7a, step 6a, the damping and the
+  real-word typos; "Das war really" now scores 242 (best candidate "reales"; 05 §17.3 gives 236 with "Reilly").
 
 Questions with assumptions that matter are recorded in the specification (`spec/QUESTIONS.md`, not published).

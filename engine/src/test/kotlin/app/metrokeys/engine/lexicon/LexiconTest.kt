@@ -72,8 +72,9 @@ class LexiconTest {
         val brute = lex.words().map { it.text.lowercase() }.distinct()
             .filter { app.metrokeys.engine.predict.EditDistance.units("dnan", it) <= 2 && unitOsa("dnan", it) <= 2 }.toSet()
         val viaTrie = lex.fuzzy("dnan", 2, 100000).map { it.form.text.lowercase() }.toSet()
-        // every key within distance 2 is found (forms are best forms of the keys)
-        val keys = (0 until lex.keyCount).map { lex.keyString(it) }.filter { unitOsa("dnan", it) <= 2 }.toSet()
+        // every key within distance 2 on accent-folded letters is found (forms are best forms of the keys; 0.6.4)
+        fun fold(s: String) = String(CharArray(s.length) { app.metrokeys.engine.predict.EditDistance.fold(s[it]) })
+        val keys = (0 until lex.keyCount).map { lex.keyString(it) }.filter { unitOsa("dnan", fold(it)) <= 2 }.toSet()
         assertEquals(keys.map { lex.bestForm(lex.keyIndex(it)).text.lowercase() }.toSet(), viaTrie)
         assertTrue(brute.isNotEmpty())
     }

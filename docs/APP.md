@@ -12,8 +12,10 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew :engine:test testDebugUnitTest lintDebug ass
 **Release build.** `assembleRelease` minifies with R8 (`proguard-android-optimize.txt`) and shrinks resources. No own
 keep rules are needed (reasons in `app/proguard-rules.pro`): manifest components are kept by AAPT's rules, the engine
 loads its dictionaries by absolute Java resource paths, and the only reflective call targets a framework method. The
-release APK (14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
-writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences. Signing uses
+release APK (14.6 MB in 0.6.4, 14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
+writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences; for 0.6.4 the
+lighter key labels, a pick for a word around the caret, "zi " / "zj " → "zu", "Cursos" → "Cursor" first, "Ich komme heure " →
+"heute", "Uberpeufe " → "Überprüfe" and the app bar (an empty part does nothing, "…" toggles). Signing uses
 `keystore.properties` in the repository root when present (README, "Building"); the version is `appVersionName` /
 `appVersionCode` in `gradle/libs.versions.toml`.
 
@@ -111,10 +113,16 @@ reference numbers of 02 §7.4 (3000 px/s → 1.71 s / 1745 px, xMax ≈ 776 px).
 file naming rules, the WAV check and the font parsing of 07 §9.9/§9.11 (synthetic fonts and the bundled Selawik
 files, and the style name deciding before the weight class); `LayoutDataTest` the optional comma key and the
 clipboard history with image entries (dedup, pinning, reported files of removed entries, version-1 data);
-`ForgetRequestsTest` the preference that carries forgotten words to the keyboard. `InputLogicTest` covers the 05 §12.5
+`ForgetRequestsTest` the preference that carries forgotten words to the keyboard; `AppBarTouchTest` the bar's touch
+regions and that an empty part of the bar gives no feedback and does not toggle (0.6.4). `InputLogicTest` covers the 05 §12.5
 undo rules: picking the typed word accepts it, editing the corrected word needs two undos for an unknown word, and a
 held backspace never rejects; and the selection of the word still being typed ("Kopiert" keeps "Kopierte …", an older
-word gets the correction search). It also runs every own insertion and edit after a swiped word (paste, clip text
+word gets the correction search), and the caret inside a word (0.6.4): candidates for the whole word ("Cur|sos" →
+"Cursor" first), a pick replaces the whole word without a space (also inside running text), typing or backspace there
+empties the strip (also after a refresh), a caret at a word start still gives an empty strip, at the word end the word is
+resumed; after an input restart in the same field or a re-shown keyboard the strip follows the current selection
+(caret inside a word: its candidates, and a pick replaces the word; a selected word; predictions after a separator; empty
+at a word start). It also runs every own insertion and edit after a swiped word (paste, clip text
 and image, emoji, text smiley, domain key, alternate, dictation, caret move, pick, autocorrection undo) on a fake
 editor that, like Android, keeps the composing span through a paste and skips it in `deleteSurroundingText`, also
 with an editor that leaves the composing region out of its selection updates. `LayoutDataTest` checks the fixed
@@ -144,6 +152,7 @@ FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < EN
 | 04 §11.1 Portuguese words (hyphen, `d'`, º ª) | the hyphen is no trigger and empties the strip (`InputLogic.otherText`); `d'` and º ª are handled by the engine (`LanguageEngine.elisionPrefixLength`, ENGINE.md) |
 | 02 §2, §3, 03 §17 sizes | `Metrics` (portrait s = w/1080, landscape s = min(w/1596, short/1080), height factor) |
 | 02 §4 typography | `TextStyles`, `Fonts`, `KeyboardView.drawLabel` (cap-height centring, 96 % fit) |
+| 02 §4.2 key-label weight (0.6.4) | every style the table gives as semibold uses `Weight.LABEL`; `Fonts.get(LABEL)` = the imported semibold font, else Selawik Regular |
 | 02 §5.3–§5.7 keys, popup, picker | `KeyboardView.drawKey`, `drawPopup`, `openPicker`/`drawPicker` (mirroring, two rows, opening slide) |
 | 02 §5.8, 03 §6 strip | `StripBar` |
 | 03 §6.6 items 2, 8 paste button | `KeyboardController.canPaste` (false while the chip shows); `StripBar.draw` draws it only when pasting is possible |
@@ -154,8 +163,10 @@ FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < EN
 | 05 §10.4, §12.5 in the keyboard | `InputLogic.pick` (accepting picks), `InputLogic.backspace(repeated)`, `KeyboardController.keyRepeat` |
 | 07 §9.13 item 5 learned words | `DataPages.LearnedWords` (learned files + `Dictionary.bundledContains`)/`LearnedWordsPage`, `Prefs.FORGET_WORDS`, `KeyboardController.applyForgetRequests` |
 | 03 §6.4 item 5 selected word still typed | `InputLogic.onSelectionUpdate`/`typedWordSelection` |
+| 04 §10 input start, restart and re-shown keyboard (0.6.4) | `InputLogic.startInput` and `InputLogic.reshown` (called from `KeyboardController.onShow`) set the strip from the current selection (`stripFromSelection`, shared with user moves) |
+| 04 §10 item 5, §4.1 caret inside a word (0.6.4) | `InputLogic.caretWordCandidates` (strip kind `CARET_WORD`), `InputLogic.pick` (selects the word and replaces it, no trailing space) |
 | 02 §5.10, 06 §6 trace | `TraceOverlay` |
-| 02 §5.11, 03 §11, §12 app bar | `AppBar`, `KeyboardController.appBarButtons`/`runAction` |
+| 02 §5.11, 03 §11, §12 app bar | `AppBar`, `KeyboardController.appBarButtons`/`runAction`; touch regions and the rule that only "…" toggles (03 §12.2 item 5, 0.6.4) in `AppBarTouch` |
 | 02 §5.12, 03 §10 clipboard | `ClipboardHistory`, `ClipboardPanel`, recording in `KeyboardController` |
 | 02 §6 glyphs | `Glyphs` (own vector drawings; app-bar pictograms are own designs) |
 | 02 §7, 03 §6.8 motion | `Curves`, `ListScroller` |
@@ -316,6 +327,13 @@ to a change counter fed by the preference listener, so summaries follow changes 
   data was saved in `destroy`). Before 0.6.1 this crashed the keyboard process when another keyboard was chosen.
 - **Hold on a candidate**: after 450 ms the release never picks; only learned words unknown to every loaded
   dictionary open the confirmation.
+- **Key-label weight** (02 §4.2, 0.6.4): the popup sizes the table gives as semibold for punctuation, glyph and dial-pad
+  keys (`punctuation-large` 105, `icon` 102, `dialpad-punctuation` 105) use the label weight as well, like every other
+  semibold entry of the table; the keys' own semilight/regular weights are unchanged.
+- **Caret inside a word** (04 §10 item 5, 0.6.4): the word is the run of word characters on both sides of the caret
+  (≤ 27 characters); a correction-search result is not stored on the word (as for a selected word), a stored list of the
+  word is shown and moves to the picked word. The pick selects the word in the editor and commits the candidate over it.
+  A refresh (engine loaded, settings changed) shows the list again only while no key was used since the move.
 
 ## Not done yet / simplified
 

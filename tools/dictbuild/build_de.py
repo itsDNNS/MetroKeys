@@ -1,6 +1,8 @@
 """German word list (05b-dictionaries §3)."""
 
+import json
 import math
+import unicodedata
 
 import casing
 from casing import case_kind_rank
@@ -31,6 +33,51 @@ dein deine deinen sein seine seinen was wie wenn dass bin bist kann kannst muss 
 nur sehr ganz gar""".split())
 
 COMPOUND_LINKS = ["", "s", "es", "n", "en", "e", "er", "ens"]
+# §3.6 step 6a (0.6.4): a key of at most 3 letters that is not a German form needs this count, as in the English build
+SHORT_KEY_LEN = 3
+SHORT_KEY_MIN = 20000
+# §3.6 "Damping of non-German keys" (0.6.4): keys kept by step 7 count with count / 100
+DAMPING = 0.01
+# §3.6 real-word typos (0.6.4): a German form counted fewer than TYPO_MAX_COUNT times, whose most frequent form is lower
+# case, and whose one-key-aside substitution or swap is a German form at least TYPO_RATIO times as frequent gets class 0
+TYPO_MAX_COUNT = 100
+TYPO_RATIO = 5000
+# neighbour keys as the engine's touch model sees them (05 §4): proximity at the key centres <= NEAR_MAX
+TOUCH_KX, TOUCH_KY, TOUCH_UNIT, NEAR_MAX = 13516.8, 18432.0, 35.0, 1000
+
+
+def key_letter(ch):
+    """The letter of the key that types [ch] on the German letter page: diacritics removed, ß on s (05 §4)."""
+    if ch == "ß":
+        return "s"
+    return unicodedata.normalize("NFD", ch)[0]
+
+
+def neighbour_keys(layout_path):
+    """Letter -> set of letters on neighbouring keys of the German letter page (spec/data layout, 05 §4)."""
+    with open(layout_path, encoding="utf-8") as f:
+        page = json.load(f)["pages"]["text.letters"]
+    centres = {}
+    widths, heights = [], []
+    for k in page["keys"]:
+        out = k.get("output", "")
+        if k.get("role") == "char" and len(out) == 1 and out.isalpha():
+            x0, y0, x1, y1 = k["rect"]
+            centres[out] = ((x0 + x1) / 2, (y0 + y1) / 2)
+            widths.append(round(x1 - x0, 6))
+            heights.append(round(y1 - y0, 6))
+    w = max(set(widths), key=widths.count)
+    h = max(set(heights), key=heights.count)
+    near = {}
+    for a, (ax, ay) in centres.items():
+        near[a] = set()
+        for b, (bx, by) in centres.items():
+            if a == b:
+                continue
+            v = math.floor((((ax - bx) / w) ** 2 * TOUCH_KX + ((ay - by) / h) ** 2 * TOUCH_KY) / TOUCH_UNIT + 0.5)
+            if v <= NEAR_MAX:
+                near[a].add(b)
+    return near
 NOUN_SUFFIXES = ["heit", "keit", "ung", "schaft", "ität", "tion", "ismus", "nis"]
 NOUN_SUFFIX_ENDINGS = ["", "en", "se", "ses", "s"]
 
@@ -85,6 +132,11 @@ class GermanBuilder:
         self.max_count = max(self.counts.values())
         self.scale = 255.0 / math.log(self.max_count)
         self._case_cache = {}
+        # filled by build(): keys kept by step 7 (damped), short keys dropped by step 6a that step 7 would keep,
+        # real-word typos (key -> dominating key)
+        self.damped = set()
+        self.short_dropped = []
+        self.typos = {}
 
     def is_german_form(self, key):
         return key in self.forms_by_key
@@ -137,51 +189,121 @@ class GermanBuilder:
     # §3.6
     def select(self, key):
         """Returns a list of (form, share) or None if the key is dropped."""
+        return self.select_step(key)[0]
+
+    def select_step(self, key):
+        """Returns (list of (form, share) or None, the step of §3.6 that decided)."""
         count = self.count(key)
         german = self.is_german_form(key)
         if not plausible(key) and not (german and 2 <= len(key) <= 27):
-            return None
+            return None, 1
         if not german and any(c not in GERMAN_PLAIN for c in key):
-            return None
+            return None, 2
         if not german and key.startswith("l") and self.is_german_form("i" + key[1:]):
-            return None
+            return None, 3
         if german:
             if count >= 2:
-                return self.case_decision(key) or [(key, 1.0)]
-            return None
+                return self.case_decision(key) or [(key, 1.0)], 4
+            return None, 4
         if len(key) >= 6 and count >= 4:
             comp = self.compound_case(key)
             if comp is not None:
-                return self.case_decision(key) or [(comp, 1.0)]
+                return self.case_decision(key) or [(comp, 1.0)], 5
+        # step 6 (glued German forms) is not applied, see spec/QUESTIONS.md (0.6.4)
+        if len(key) <= SHORT_KEY_LEN and count < SHORT_KEY_MIN:
+            return None, "6a"
+        return self.step7(key, count)
+
+    def step7(self, key, count):
         if count >= 40:
             titles = self.titles_by_key.get(key, set())
             if key in self.titles and count < 3000:
-                return None
+                return None, 7
             dec = self.case_decision(key)
             if dec:
-                return dec
+                return dec, 7
             if key in titles or not titles:
-                return [(key, 1.0)]
+                return [(key, 1.0)], 7
             best = sorted(titles, key=lambda f: (case_kind_rank(f), f))[0]
-            return [(best, 1.0)]
-        return None
+            return [(best, 1.0)], 7
+        return None, 8
 
-    def build(self):
-        entries = {}
+    def effective_count(self, key):
+        """The count used for classes and pairs: damped for keys kept by step 7."""
+        c = self.counts.get(key, 0)
+        return c * DAMPING if key in self.damped else c
+
+    def real_word_typos(self, german_keys, near, selected):
+        """§3.6 real-word typos (0.6.4): German-form keys counted fewer than TYPO_MAX_COUNT times whose most frequent form
+        (largest share) is lower case, with a German-form key one neighbour-key substitution or one swap away that is at least TYPO_RATIO
+        times as frequent; key -> that most frequent key."""
+        # letters (as they occur in the keys) per key letter, so a substitution may also produce ä, é …
+        on_key = {}
+        for key in german_keys:
+            for ch in key:
+                on_key.setdefault(key_letter(ch), set()).add(ch)
+        out = {}
+        for key in sorted(german_keys):
+            c = self.count(key)
+            if c >= TYPO_MAX_COUNT:
+                continue
+            main = max(selected[key], key=lambda fs: fs[1])[0]  # largest share; ties: case-decision order
+            if main != jlower(main):
+                continue
+            need = TYPO_RATIO * c
+            best = None
+            n = len(key)
+            for i in range(n):
+                kl = key_letter(key[i])
+                for nk in near.get(kl, ()):
+                    for ch in on_key.get(nk, ()):
+                        cand = key[:i] + ch + key[i + 1:]
+                        if cand in german_keys and self.count(cand) >= need:
+                            if best is None or (self.count(cand), cand) > (self.count(best), best):
+                                best = cand
+            for i in range(n - 1):
+                if key[i] != key[i + 1]:
+                    cand = key[:i] + key[i + 1] + key[i] + key[i + 2:]
+                    if cand in german_keys and self.count(cand) >= need:
+                        if best is None or (self.count(cand), cand) > (self.count(best), best):
+                            best = cand
+            if best is not None:
+                out[key] = best
+        return out
+
+    def build(self, layout_path=None):
+        selected = {}
+        self.damped = set()
+        self.short_dropped = []
+        self.typos = {}
         for key in sorted(self.counts):
             if not 2 <= len(key) <= 27:
                 continue
-            sel = self.select(key)
+            sel, step = self.select_step(key)
+            # report: the short keys that step 7 would have kept
+            if step == "6a" and self.step7(key, self.count(key))[0]:
+                self.short_dropped.append(key)
             if not sel:
                 continue
-            count = self.counts[key]
+            if step == 7:
+                self.damped.add(key)
+            selected[key] = sel
+        if layout_path:
+            german = {k for k in selected if self.is_german_form(k)}
+            self.typos = self.real_word_typos(german, neighbour_keys(layout_path), selected)
+        # S and the class formula after the damping (§3.6)
+        self.max_count = max(self.effective_count(k) for k in self.counts)
+        self.scale = 255.0 / math.log(self.max_count)
+        entries = {}
+        for key, sel in selected.items():
+            count = self.effective_count(key)
             forms = []
             seen = set()
             for form, share in sel:
                 if form in seen or jlower(form) != key:
                     continue
                 seen.add(form)
-                forms.append((form, freq_class(count * share, self.scale)))
+                forms.append((form, 0 if key in self.typos else freq_class(count * share, self.scale)))
             # stable sort by class descending (case-decision order on ties)
             forms.sort(key=lambda fc: -fc[1])
             entries[key] = forms

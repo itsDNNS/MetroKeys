@@ -37,7 +37,7 @@ class LexiconStructureTest {
     fun bundledTreesAreConsistent() {
         checkTree(TestDictionaries.de.lexicon)
         checkTree(TestDictionaries.en.lexicon)
-        assertEquals(236559, TestDictionaries.de.lexicon.keyCount)
+        assertEquals(236223, TestDictionaries.de.lexicon.keyCount) // 0.6.4: 236 559 before step 6a
         assertEquals(717_000.0, TestDictionaries.de.lexicon.nodeCount.toDouble(), 5_000.0)
     }
 

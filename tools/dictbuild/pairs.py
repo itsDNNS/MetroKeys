@@ -41,8 +41,12 @@ PROFILES = {
 
 
 class PairCounter:
-    def __init__(self, lang, entries, stock=None):
+    def __init__(self, lang, entries, stock=None, damped=None, damping=1.0):
         self.lang = lang
+        # German 05b §3.6 (0.6.4): the pair count c(prev, w) of a damped follower w counts with weight × damping; the
+        # total c(prev, ·) is a count of prev and stays undamped (spec/QUESTIONS.md)
+        self.damped = damped or set()
+        self.damping = damping
         self.entries = entries
         profile = PROFILES[lang]
         self.word_re = profile.word_re
@@ -71,12 +75,13 @@ class PairCounter:
                     continue
                 if prev is not None:
                     pk = (prev, key)
-                    self.pairs[pk] = self.pairs.get(pk, 0) + weight
+                    w = weight * self.damping if key in self.damped else weight
+                    self.pairs[pk] = self.pairs.get(pk, 0) + w
                     self.totals[prev] = self.totals.get(prev, 0) + weight
                     forms = self.entries[key]
                     if prev != SENTENCE_START and len(forms) > 1 and any(f == tok for f, _ in forms):
                         d = self.forms.setdefault(pk, {})
-                        d[tok] = d.get(tok, 0) + weight
+                        d[tok] = d.get(tok, 0) + w
                 prev = key
                 continue
             ch = text[i]

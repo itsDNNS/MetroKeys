@@ -98,25 +98,25 @@ byte-identical to 0.5.2, and two Spanish runs gave identical bytes).
 
 | | de-DE | reference (05b) | en-US | reference (05b) |
 |---|---:|---:|---:|---:|
-| keys | 236 559 | 236 823 | 163 405 | 163 419 |
-| cased forms | 241 914 | 242 784 | 164 040 | 164 114 |
+| keys | 236 223 (0.6.4; 236 559 before) | 236 823 | 163 405 | 163 419 |
+| cased forms | 241 563 (241 914) | 242 784 | 164 040 | 164 114 |
 | S | 16.357883 | 16.357883 | 14.976348 | 14.976349 |
 | maxCount | 5 890 279 | – | 24 812 233 | – |
 | corpusTokens | 156 169 536 | 156 169 536 | 695 682 540 | 695 682 540 |
 | alias keys (replacing a word) | – | – | 79 (11) | 79 (11) |
 | possessive forms | – | – | 34 855 | 34 883 |
-| pair previous words | 53 004 | 53 012 | 42 124 | 42 131 |
-| pairs | 561 563 | 561 595 | 590 533 | 590 661 |
+| pair previous words | 52 820 (53 004) | 53 012 | 42 124 | 42 131 |
+| pairs | 558 993 (561 563) | 561 595 | 590 533 | 590 661 |
 
 | File | Bytes | SHA-256 |
 |---|---:|---|
-| `de-DE.words.gz` | 967 409 | `5905c250567ccb2720536ce77debb1dc19786df26f097728389f55f908db7c0c` |
-| `de-DE.pairs.gz` | 1 863 133 | `01baac8fd1b798ca0d353148193ce3255866aa61dc988e9bd91ece3130889713` |
+| `de-DE.words.gz` (0.6.4) | 962 464 | `4db8a773af87378dd1b5aef4e52d9d28236779d3df149a38f3379fc2842c8c7b` |
+| `de-DE.pairs.gz` (0.6.4) | 1 850 717 | `0d8fe4eff09adb81adc34221e3e11b8cd0679b128502445055447120bed4e6be` |
 | `en-US.words.gz` | 519 514 | `0d0595b450b30387511006ce39691e8c248e5d7175041f50d65899bb2e5b1f9b` |
 | `en-US.pairs.gz` | 1 927 135 | `2dde9255fc17e317a7bec8ad1aa7f24ceb6c0b66379299c1ae25472518457e91` |
 
 The SHA-256 of the uncompressed word-list payloads (stored in the pair tables as binding) are
-`c51a843f…c8637ad` (de-DE) and `ceac596e…ec3fb43f` (en-US), see dictionary-build.json.
+`47f6f56f…57033d9` (de-DE, 0.6.4; before `c51a843f…c8637ad`) and `ceac596e…ec3fb43f` (en-US), see dictionary-build.json.
 
 ### Spanish (es-ES, first build, 0.6.0)
 
@@ -414,6 +414,34 @@ Rules of the French build that the specification leaves to the implementation (0
   the totals c(prev, ·) include the dropped pairs, and a prefix as follower takes one of the 48 places, as in Italian.
 - **Stock names** (§5 step 3): counted on the §5 tokens of the Tatoeba sentences (prefix tokens are no capitalised
   words, apostrophe words are one token); the subtitle share of an apostrophe word uses its whole-word count.
+
+### German rebuild (0.6.4)
+
+05b §3.6 step 6a, the damping of non-German keys and the real-word typo rule. Rebuilding the other five languages with
+the changed build code (into a separate directory) gave byte-identical files for en-US, es-ES, pt-BR, it-IT and fr-FR
+(word lists, pair tables, licence texts); only their build reports gained the list below.
+
+- **Step 6a** (a non-German key of at most 3 letters needs count ≥ 20 000): 336 keys that
+  step 7 kept before are dropped, among them ähm (15268), joe (14326), you (13710), nen (11732), and (10618), jim (9391), of (9163), al (8751), seh (7880), ray (7470), nem (6491), ner (5901), ted (5700), geb (5126), ed (4703), amy (4651), big (4587), roy (4181), yo (3700), bye (3517), mum (3322), huh (3190), for (3064), jay (2920), bud (2394), liz (2219), ned (2191), peg (2023), vic (1765), ian (1719), ike (1698), ooh (1686), sid (1557), sdi (1425), oz (1375), wei (1374), uld (1327), jax (1123), joy (1024), ctu (957) … (full list `shortKeysDroppedByStep6aList`). Kept: dad (46 472),
+  the (28 674), wär (23 099). "zi" (96) is not reached: "Zi" (abbreviation of "Zimmer") is a German page, so the key
+  is a German form (step 4); the real-word typo rule below gives it class 0 (main form "zi", share 0.56; "zu" one key
+  aside).
+- **Damping**: 9228 keys kept by step 7 count with count / 100 for their classes; S and maxCount are
+  unchanged (the most frequent key is German). The 50 most frequent: dad (46472), the (28674), captain (27491), jack (25967), wär (23099), mike (15058), mary (13042), colonel (10446), james (10388), euren (10288), yeah (10043), detective (9333), jimmy (8905), billy (8897), tony (8834), lieutenant (8811), danny (8723), charles (8532), eurer (7961), jane (7863), clark (7724), johnny (7562), eddie (7172), claire (7090), ryan (6876), steve (6726), chuck (6479), dean (6400), commander (6353), amanda (6306), roger (6221), carter (6213), emily (6207), louis (6065), eurem (6037), lily (5937), jake (5835), scott (5658), officer (5576), andy (5575), robin (5524), pete (5416), joey (5299), fuck (5233), jenny (5231), lois (5221), eric (5179), chief (5176), elizabeth (5084), jerry (5016). With the class formula, the 5 641 damped
+  keys counted below 100 times get class 0 and, since German hides class-0 forms (0.6.4), are valid but no longer
+  offered. In the pair table a pair whose follower is damped counts with weight / 100;
+  the total c(prev, ·) is a count of the previous word and stays undamped (spec/QUESTIONS.md).
+- **Step 6** (glued German forms) is still not applied (it never was; spec/QUESTIONS.md): applied as written it would
+  drop 613 keys, mostly names that split into two short German forms ("jane" = ja + ne, "dean" = de + an).
+- **Real-word typos**: a German-form key gets class 0 for all its forms when its subtitle count is below 100, its most
+  frequent form (largest share of the case decision, §3.4; on a tie the first in case-decision order) is lower case
+  (nouns, names, acronyms and abbreviations whose main form is capitalised are never hit), and a one-key-aside
+  substitution (touch-model neighbours of the German letter page, proximity ≤ `NEAR_MAX` at the key centres; a letter
+  without a key sits on its base letter's key) or one swap gives a German-form key at least 5000 times as frequent:
+  115 keys, all listed here (count → dominating key, count): ibn 97 → bin 576589; zi 96 → zu 1424706; ak 92 → an 627600; os 87 → so 813903; bim 77 → bin 576589; aux 68 → auf 881418; cas 67 → das 3122198; sp 62 → so 813903; dh 58 → du 2947020; hon 56 → von 706490; bab 50 → hab 252697; dis 50 → die 2484854; rs 49 → es 2303025; mos 38 → los 242543; sus 33 → aus 425184; biet 29 → bist 381498; gor 29 → vor 247840; heure 29 → heute 154162; rann 28 → dann 429424; eich 25 → dich 688780; jein 24 → nein 641479; seim 21 → sein 440142; sann 20 → dann 429424; zag 19 → tag 103559; lb 17 → ob 97001; fas 16 → das 3122198; anch 14 → nach 326208; meinet 13 → meiner 86264; sichre 13 → sicher 145360; lein 12 → mein 384765; machet 11 → machst 67926; neide 10 → beide 53120; ces 9 → des 169182; germ 9 → gern 52147; bessre 7 → besser 92556; dorr 7 → dort 79951; gehr 7 → geht 290919; kh 7 → oh 284455; letzet 7 → letzte 44246; lieft 7 → liegt 36313; ons 7 → ins 80529; ud 7 → du 2947020; gei 6 → bei 277087; hag 6 → hat 799017; könnet 6 → könnte 117870; sollet 6 → sollte 98826; abre 5 → aber 854492; blad 5 → bald 42834; disse 5 → diese 208607; dz 5 → du 2947020; gele 5 → geld 98052; hakten 5 → halten 51690; nagst 5 → angst 67249; neine 5 → meine 420280; netzt 5 → jetzt 435411; nir 5 → mir 1019451; seif 5 → seit 78517; seihen 5 → seinen 50311; sohl 5 → wohl 100488; tos 5 → tod 34408; vot 5 → vor 247840; dünge 4 → dinge 42560; fag 4 → tag 103559; fier 4 → vier 31390; fiesem 4 → diesem 74234; petzte 4 → letzte 44246; seih 4 → sein 440142; seihst 4 → siehst 51444; seiht 4 → sieht 75968; watten 4 → warten 56911; weitre 4 → weiter 79598; wiest 4 → wirst 83791; wollet 4 → wollte 148643; allel 3 → allem 22790; altre 3 → alter 32101; basse 3 → hasse 15536; beaten 3 → besten 25164; eina 3 → eins 42157; einet 3 → einer 202097; fachte 3 → dachte 92867; geig 3 → zeig 15162; geit 3 → zeit 160393; geren 3 → gerne 38739; himmle 3 → himmel 17755; laxen 3 → laden 15400; leiben 3 → lieben 22407; röten 3 → töten 42735; scheibt 3 → scheint 26026; scheid 3 → scheiß 21719; weid 3 → weiß 357869; weiger 3 → weiter 79598; atzt 2 → arzt 19080; beschichte 2 → geschichte 33070; beschütten 2 → beschützen 10577; einzöge 2 → einzige 37724; erriechen 2 → erreichen 10556; fehlet 2 → fehler 22947; gerb 2 → gern 52147; hagt 2 → habt 66045; künd 2 → kind 50922; lassem 2 → lassen 131393; liebem 2 → lieben 22407; lieht 2 → liegt 36313; nist 2 → bist 381498; petzten 2 → letzten 34029; safen 2 → sagen 236702; schöbe 2 → schöne 16144; tuet 2 → tust 26635; vergrauen 2 → vertrauen 18459; verstehet 2 → verstehst 19139; wünschet 2 → wünschte 12812; zage 2 → tage 29111; zause 2 → hause 73059; zue 2 → zur 115474; übet 2 → über 196855.
+- **Kept 2–3-letter keys that are no form of the language** (report only, `shortKeysNotForms`; a form = German / Spanish /
+  Portuguese / Italian / French Wiktionary form, English = SCOWL key): de-DE 3 keys; most frequent: dad (46472), the (28674), wär (23099); en-US 8 keys; most frequent: ohh (26185), erm (14625), im (6553), ive (993), lol (867), omg (557), ily (188), itd (13);
+  es-ES 685 keys; most frequent: joe (45636), tom (43486), jim (27653), amy (19799), ted (13688), tim (12307), roy (9331), ian (7992), lou (7704), liz (7187), vic (4958), ias (4613), sid (4547), meg (4422), eve (4386); pt-BR 864 keys; most frequent: sam (60584), max (36139), fbi (27285), amy (23627), huh (17350), ed (14455), ted (14177), mac (10695), pré (10582), ooh (10010), roy (9655), lou (9325), gus (7669), doc (7603), vic (5651); it-IT 677 keys; most frequent: sam (33675), joe (24476), jim (15377), amy (13630), ted (9437), sig (8992), huh (5998), ian (5311), gus (5255), ron (5122), bla (4740), liz (4444), lou (4427), uhm (3852), eun (3508); fr-FR 131 keys; most frequent: ooh (7428), ohh (2236), déj (2021), jae (1743), iui (1736), axl (1174), hwa (630), atf (584), ème (568), ctu (550), ryu (509), jeb (465), uhh (443), unh (421), fda (419).
 
 # App data sources
 

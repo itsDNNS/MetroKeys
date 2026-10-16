@@ -109,6 +109,8 @@ public data class LanguageParams(
             ingRule = false,
             elisionPrefixes = emptyList(),
             accentSwap = false,
+            // 0.6.4: real-word typos of the German build (05b §3.6) are class 0: valid, never offered
+            hideClassZero = true,
             fallbackRows = listOf("qwertzuiop", "asdfghjkl", "yxcvbnm"),
             fallbackRow2Start = 0.05f,
             shape = ShapeParams(unusedKeyCost = 10.0, neighbourFactor = 0.096, doubleLetterCost = 14.0, accentFactor = 0.24, cornerAngle = 45f),

@@ -22,6 +22,12 @@ enum class StripKind {
 
     /** Candidates for exactly one selected word: a pick replaces the selection. */
     SELECTION,
+
+    /**
+     * Candidates for the word around a collapsed caret inside it (04 §10 item 5, first case, 0.6.4): a pick replaces
+     * the whole word, the caret ends after it, no space is added (04 §4.1).
+     */
+    CARET_WORD,
 }
 
 /** One entry of the candidate strip. */

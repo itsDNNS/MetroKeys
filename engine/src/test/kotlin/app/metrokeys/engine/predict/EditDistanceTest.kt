@@ -52,7 +52,8 @@ class EditDistanceTest {
     fun units() {
         assertEquals(0, EditDistance.units("haus", "Haus"))
         assertEquals(1, EditDistance.units("Dnan", "Dann"))
-        assertEquals(1, EditDistance.units("fur", "für"))
+        // 0.6.4: a diacritic difference counts 0 units (it used to count 1)
+        assertEquals(0, EditDistance.units("fur", "für"))
         assertEquals(0, EditDistance.units("dont", "don't"))
         assertEquals(1, EditDistance.units("strasse", "straße"))
         assertEquals(1, EditDistance.units("dasist", "das ist"))

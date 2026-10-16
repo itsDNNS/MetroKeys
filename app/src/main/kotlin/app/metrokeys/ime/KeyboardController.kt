@@ -353,6 +353,8 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         // the permission may have been granted or revoked since (05 §13)
         contacts.update(settings.contactsWordSource)
         view?.onShown()
+        // the strip follows the editor's current selection (04 §10 "Input start, restart and re-shown keyboard")
+        logic.reshown()
         updateAutoShift()
         updateGeometry()
     }

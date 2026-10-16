@@ -627,20 +627,21 @@ public class LanguageEngine @JvmOverloads constructor(
 
         // 8.1 correction pool
         val pool = LinkedHashSet<String>()
-        for (m in lexicon.fuzzy(low, maxEdits, Params.FUZZY_POOL)) pool.add(m.form.text)
+        val unitsOf = { key: String -> EditDistance.units(low, key, accentSwap = params.accentSwap) }
+        for (m in lexicon.fuzzy(low, maxEdits, Params.FUZZY_POOL, unitsOf)) pool.add(m.form.text)
         if (len == 3) pool.addAll(twoNeighbourSubstitutions(low))
         if ("ss" in low) for (m in lexicon.fuzzy(low.replace("ss", "ß"), 1, 8)) pool.add(m.form.text)
         lexicon.canonical(w)?.let { pool.add(it) }
         for ((lw, _) in user.knownLearnedWords()) {
-            if (kotlin.math.abs(lw.length - len) <= maxEdits && EditDistance.units(low, toKey(lw)) <= maxEdits) pool.add(lw)
+            if (kotlin.math.abs(lw.length - len) <= maxEdits && unitsOf(toKey(lw)) <= maxEdits) pool.add(lw)
         }
         for (cw in contacts.words) {
-            if (kotlin.math.abs(cw.length - len) <= maxEdits && EditDistance.units(low, toKey(cw)) <= maxEdits) pool.add(cw)
+            if (kotlin.math.abs(cw.length - len) <= maxEdits && unitsOf(toKey(cw)) <= maxEdits) pool.add(cw)
         }
         for (word in pool) {
             if (hidden(word)) continue
             val d = display(word, mode)
-            if (EditDistance.units(w, d, params.capsUnaccented) > maxUnits) continue
+            if (EditDistance.units(w, d, params.capsUnaccented, params.accentSwap) > maxUnits) continue
             val e = ed.weighted(w, d, taps)
             val c = b.candidate(word, d)
             val cost = b.lm(word) + e
@@ -698,7 +699,7 @@ public class LanguageEngine @JvmOverloads constructor(
                 if (hidden(word)) continue
                 val d = display(word, mode)
                 val prefix = completionPrefix(d, len) ?: continue
-                val u = EditDistance.units(w, prefix, params.capsUnaccented)
+                val u = EditDistance.units(w, prefix, params.capsUnaccented, params.accentSwap)
                 if (u > maxUnits) continue
                 val l = b.lm(word)
                 if (l + Params.COMP_EDIT_FACTOR * u / len > Params.COMP_LIMIT) continue

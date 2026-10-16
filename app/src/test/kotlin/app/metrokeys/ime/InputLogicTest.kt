@@ -216,9 +216,149 @@ class InputLogicTest {
         type("welt")
         editor.userMove(3)
         sched.run(400)
-        assertTrue(strip.isEmpty)
+        // 0.6.4: candidates for the whole word around the caret (04 §10 item 5), but a trigger never corrects (§3.6)
+        assertEquals(StripKind.CARET_WORD, strip.kind)
+        assertEquals("welt", strip.word)
         type(" ")
         assertEquals("wel |t", editor.toString())
+        assertTrue(corrected.isEmpty())
+    }
+
+    // ---------------------------------------------------------------- caret inside a word (04 §10 item 5, 0.6.4)
+
+    /** Text that was in the field before; then the user puts the caret at [caret]. */
+    private fun preset(text: String, caret: Int) {
+        editor.text.append(text)
+        editor.userMove(caret)
+        sched.run(400)
+    }
+
+    @Test
+    fun pickForTheWordAroundTheCaretReplacesTheWholeWord() {
+        preset("Cursos", 3)
+        assertEquals("Cur|sos", editor.toString())
+        assertEquals(StripKind.CARET_WORD, strip.kind)
+        assertEquals("Cursos", strip.word)
+        assertEquals(0, strip.wordStart)
+        val texts = strip.items.filter { !it.addWord }.map { it.text }
+        // 05 §17.7a: "Cursor" is the first suggestion for "Cursos"
+        assertEquals("$texts", "Cursor", texts.firstOrNull())
+        assertTrue(strip.items.none { it.bold })
+        logic.pick(strip, strip.items.indexOfFirst { it.text == "Cursor" })
+        sched.run(400)
+        // the whole word is replaced, the caret stands after it, no space is added
+        assertEquals("Cursor|", editor.toString())
+        assertTrue(corrected.isEmpty())
+    }
+
+    @Test
+    fun pickInsideAWordInRunningText() {
+        preset("Der Cursos ist da", 7)
+        assertEquals("Der Cur|sos ist da", editor.toString())
+        assertEquals(StripKind.CARET_WORD, strip.kind)
+        assertEquals(4, strip.wordStart)
+        logic.pick(strip, strip.items.indexOfFirst { it.text == "Cursor" })
+        sched.run(400)
+        assertEquals("Der Cursor| ist da", editor.toString())
+        // the caret back inside the new word: candidates for it
+        editor.userMove(6)
+        sched.run(400)
+        assertEquals(StripKind.CARET_WORD, strip.kind)
+        assertEquals("Cursor", strip.word)
+    }
+
+    @Test
+    fun typingInsideAWordEndsTheCaretWordState() {
+        preset("Cursos", 3)
+        assertEquals(StripKind.CARET_WORD, strip.kind)
+        type("x")
+        assertEquals("Curx|sos", editor.toString())
+        assertTrue(strip.isEmpty)
+        logic.refresh()
+        sched.run(400)
+        assertTrue(strip.isEmpty)
+    }
+
+    @Test
+    fun backspaceInsideAWordEndsTheCaretWordState() {
+        preset("Cursos", 3)
+        assertEquals(StripKind.CARET_WORD, strip.kind)
+        backspace()
+        assertEquals("Cu|sos", editor.toString())
+        assertTrue(strip.isEmpty)
+        logic.refresh()
+        sched.run(400)
+        assertTrue(strip.isEmpty)
+    }
+
+    @Test
+    fun inputRestartShowsTheCandidatesOfTheWordAroundTheCaret() {
+        // 04 §10 "Input start, restart and re-shown keyboard" (0.6.4): a popup of the editor took the focus and gave it
+        // back; the input restarts in the same field with the caret still inside "cursos"
+        preset("Zu cursos ich komme. ", 5)
+        assertEquals(StripKind.CARET_WORD, strip.kind)
+        logic.startInput(FieldState.from(TEXT_MULTILINE, 0), 5, 5)
+        sched.run(400)
+        assertEquals(StripKind.CARET_WORD, strip.kind)
+        assertEquals("cursos", strip.word)
+        assertEquals(3, strip.wordStart)
+        logic.pick(strip, strip.items.indexOfFirst { it.text == "Cursor" })
+        sched.run(400)
+        assertEquals("Zu Cursor| ich komme. ", editor.toString())
+    }
+
+    @Test
+    fun reshownKeyboardShowsTheStripOfTheCurrentSelection() {
+        preset("Zu cursos ich komme. ", 5)
+        logic.finishInput()
+        logic.reshown()
+        sched.run(400)
+        assertEquals(StripKind.CARET_WORD, strip.kind)
+        assertEquals("cursos", strip.word)
+        // a selected word: candidates for it
+        editor.userMove(3, 9)
+        sched.run(400)
+        logic.finishInput()
+        logic.reshown()
+        sched.run(400)
+        assertEquals(StripKind.SELECTION, strip.kind)
+        assertEquals("cursos", strip.word)
+        // caret after a separator: next-word predictions; at a word start: empty
+        editor.userMove(21)
+        sched.run(400)
+        logic.startInput(FieldState.from(TEXT_MULTILINE, 0), 21, 21)
+        sched.run(400)
+        assertEquals(StripKind.PREDICTION, strip.kind)
+        editor.userMove(3)
+        sched.run(400)
+        logic.startInput(FieldState.from(TEXT_MULTILINE, 0), 3, 3)
+        sched.run(400)
+        assertTrue(strip.isEmpty)
+    }
+
+    @Test
+    fun caretMovesFromInsideAWord() {
+        preset("Cursos ist", 3)
+        assertEquals(StripKind.CARET_WORD, strip.kind)
+        // caret at a word start: still an empty strip
+        editor.userMove(0)
+        sched.run(400)
+        assertEquals("|Cursos ist", editor.toString())
+        assertTrue(strip.isEmpty)
+        editor.userMove(7)
+        sched.run(400)
+        assertTrue(strip.isEmpty)
+        // caret at the end of a word: the word is resumed
+        editor.userMove(6)
+        sched.run(400)
+        assertEquals("Cursos| ist", editor.toString())
+        assertEquals(StripKind.RESUMED, strip.kind)
+        assertEquals("Cursos", strip.word)
+        // and back inside: candidates for the whole word again
+        editor.userMove(2)
+        sched.run(400)
+        assertEquals(StripKind.CARET_WORD, strip.kind)
+        assertEquals("Cursos", strip.word)
     }
 
     @Test
