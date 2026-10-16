@@ -73,10 +73,22 @@ public data class LanguageParams(
      * accent-less spellings of 05b §10.4 step 5).
      */
     val hideClassZero: Boolean = false,
+    /**
+     * `ELISION_VALID_SLACK` (extension, §8.2.1 item 1): an elision split of a valid typed word is kept only if its
+     * correction cost is at most the typed word's validity cost plus this value; null = no limit.
+     */
+    val elisionValidSlack: Int? = null,
+    /**
+     * `CAPS_UNACCENTED` (§5, §7): an upper-case letter without diacritic may stand for the same upper-case letter with a
+     * diacritic ("Etat" for "État").
+     */
+    val capsUnaccented: Boolean = false,
     /** Letter rows of the fallback grid (§4), top to bottom. */
     val fallbackRows: List<String>,
     /** Start of fallback row 2 as a fraction of the width (§4: 0.05, Spanish 0). */
     val fallbackRow2Start: Float,
+    /** Start of fallback row 3 as a fraction of the width (§4: 0.15, French 0.2). */
+    val fallbackRow3Start: Float = 0.15f,
     /** Shape-writing constants (06 §7.1). */
     val shape: ShapeParams,
     /** Emoji table (Appendix A), lower-cased word → emoji. */
@@ -200,12 +212,44 @@ public data class LanguageParams(
             emoji = EmojiTables.ITALIAN,
         )
 
+        /** The 14 French elision prefixes of 05 §1.1 (notes on fr-FR), in order of their frequency. */
+        @JvmField
+        public val FRENCH_ELISION_PREFIXES: List<String> =
+            "c' l' j' d' qu' n' t' m' s' jusqu' lorsqu' puisqu' quoiqu' ç'".split(' ')
+
+        @JvmField
+        public val FRENCH: LanguageParams = LanguageParams(
+            languageTag = "fr-FR",
+            edInsert = 125, edDelete = 215, edSubstitute = 125, edSwap = 60, edSpace = 156, edCase = 44,
+            edDiacritic = 14, edFiller = 0, edNearDiv = 13, edNearBase = 5,
+            acLimit = 239, acEditFactor = 5, acMargin = 32, acValidRare = 163, acValidTarget = 136,
+            prefixAccents = mapOf(
+                'a' to listOf('à', 'â', 'æ'), 'e' to listOf('é', 'è', 'ê', 'ë'), 'y' to listOf('ÿ'),
+                'u' to listOf('ù', 'û', 'ü'), 'i' to listOf('ï', 'î'), 'o' to listOf('ô', 'œ'), 'c' to listOf('ç'),
+            ),
+            oneLetterWords = setOf("a", "à", "y"),
+            singleLetterFix = emptyMap(),
+            compoundLinks = null,
+            missingSpaceSplit = true,
+            ingRule = false,
+            elisionPrefixes = FRENCH_ELISION_PREFIXES,
+            accentSwap = true,
+            hideClassZero = true,
+            elisionValidSlack = 30,
+            capsUnaccented = true,
+            fallbackRows = listOf("azertyuiop", "qsdfghjklm", "wxcvbn"),
+            fallbackRow2Start = 0f,
+            fallbackRow3Start = 0.2f,
+            shape = ShapeParams(unusedKeyCost = 14.0, neighbourFactor = 0.140, doubleLetterCost = 18.0, accentFactor = 0.16, cornerAngle = 45f),
+            emoji = EmojiTables.FRENCH,
+        )
+
         /** Every supported keyboard language, in the fixed language order (alphabetical by tag, 07 §9.5). */
         @JvmField
-        public val ALL: List<LanguageParams> = listOf(GERMAN, ENGLISH, SPANISH, ITALIAN, PORTUGUESE)
+        public val ALL: List<LanguageParams> = listOf(GERMAN, ENGLISH, SPANISH, FRENCH, ITALIAN, PORTUGUESE)
 
         /**
-         * Parameters of a supported language tag ("de-DE", "en-US", "es-ES", "it-IT", "pt-BR"; a bare "de" also
+         * Parameters of a supported language tag ("de-DE", "en-US", "es-ES", "fr-FR", "it-IT", "pt-BR"; a bare "de" also
          * matches).
          */
         @JvmStatic

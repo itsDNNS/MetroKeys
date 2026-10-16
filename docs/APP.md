@@ -12,7 +12,7 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew :engine:test testDebugUnitTest lintDebug ass
 **Release build.** `assembleRelease` minifies with R8 (`proguard-android-optimize.txt`) and shrinks resources. No own
 keep rules are needed (reasons in `app/proguard-rules.pro`): manifest components are kept by AAPT's rules, the engine
 loads its dictionaries by absolute Java resource paths, and the only reflective call targets a framework method. The
-release APK (12.5 MB since the Italian dictionary in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 23.6 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
+release APK (14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
 writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences. Signing uses
 `keystore.properties` in the repository root when present (README, "Building"); the version is `appVersionName` /
 `appVersionCode` in `gradle/libs.versions.toml`.
@@ -78,6 +78,11 @@ With Italian (0.6.2, same measurement, Italian selected, after a swipe of "più"
 the swipe): it alone 41.3 / 20.7 → 43.8 / 21.9 MB; de+it 63.8 / 39.2 → 65.0 / 40.4 MB, en+it 58.6 / 34.0, es+it
 60.7 / 36.1, it+pt 56.6 / 32.1 MB; de+en+it 77.1 / 52.5, de+es+it 79.2 / 54.6, en+es+it 72.9 / 48.3, es+it+pt
 70.9 / 46.3 MB; all five enabled (active set it plus two) 77.1 / 52.5 MB.
+With French (0.6.3, same measurement, French selected, after a swipe of "très"; highest sample while loading / after
+the swipe): fr alone 40.8 / 20.4 → 45.5 / 22.7 MB; de+fr 63.4 / 38.8 → 65.8 / 41.2 MB, en+fr 57.1 / 32.5 → 59.5 / 34.9,
+fr+it 56.7 / 32.1 → 60.2 / 35.6 MB; de+en+fr 75.6 / 51.1 → 78.0 / 53.4, de+es+fr 77.7 / 53.1 → 80.1 / 55.5, es+fr+it
+70.9 / 46.3 → 74.5 / 49.9, en+fr+pt 67.3 / 42.7 → 69.7 / 45.1 MB; all six enabled (active set fr plus two)
+75.7 / 51.1 → 78.0 / 53.4 MB. Three languages with French stay below 96 MB.
 
 The whole scenario (0.5) also runs with the per-app heap limit lowered to 64 MB (`dalvik.vm.heapgrowthlimit`, root on the
 emulator) without an OutOfMemoryError; the default limit is 192 MB. Results come back with a generation number; an
@@ -116,7 +121,12 @@ with an editor that leaves the composing region out of its selection updates. `L
 text-smiley list of emoji.json. `ItalianInputLogicTest` covers the Italian rules with the bundled dictionary (accents, missing
 apostrophes, "c'e", "un po", a picked "dell'" without space followed by an elided word, a swipe after "l'");
 `LayoutDataTest.italianPages` the Italian layout data (English rows, no apostrophe on the letter pages, `'` on
-symbols-1, "spazio", ITA, domains, decimal comma).
+symbols-1, "spazio", ITA, domains, decimal comma). `FrenchInputLogicTest` covers the French rules (accents, ligatures,
+missing apostrophes, "jusqua", capitals without accent and "a"/"à" left as typed, "estce" and a typed "peut-etre",
+"qu" left as typed with "qu'" first and picked without space, a swipe after "c'" and after "peut-", the auto space
+removed before "!"); `LayoutDataTest.frenchPages` the AZERTY data (rows, 0.2-wide shift and backspace, the alternates,
+no apostrophe on the letter pages, `'` and « » on symbols-1, the common side keys on the symbol pages, "espace",
+FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < ENG < ESP < FRA < ITA < POR.
 
 ## Spec sections → code
 
@@ -129,6 +139,7 @@ symbols-1, "spazio", ITA, domains, decimal comma).
 | 01 §11.6 domains | `KeyboardController.domains` (the list of the layout data whose region is the device region; other regions: own ccTLD first) |
 | 04 §1.6 ¿ ¡ | `TextRules.isOpeningMark`; `InputLogic.otherText` (space first after a swiped word), `InputLogic.applySwipe` (no space after the mark); auto-shift via `TextRules.isSentenceStart` |
 | 06 §5.1 item 1 space before a swiped word | `TextRules.spaceBeforeSwipe` (none after whitespace, `¿ ¡` or "letter + hyphen"), used by `InputLogic.applySwipe` |
+| 04 §11.3 French apostrophes, hyphens, typography | as Italian; hyphen compounds and apostrophe words are dictionary forms (ENGINE.md), a picked or autocorrected compound is inserted whole; no-break spaces are not produced, the auto space before `; : ! ?` is removed as in every language |
 | 04 §11.2 Italian apostrophes | elision, truncation and the missing apostrophe in the engine (ENGINE.md); `InputLogic.pick`: a strip item with `elisionPrefix` is inserted without trailing space or auto space and runs the typing query for the bare prefix; `InputLogic.applySwipe`: no space after an elision prefix of a loaded language (`PredictionEngine.isElisionPrefix`) |
 | 04 §11.1 Portuguese words (hyphen, `d'`, º ª) | the hyphen is no trigger and empties the strip (`InputLogic.otherText`); `d'` and º ª are handled by the engine (`LanguageEngine.elisionPrefixLength`, ENGINE.md) |
 | 02 §2, §3, 03 §17 sizes | `Metrics` (portrait s = w/1080, landscape s = min(w/1596, short/1080), height factor) |
@@ -161,7 +172,7 @@ symbols-1, "spazio", ITA, domains, decimal comma).
 | 06 shape writing | touch side in `KeyboardView`, recognition in the engine, insertion in `InputLogic.applySwipe` |
 | 01 §5.2 comma key (extension) | `LayoutSet.withOptionalComma`, chosen in `KeyboardController.loadLayout` (`show_comma_key`) |
 | 05 §13 contacts | `ContactsWordSource` (harvest, observer with 1 s debounce, 5 retries 30 s apart) → `PredictionEngine.refreshContacts` |
-| 07 §9.5 languages page | `TypingPages.LanguagesPage` (one check box per `Prefs.SUPPORTED_LANGUAGES`, fixed order by tag; note for more than three), `LanguageNames`, `SettingsStore.setLanguages` (also prunes `language_recency`) |
+| 07 §9.5 languages page | `TypingPages.LanguagesPage` (one check box per `Prefs.SUPPORTED_LANGUAGES`, fixed order by tag: de, en, es, fr, it, pt; any number may be checked, only the last one cannot be unchecked; note for more than three), `LanguageNames`, `SettingsStore.setLanguages` (also prunes `language_recency`) |
 | 07 §9.1 preferences | `Prefs`, `KeyboardSettings`; the service listens for changes; `SettingsStore` observes them for Compose |
 | 07 §1, §8 activity, back stack | `SettingsActivity` (Navigation 3 `NavDisplay`, saved string back stack, edge-to-edge, `Theme.MetroKeys.Settings` window background) |
 | 07 §3, §4 colours, type | `settings.ui.MetroTheme` (`MetroColors`, `MetroFonts`, `MetroType`, `Accents`, `MetroEasing`) |

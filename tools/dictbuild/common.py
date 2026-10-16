@@ -149,7 +149,7 @@ def write_word_list(path, lang, scale, max_count, corpus_tokens, entries, prefix
             raise ValueError(key)
         out.write(bytes([len(forms)]))
         for form, cls in forms:
-            if jlower(form) != key and jlower(form).replace("'", "") != key:
+            if jlower(form) != key and jlower(form).replace("'", "").replace("-", "") != key:
                 raise ValueError(f"form {form!r} does not belong to key {key!r}")
             kind = form_kind(key, form)
             out.write(bytes([cls, kind]))

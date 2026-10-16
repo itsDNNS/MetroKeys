@@ -71,4 +71,17 @@ internal object EmojiTables {
             "cellulare 📱, computer 💻, email 📧, lettera ✉️, libro 📖, musica 🎵, foto 📷, film 🎬, idea 💡, calcio ⚽, " +
             "sport 🏃, bambino 👶, natale 🎄, pasqua 🐣, chitarra 🎸",
     )
+
+    val FRENCH: Map<String, String> = table(
+        "amour ❤️, cœur ❤️, bisou 😘, bisous 😘, rire 😂, mdr 😂, ptdr 😂, drôle 😄, joie 😊, heureux 😊, " +
+            "heureuse 😊, content 😊, génial 😃, triste 😢, pleurer 😢, fâché 😠, colère 😠, peur 😱, waouh 😮, cool 😎, " +
+            "fatigué 😴, dormir 😴, malade 😷, bien 👍, super 👍, oui 👍, non 👎, ok 👌, accord 👌, merci 🙏, bonjour 👋, " +
+            "salut 👋, coucou 👋, soleil ☀️, pluie 🌧️, neige ❄️, nuage ☁️, orage ⛈️, éclair ⚡, lune 🌙, étoile ⭐, feu 🔥, " +
+            "chaud 🔥, fleur 🌸, rose 🌹, arbre 🌳, chance 🍀, café ☕, thé 🍵, bière 🍺, vin 🍷, pizza 🍕, burger 🍔, faim 🍴, " +
+            "manger 🍴, gâteau 🍰, anniversaire 🎂, fête 🎉, cadeau 🎁, pomme 🍎, banane 🍌, glace 🍦, chocolat 🍫, " +
+            "croissant 🥐, baguette 🥖, fromage 🧀, chien 🐶, chat 🐱, cheval 🐴, oiseau 🐦, voiture 🚗, train 🚆, bus 🚌, " +
+            "vélo 🚲, avion ✈️, vacances 🌴, plage 🏖️, mer 🌊, maison 🏠, école 🏫, travail 💼, boulot 💼, argent 💰, " +
+            "montre ⌚, heure ⏰, téléphone 📞, portable 📱, ordinateur 💻, mail 📧, lettre ✉️, livre 📖, musique 🎵, photo 📷, " +
+            "film 🎬, idée 💡, foot ⚽, football ⚽, sport 🏃, bébé 👶, noël 🎄, pâques 🐣, guitare 🎸",
+    )
 }

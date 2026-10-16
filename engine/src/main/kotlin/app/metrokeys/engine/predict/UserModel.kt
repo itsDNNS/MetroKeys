@@ -163,7 +163,8 @@ public class UserModel(private val lexicon: Lexicon?) {
             }
         }
         while (ctx.size > Params.LEARN_CONTEXT) ctx.removeAt(0)
-        for (raw in word.split(' ')) {
+        // a hyphen compound inserted by a pick or an autocorrection ("est-ce") is learned piece by piece (05 §12.1)
+        for (raw in word.split(' ', '-')) {
             var part = TextModel.trimNonWord(raw)
             if (part.isEmpty()) continue
             val n = elision?.invoke(part) ?: 0

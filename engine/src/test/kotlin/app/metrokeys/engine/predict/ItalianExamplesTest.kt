@@ -303,4 +303,16 @@ class ItalianExamplesTest {
         // emoji of an elided word: its remainder (05 §9)
         assertEquals("❤️", e.emojiFor("l'amore"))
     }
+
+    @Test
+    fun lettersOfAPrefixAreNeverAutocorrected() {
+        // 05 §10.1 step 2a, §8.5 (0.6.3 regression): "dell" + space stays "dell" (before: "delk"), "dell'" first
+        for ((typed, prefix) in listOf("dell" to "dell'", "nell" to "nell'", "quest" to "quest'", "Dell" to "Dell'")) {
+            assertFalse(it.query(typed).validity.valid, typed)
+            assertNull(ac(typed), typed)
+            assertEquals(prefix, bar(typed).first(), "$typed: ${bar(typed)}")
+        }
+        // a letter sequence that is a dictionary word is not affected ("un", "com")
+        assertTrue(it.query("un").validity.valid)
+    }
 }

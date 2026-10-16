@@ -11,7 +11,7 @@ written from a functional specification (see [How it is made](#how-it-is-made)).
 
 > **Made with AI:** MetroKeys is written and maintained with the help of Claude Opus 5.5 (Anthropic). See [How it is made](#how-it-is-made).
 
-Version 0.6.2 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer.
+Version 0.6.3 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer.
 
 <p>
   <img src="docs/screenshots/letters-dark.png" width="240" alt="Letter page, dark theme, with next-word predictions">
@@ -20,19 +20,23 @@ Version 0.6.2 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer
   <img src="docs/screenshots/letters-spanish-dark.png" width="240" alt="Spanish letter page with ñ and next-word predictions">
   <img src="docs/screenshots/letters-portuguese-dark.png" width="240" alt="Portuguese (Brazil) letter page with ç and next-word predictions">
   <img src="docs/screenshots/letters-italian-dark.png" width="240" alt="Italian letter page with elided words offered after dell'">
+  <img src="docs/screenshots/letters-french-dark.png" width="240" alt="French AZERTY letter page with elided words offered after c'">
 </p>
 
 ## Features
 
 **Typing**
-- Keyboard languages: German (QWERTZ), English (US, QWERTY), Spanish (Spain, QWERTY with ñ), Portuguese (Brazil,
-  QWERTY with ç) and Italian (QWERTY), each with its own dictionary, symbol pages, number, phone and PIN pads, and long-press alternates
+- Keyboard languages: German (QWERTZ), English (US, QWERTY), Spanish (Spain, QWERTY with ñ), French (France, AZERTY),
+  Portuguese (Brazil, QWERTY with ç) and Italian (QWERTY), each with its own dictionary, symbol pages, number, phone and
+  PIN pads, and long-press alternates
   for accented letters and symbols (Spanish: ¿ and ¡ on the long press of the period key).
 - Word suggestions while typing, next-word prediction and autocorrection, with an undo by tapping the word you
-  typed. Corrections are case-aware, learn from what you type, add missing accents in Spanish, Portuguese and Italian
-  ("cancion" → "canción", "informacao" → "informação", "perche" → "perché") and, in English, Spanish, Portuguese and
-  Italian, fix a missing space ("ofthe" → "of the", "porfavor" → "por favor"). Italian elisions are handled by the
-  prediction: "lacqua" → "l'acqua", "c'e" → "c'è", and after "dell'" the bar offers whole words ("dell'anno").
+  typed. Corrections are case-aware, learn from what you type, add missing accents in Spanish, French, Portuguese
+  and Italian ("cancion" → "canción", "tres" → "très", "informacao" → "informação", "perche" → "perché") and, in
+  English, Spanish, French, Portuguese and Italian, fix a missing space ("ofthe" → "of the", "porfavor" → "por
+  favor"). French and Italian elisions are handled by the prediction: "jai" → "j'ai", "cest" → "c'est", "lacqua" →
+  "l'acqua", "c'e" → "c'è", and after "c'" or "dell'" the bar offers whole words ("c'est", "dell'anno"); French
+  ligatures and hyphenated words are restored as well ("coeur" → "cœur", "estce" → "est-ce").
 - Shape writing: slide across the letters to write a word; the trace follows your finger.
 - Typing in several languages at once (multilingual mode): a language key cycles through all enabled languages,
   suggestions come from up to three of them and corrections follow the language of the sentence.
@@ -92,7 +96,7 @@ Version 0.6.2 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer
      every third-party keyboard.
    - **choose**: pick MetroKeys as the current keyboard.
 3. Tap the **Try it** field on the same page and start typing.
-4. Optional: under **languages**, enable further keyboard languages (German, English, Spanish, Italian, Portuguese) and choose the app
+4. Optional: under **languages**, enable further keyboard languages (German, English, Spanish, French, Italian, Portuguese) and choose the app
    language (English or German); under
    **suggestions**, turn on contact names as a word source (asks for the contacts permission); under **layout →
    app bar buttons**, choose what the three buttons below the keys do.
@@ -175,8 +179,8 @@ The bundled third-party components keep their own licences:
 - **Dictionaries** (word lists and word-pair tables, licensed as data under CC BY-SA 4.0, not under the GPL), built
   from:
   - FrequencyWords by Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0;
-  - Wiktionary (de.wiktionary.org, es.wiktionary.org, pt.wiktionary.org, it.wiktionary.org and the Spanish,
-    Portuguese and Italian sections of en.wiktionary.org), CC BY-SA 4.0;
+  - Wiktionary (de.wiktionary.org, es.wiktionary.org, fr.wiktionary.org, pt.wiktionary.org, it.wiktionary.org and
+    the Spanish, Portuguese and Italian sections of en.wiktionary.org), CC BY-SA 4.0;
   - Tatoeba sentences (tatoeba.org), CC BY 2.0 FR;
   - SCOWL by Kevin Atkinson and others (wordlist.aspell.net), SCOWL licence (notice shipped verbatim);
   - Mozilla Common Voice sentences, CC0 1.0.

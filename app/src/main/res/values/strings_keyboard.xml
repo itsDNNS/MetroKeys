@@ -95,6 +95,7 @@
     <string name="lang_de">German</string>
     <string name="lang_en">English (United States)</string>
     <string name="lang_es">Spanish (Spain)</string>
+    <string name="lang_fr">French</string>
     <string name="lang_it">Italian</string>
     <string name="lang_pt">Portuguese (Brazil)</string>
     <plurals name="a11y_clip_opened">

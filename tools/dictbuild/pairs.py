@@ -204,3 +204,92 @@ class ItalianPairCounter(PairCounter):
             result[prev] = out
         self.dropped_elided.sort(key=lambda r: -r[2])
         return result
+
+
+class FrenchPairCounter(ItalianPairCounter):
+    """Pair count of 05b §5 step 2 for French: the elision prefixes are previous words (and followers of the word
+    before them), the apostrophe words of §11.5 ("aujourd'hui") are one word, every other apostrophe and a hyphen
+    between letter runs clear the context. Before the pruning a pair (prefix, F) is dropped (§11.7) if the unelided
+    phrase is at least 10 times as frequent (rule 1) or another follower of the prefix with the same letters apart from
+    diacritics is at least 10 times as frequent after it (rule 2)."""
+
+    def __init__(self, entries, prefixes, unelided, apostrophe_words, stock, prefix_limit=4000, elided_ratio=10):
+        super().__init__(entries, prefixes, stock, prefix_limit, elided_ratio)
+        self.unelided = unelided
+        self.apostrophe_words = apostrophe_words
+        self.truncated = set()
+        self.dropped_by_rule = {1: [], 2: []}
+
+    def add(self, text, weight, tatoeba):
+        from build_fr import tokens
+        prev = SENTENCE_START
+        for kind, tok in tokens(text, self.apostrophe_words):
+            if kind == "c":
+                if tok in self.sentence_end:
+                    prev = SENTENCE_START
+                elif tok in self.openers and prev == SENTENCE_START:
+                    pass
+                else:
+                    prev = None
+                continue
+            if kind == "p":
+                if prev is not None:
+                    self._count(prev, tok, tok, weight)
+                prev = tok
+                continue
+            key = jlower(tok)
+            if (tatoeba and self.is_stock(tok)) or key not in self.entries:
+                prev = None
+                continue
+            if prev is not None:
+                self._count(prev, key, tok, weight)
+            prev = key
+
+    def table(self, key_order):
+        from build_fr import expand
+        order = dict(key_order)
+        base = len(order)
+        for i, p in enumerate(self.prefixes):
+            order[p] = base + i
+        twins = {}
+        for (prev, key), c in self.pairs.items():
+            if prev in self.prefix_set:
+                twins.setdefault((prev, expand(key)), []).append((key, c))
+        by_prev = {}
+        for (prev, key), c in self.pairs.items():
+            total = self.totals[prev]
+            if c < 3 or total < 12:
+                continue
+            if prev in self.prefix_set:
+                unelided = sum(self.pairs.get((full, key), 0) for full in self.unelided[prev])
+                if unelided >= self.elided_ratio * c:
+                    self.dropped_by_rule[1].append([prev + key, c, unelided])
+                    continue
+                rival = max((g for g in twins[(prev, expand(key))] if g[0] != key), key=lambda g: g[1], default=None)
+                if rival is not None and rival[1] >= self.elided_ratio * c:
+                    self.dropped_by_rule[2].append([prev + key, c, prev + rival[0], rival[1]])
+                    continue
+            cls = pair_class(c / total)
+            if cls is None:
+                continue
+            by_prev.setdefault(prev, []).append((key, cls))
+        result = {}
+        for prev in sorted(by_prev):
+            limit = self.prefix_limit if prev in self.prefix_set else 48
+            followers = sorted(by_prev[prev], key=lambda kc: (-kc[1], order[kc[0]]))[:limit]
+            out = []
+            for key, cls in followers:
+                if key in self.prefix_set:
+                    out.append((key, cls, key))
+                    continue
+                forms = [f for f, _ in self.entries[key]]
+                seen = self.forms.get((prev, key))
+                form = forms[0]
+                if seen:
+                    form = sorted(seen.items(), key=lambda fc: (-fc[1], forms.index(fc[0])))[0][0]
+                out.append((key, cls, form))
+            result[prev] = out
+        for r in self.dropped_by_rule.values():
+            r.sort(key=lambda x: -x[1])
+        self.dropped_elided = self.dropped_by_rule[1] + self.dropped_by_rule[2]
+        return result

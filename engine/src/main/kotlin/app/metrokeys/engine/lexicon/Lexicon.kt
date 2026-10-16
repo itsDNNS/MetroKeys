@@ -118,9 +118,14 @@ public class Lexicon private constructor(
 
     // ---- keys and forms ----
 
-    /** Index of the key of [word] (matched case-insensitively), or −1. */
+    /**
+     * Index of the key of [word] (matched case-insensitively), or −1. A word with a hyphen (a French hyphen compound,
+     * 05b §11.5) is looked up under its alias key, its letters without hyphens and apostrophes ("est-ce" → "estce").
+     */
     public fun keyIndex(word: String): Int {
-        val n = nodeOf(toKey(word))
+        val key = toKey(word)
+        var n = nodeOf(key)
+        if (n < 0 && key.indexOf('-') >= 0) n = nodeOf(key.replace("-", "").replace("'", "").replace("’", ""))
         return if (n < 0) -1 else nodeKey[n]
     }
 
@@ -280,6 +285,36 @@ public class Lexicon private constructor(
                 fuzzyWalk(child, depth + 1, w, maxEdits, rows, hits)
             }
         }
+    }
+
+    /**
+     * Keys that equal the lower-cased [word], where a position with [loose] set may also hold any letter whose base
+     * letter (diacritic removed) is the typed letter (05 §7 `CAPS_UNACCENTED`: "Etat" reaches "état"); at most [limit].
+     */
+    internal fun looseKeys(word: String, loose: BooleanArray, limit: Int = 16): List<Int> {
+        val w = toKey(word)
+        val out = ArrayList<Int>()
+        fun walk(node: Int, i: Int) {
+            if (out.size >= limit) return
+            if (i == w.length) {
+                val k = nodeKey[node]
+                if (k >= 0) out.add(k)
+                return
+            }
+            val c = w[i]
+            if (!loose[i]) {
+                val ch = child(node, c)
+                if (ch >= 0) walk(ch, i + 1)
+                return
+            }
+            val first = nodeFirstChild[node]
+            for (ch in first until first + nodeChildCount[node]) {
+                val x = nodeChar[ch]
+                if (x == c || app.metrokeys.engine.predict.EditDistance.stripDiacritic(x) == c) walk(ch, i + 1)
+            }
+        }
+        if (loose.size == w.length) walk(0, 0)
+        return out
     }
 
     /** Iterates over all forms of all keys. */

@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.join(HERE, "dictbuild"))
 import build_de  # noqa: E402
 import build_en  # noqa: E402
 import build_es  # noqa: E402
+import build_fr  # noqa: E402
 import build_it  # noqa: E402
 import build_pt  # noqa: E402
 import common  # noqa: E402
@@ -31,6 +32,7 @@ import licenses  # noqa: E402
 import pairs  # noqa: E402
 import wiktionary_de  # noqa: E402
 import wiktionary_es  # noqa: E402
+import wiktionary_fr  # noqa: E402
 import wiktionary_it  # noqa: E402
 import wiktionary_pt  # noqa: E402
 
@@ -43,6 +45,7 @@ ES_WIKT_DUMP = "wiktionary/eswiktionary-20261001-pages-articles.xml.bz2"
 EN_WIKT_DUMP = "wiktionary/enwiktionary-20261001-pages-articles.xml.bz2"
 PT_WIKT_DUMP = "wiktionary/ptwiktionary-20261001-pages-articles.xml.bz2"
 IT_WIKT_DUMP = "wiktionary/itwiktionary-20261001-pages-articles.xml.bz2"
+FR_WIKT_DUMP = "wiktionary/frwiktionary-20261001-pages-articles.xml.bz2"
 SCOWL = "scowl/scowl-2020.12.07.tar.gz"
 # generic, carries no personal data
 USER_AGENT = "MetroKeys-dictionary-build/0.6 (+https://github.com/itsDNNS/MetroKeys)"
@@ -100,6 +103,9 @@ CV_FILES = {
     "es": {"sentence-collector.txt": 3, "wiki.es.txt": 1},
     "pt": {"sentence-collector.txt": 3},
     "it": {"frasi.txt": 3, "sentence-collector.txt": 3, "wiki.it.txt": 1, "wiki.it.rerun-2021-10.txt": 1},
+    "fr": {"sentence-collector.txt": 3, "global-sprint-fr.txt": 3, "vfvv1.1.txt": 3, "vfvv2.txt": 3, "vfvv3.txt": 3,
+           "vfvv4.txt": 3, "vfvv5.txt": 3, "vfvv6.txt": 3, "issue2259_deleted_export_readd_fixed.txt": 1,
+           "wiki-1.fr.txt": 1, "wiki-2.fr.txt": 1},
 }
 
 
@@ -434,11 +440,120 @@ def build_italian(stats):
     write_licenses(tags=["it-IT"])
 
 
+def build_french(stats):
+    fr_cache = os.path.join(CACHE, "frwiktionary-20261001-fr.tsv.gz")
+    en_cache = os.path.join(CACHE, "enwiktionary-20261001-fr.tsv.gz")
+    if not os.path.exists(fr_cache):
+        print("French Wiktionary pass (about 10 minutes)")
+        wiktionary_fr.extract(os.path.join(SRC, FR_WIKT_DUMP), fr_cache)
+    fr_titles, fr_secs = wiktionary_fr.load_extract(fr_cache)
+    fr_pages = (fr_titles, {t: wiktionary_fr.classify_fr(t, s) for t, s in fr_secs.items()})
+    del fr_secs
+    freq = os.path.join(SRC, "fw", "fr_full.txt")
+
+    def sentences():
+        for text in tatoeba_sentences("fra_sentences.tsv.bz2", "fra"):
+            yield text, 3, True, True
+        for _, weight, lines in cv_files("fr"):
+            for text in lines:
+                yield text, weight, weight == 3, False
+
+    def run(en_pages):
+        fr = build_fr.FrenchBuilder(freq, fr_pages, en_pages)
+        cov_before = fr.coverage(fr.counts)
+        capitalised = {}
+        tatoeba_tokens = 0
+        apostrophe_words = fr.apostrophe_word_candidates()
+        for text in tatoeba_sentences("fra_sentences.tsv.bz2", "fra"):
+            for kind, tok in build_fr.tokens(text, apostrophe_words):
+                if kind != "w":
+                    continue
+                tatoeba_tokens += 1
+                if tok[0].isupper():
+                    capitalised[tok] = capitalised.get(tok, 0) + 1
+        # subtitle counts of the §5 tokens: the plain keys and the apostrophe words ("Aujourd'hui", "Quelqu'un"), whole
+        # or cut after the apostrophe by the subtitle tokeniser (§11.1 rules 2 and 3)
+        subtitle = dict(fr.counts)
+        for tok, c in fr.apostrophe_tokens.items():
+            low = tok.lower()
+            for w in ([low] if low in apostrophe_words else [w for w in apostrophe_words if low.endswith("'") and
+                                                             len(low) >= 3 and w.startswith(low)]):
+                subtitle[w] = subtitle.get(w, 0) + c
+        stock, top30, added = build_fr.stock_names(capitalised, tatoeba_tokens, subtitle)
+        st = build_fr.SentenceStats(stock, fr.phrase_candidates(), fr.apostrophe_word_candidates())
+        for text, weight, conversational, tatoeba in sentences():
+            st.add(text, weight, conversational, tatoeba)
+        st.finish(fr.forms_by_key)
+        fr.stats = st
+        return fr, st, cov_before, stock, top30, added
+
+    # §11.2 point 3 (the rule of the Spanish build): the English dump's French sections are added only if the French
+    # dump alone recognises less than 95 % of the 20 000 most frequent keys
+    fr_alone = build_fr.FrenchBuilder(freq, fr_pages, None).coverage_raw()
+    use_en = fr_alone["fr"] < build_fr.COVERAGE_ENGLISH_DUMP
+    en_pages = None
+    cov_en = None
+    if os.path.exists(en_cache) or use_en:
+        if not os.path.exists(en_cache):
+            print("English Wiktionary pass, French sections (about 15 minutes)")
+            wiktionary_fr.extract_en(os.path.join(SRC, EN_WIKT_DUMP), en_cache)
+        _, en_secs = wiktionary_fr.load_extract(en_cache)
+        en_kinds = {t: wiktionary_fr.classify_en(t, s) for t, s in en_secs.items()}
+        del en_secs
+        cov_en = build_fr.FrenchBuilder(freq, fr_pages, en_kinds).coverage_raw()
+        if use_en:
+            en_pages = en_kinds
+    fr, st, cov_before, stock, top30, added = run(en_pages)
+    fr.apostrophe_rules(st)
+    fr.spellings(st)
+    fr.compounds()
+    fr.artefacts()
+    fr.finish_header()
+    fr_entries = fr.build()
+    fr_keys = sorted(fr_entries)
+    counter = pairs.FrenchPairCounter(fr_entries, build_fr.PREFIXES, build_fr.UNELIDED, set(fr.apostrophe_words), stock)
+    for text, weight, _, tatoeba in sentences():
+        counter.add(text, weight, tatoeba)
+    fr_table = counter.table({k: i for i, k in enumerate(fr_keys)})
+    cov = fr.coverage(fr.counts)
+    report = dict(fr.report)
+    elided = {p: len(fr_table.get(p, ())) for p in build_fr.PREFIXES}
+    report.update({
+        "maxCountKey": fr.max_key,
+        "coverageTop20000FrenchDumpSimplifiedMerge": round(fr_alone["fr"], 4),
+        "coverageTop20000WithEnglishDumpSimplifiedMerge": round(cov_en["both"], 4) if cov_en else None,
+        "englishDumpUsed": use_en,
+        "coverageTop20000FrenchDump": round(cov["fr"], 4),
+        "coverageTop20000BeforeSpellingSteps": round(cov_before["both"], 4),
+        "frenchWiktionaryTitles": len(fr_titles),
+        "frenchWiktionaryFrenchSections": len(fr_pages[1]),
+        "commonVoiceFiles": [[fn, weight] for fn, weight, _ in cv_files("fr")],
+        "sentenceTokensWeighted": st.s_total,
+        "runningTextCapitalsMoved": st.capitals_moved,
+        "tatoebaStockNames": sorted(stock),
+        "tatoebaStockNamesAdded": added,
+        "tatoebaTop30Capitalised": top30,
+        "formsKeptWithTwoCases": sum(1 for v in fr_entries.values() if len(v) > 1),
+        "properNounKeys": sum(1 for v in fr_entries.values() if v[0][0][0].isupper()),
+        "elidedPairs": sum(elided.values()),
+        "elidedPairsPerPrefix": elided,
+        "elidedPairsDroppedRule1": len(counter.dropped_by_rule[1]),
+        "elidedPairsDroppedRule1List": counter.dropped_by_rule[1][:100],
+        "elidedPairsDroppedRule2": len(counter.dropped_by_rule[2]),
+        "elidedPairsDroppedRule2List": counter.dropped_by_rule[2][:200],
+        "prefixesAsFollowers": sum(1 for v in fr_table.values() for k, _, _ in v if k in build_fr.PREFIX_SET),
+    })
+    stats["fr-FR-extra"] = report
+    write_outputs("fr-FR", fr.scale, fr.max_count, fr.corpus_tokens, fr_entries, fr_table, stats, fr.prefix_table)
+    write_licenses(tags=["fr-FR"])
+
+
 # build profiles (05b §7): language tag -> builder
 PROFILES = {
     "de-DE": build_german,
     "en-US": build_english,
     "es-ES": build_spanish,
+    "fr-FR": build_french,
     "it-IT": build_italian,
     "pt-BR": build_portuguese,
 }

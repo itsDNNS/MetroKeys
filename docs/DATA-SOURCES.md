@@ -10,8 +10,8 @@ The word lists and word-pair tables in `engine/src/main/resources/app/metrokeys/
 The derived data files (`*.words.gz`, `*.pairs.gz`) are licensed under **CC BY-SA 4.0**
 (https://creativecommons.org/licenses/by-sa/4.0/) because the frequency source is CC BY-SA. This licence applies to
 the data files only, not to the MetroKeys code. A licence/attribution text accompanies each data file
-(`LICENSE-de-DE.txt`, `LICENSE-en-US.txt`, `LICENSE-es-ES.txt`, `LICENSE-it-IT.txt`, `LICENSE-pt-BR.txt`,
-`SCOWL-Copyright.txt`); the engine exposes it through
+(`LICENSE-de-DE.txt`, `LICENSE-en-US.txt`, `LICENSE-es-ES.txt`, `LICENSE-fr-FR.txt`, `LICENSE-it-IT.txt`,
+`LICENSE-pt-BR.txt`, `SCOWL-Copyright.txt`); the engine exposes it through
 `Dictionary.bundledLicenseText(tag)` for the app's licences screen.
 
 ## Sources
@@ -44,10 +44,15 @@ the data files only, not to the MetroKeys code. A licence/attribution text accom
 | Tatoeba | export of 2026-10-10 (Last-Modified `Sat, 10 Oct 2026 06:30:50 GMT`, downloaded 2026-10-16) | `per_language/ita/ita_sentences.tsv.bz2` (988 826 sentences) | `9456a860f6528d21429b6b58ee92aa144b4cd7e698532648aeb8a72d006f9fa8` | CC BY 2.0 FR | Italian pairs (weight 3), running-text case evidence, sentence counts of §10.4/§10.5 |
 | Mozilla Common Voice | same commit, `server/data/it/` (exactly four files) | `frasi.txt` weight 3 (`5655a5eb1d8245d6db25bd430d7e11a8673e064cb0f03c8a08f3f0cb896a4be2`), `sentence-collector.txt` weight 3 (`5917d71dc7e6e245becc1b50df04a650aea6877737bca3a9b60541b3f230c86e`), `wiki.it.txt` weight 1 (`007b50b609b01788ee380e7087584681a6945cd8844a3408c0ed2e03fa093e88`), `wiki.it.rerun-2021-10.txt` weight 1 (`499cfa27a09ee41e405ae818100a951f2960cb87aaa1e62f90f37c03ba4b5d44`) | see left | CC0 1.0 | Italian pairs, running-text case evidence, sentence counts |
 
+| hermitdave/FrequencyWords | same commit as de/en/es/pt/it | `content/2018/fr/fr_full.txt` (834 768 lines, 318 214 450 tokens) | `dda23c3025fc195b3a7996af26371dcf3abd1aa2cd7218dbbb7c92a49780ab0c` | content CC BY-SA 4.0 | French words and counts, the counts of the elision prefixes, apostrophe and hyphen tokens (§11.1); `fr_ignored.txt` is not used |
+| French Wiktionary (https://fr.wiktionary.org/) | dump `20261001` | `frwiktionary-20261001-pages-articles.xml.bz2` (884 182 778 bytes, sha1 `ecd5d75d7a13205c4fceb04bb9d4a1087fc980b5`) | `f2e66b90f1686c5862f5aa7e73ed60d5d33575bf9f13dd2f264c9addd0de7b5d` | CC BY-SA 4.0 (also GFDL) | French spelling, validity, pointer, letter and elision pages, compounds and apostrophe words, proper-noun case, titles for the foreign-word rule (no frequencies) |
+| English Wiktionary, French sections | dump `20261001` (the file of the Spanish row) | `enwiktionary-20261001-pages-articles.xml.bz2` | `37e414002bdf72ccf6518b83116ec36df36af4aabbf4477d49871849b737de42` | CC BY-SA 4.0 (also GFDL) | optional (§11.2 point 3): read for the coverage report only; not used for the data, because the French dump alone recognises 95.05 % of the top 20 000 keys |
+| Tatoeba | export of 2026-10-10 (Last-Modified `Sat, 10 Oct 2026 06:30:50 GMT`, downloaded 2026-10-16) | `per_language/fra/fra_sentences.tsv.bz2` | `fac31d82b216c95affee7dffcee6c0ae59c45f254ebbfbbf8abb9e66da86ee8f` | CC BY 2.0 FR | French pairs (weight 3), running-text case evidence, sentence counts of §11.4–§11.7 |
+| Mozilla Common Voice | same commit, `server/data/fr/` (463 files, 11 used) | `sentence-collector.txt`, `global-sprint-fr.txt`, `vfvv1.1.txt`, `vfvv2.txt` … `vfvv6.txt` weight 3; `issue2259_deleted_export_readd_fixed.txt`, `wiki-1.fr.txt`, `wiki-2.fr.txt` weight 1 (hashes as in spec 05b §2.13 and sources.json) | see sources.json | CC0 1.0 | French pairs, running-text case evidence, sentence counts |
 All hashes equal the ones listed in the specification (for the Wiktionary dumps the specification gives the sha1 of
 the dump status; the sha256 values above were recorded at download). The directory `server/data/es/` of Common Voice
 holds exactly the three files listed, `server/data/pt/` exactly the two named above, `server/data/it/` exactly the four
-named above (checked with the GitHub contents API at that commit). The Tatoeba exports downloaded on 2026-10-15 still carried
+named above, `server/data/fr/` the 463 files of 05b §2.13 (checked with the GitHub contents API at that commit). The Tatoeba exports downloaded on 2026-10-15 still carried
 the reference export date (2026-10-10) and the reference hashes. The Wiktionary dump and the Tatoeba exports will
 disappear from their servers; keep archived copies (with the hashes above) to rebuild byte-identical data.
 
@@ -78,6 +83,12 @@ disappear from their servers; keep archived copies (with the hashes above) to re
   (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, accents restored, elisions separated, case,
   frequency classes), CC BY-SA 4.0 (`LICENSE-it-IT.txt`).
 - Italian word pairs: as German word pairs.
+- French word list: FrequencyWords © Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; spellings from Wiktionary
+  (fr.wiktionary.org), authors see page histories, CC BY-SA 4.0; sentence statistics from Tatoeba (CC BY 2.0 FR) and
+  Mozilla Common Voice (CC0). Modified (filtered, accents and ligatures restored, elisions separated, hyphenated forms
+  split, compounds, case, frequency classes), CC BY-SA 4.0 (`LICENSE-fr-FR.txt`). The English Wiktionary is not
+  named because it is not used for the French data.
+- French word pairs: as German word pairs.
 
 ## Build result
 
@@ -317,6 +328,92 @@ Rules of the Italian build that the specification leaves to the implementation (
   capitalised form ("Po"), since their lower-case running text belongs to the truncated word.
 - **Pair count** (§5 step 2): totals c(prev, ·) include the dropped elided pairs; a prefix as follower takes one of
   the 48 places of a word's followers.
+
+### French (fr-FR, first build, 0.6.3)
+
+Rebuilding all six languages after adding French left the German, English, Spanish, Portuguese and Italian files
+byte-identical (SHA-256 compared before and after); two French runs on the same inputs gave identical bytes. The
+French files use version 2 of both formats, like Italian (word list with the elision prefix table, pair table with
+the prefixes as previous words and followers).
+
+| | fr-FR |
+|---|---:|
+| keys | 174 316 |
+| cased forms | 179 237 (4 916 keys with two or more forms, 27 311 keys whose best form is capitalised) |
+| S | 15.988646 (spec: expected ≈ 15.989) |
+| maxCount | 8 442 744 ("de" after the hyphen credits; "je" 8 442 097) |
+| corpusTokens | 328 850 678 (318 214 450 list counts + 10 636 228 credited hyphen parts) |
+| A / Bc | −8.52 / 0.02716 |
+| pair previous words | 41 447 (of them 14 elision prefixes) |
+| pairs | 490 266 (14 473 elided pairs: d' 3 654, l' 3 604, s' 2 128, n' 1 515, m' 1 293, t' 841, qu' 713, j' 665, lorsqu' 17, c' 13, jusqu' 10, puisqu' 10, quoiqu' 8, ç' 2; 28 993 pairs with a prefix as follower) |
+| elided pairs dropped (§11.7) | rule 1 (unelided phrase ≥ 10 ×) 68: j'te, j'suis, ç'a, j'sais, j'vais, j'me, l'à, j'vous …; rule 2 (accent twin ≥ 10 ×) 45: l'ile (l'île), jusqu'a (jusqu'à), d'ou (d'où), l'aine (l'aîné), l'age (l'âge), d'entraineur (d'entraîneur), l'ignoré (l'ignore), d'âpres (d'après) … |
+| prefix table | c' 4 184 576 → 244, l' 3 675 406 → 242, j' 2 981 242 → 238, d' 2 603 041 → 236, qu' 2 520 219 → 236, n' 2 300 252 → 234, t' 1 257 857 → 225, m' 1 141 238 → 223, s' 1 037 629 → 221, jusqu' 133 102 → 189, lorsqu' 8 126 → 144, puisqu' 2 684 → 126, quoiqu' 1 695 → 119, ç' 1 348 → 115 |
+| hyphen tokens (§11.1) | 165 174 types, 5 247 362 occurrences; split 155 804 types, 5 196 423 occurrences, 10 636 228 credited part counts (as specified) |
+| apostrophe tokens (§11.1) | prefixes counted for the prefix table; cut first parts shared out (quelqu' → quelqu'un, aujourd' → aujourd'hui …); 11 whole apostrophe words (117 335 counts); 11 935 other tokens dropped (106 794 counts: va-t', o', y', goa', p', don', teal', you' …) |
+| apostrophe words (§11.5) | 17: quelqu'un 265 020, aujourd'hui 117 611, quelqu'une 266, zo'é 254, prem's 236, na'vi 157, mam'zelle 113, presqu'île 109, preum's 101, inch'allah 77, sotheby's 64, o'brien 61 … |
+| hyphen compounds (§11.5) | 495 (139 with a page of their own): est-ce 707 361, peut-être 310 312, avez-vous 88 869, est-il 82 366, là-bas 78 393, as-tu 73 228, a-t-il 67 120, vas-y 61 167, êtes-vous 57 514, excusez-moi 53 755, es-tu 48 906, allons-y 47 883, puis-je 42 969, laisse-moi 42 021 … |
+| alias collisions | 36: aton: Aton + a-t-on (both kept); baseball: baseball + base-ball (both kept); bienaimé: Bienaimé + bien-aimé (real word dropped); bienaimée: bienaimée + bien-aimée (real word dropped); bienêtre: bienêtre + bien-être (real word dropped); chti: chti + ch'ti (both kept); cowboy: cowboy + cow-boy (both kept); email: email + e-mail (both kept) … |
+| accent and ligature merges (§11.4 step 1) | 31 534 keys, 688 178 counts (coeur → cœur, ecoute → écoute, soeur → sœur, ecoutez → écoutez, oeil → œil, etre → être, etes → êtes, â → à, etait → était, etat → état …), 180 of them pointer pages; ligatures 203 keys, 133 124 counts (coeur → cœur, soeur → sœur, oeil → œil, oeuvre → œuvre, soeurs → sœurs, oeuf → œuf, voeux → vœux, coeurs → cœurs …) |
+| merges skipped by the guards | 877 English titles or names with a rarer target (jim, pete, leo, come, zoe, media, abigail, here …), 161 spellings used in the sentence sources (kung, tai, daphne, che, romeo, cui …) |
+| dominated spellings, class 0 (§11.4 step 2) | 146 (18 with a wrong accent): ca, meme, trés, tres, oeufs, na, jen, age, mere, ete, jai, cote, envoye, cest, facon, pres, problême, bebe, drole, lai, sen, sil, foret, dune, remplaces, transformes, lumiere, espece, brule, sy, obliges, nai, organises, tète, alle, dun, reves, cameras, surs, problêmes, role, colere, lest, reserve, gouter, enfermes, inspires, cites, cle, moitie, neo, edimbourg, reponds, hè, repondre, memoire, systême, carriere, symptomes, réglement, dor, crême, delle, enterres, nas, mème, riviere, blème, frontiere, goute, cheque, nes, siecle, ly, mele, bibliotheque, cles, ere, congres, repondez, condamnes, francois, identifies, piége, prives, distribues, laches, lor, menage, reel, adaptes, cree, pates, carriére, associes, alles, entraines, hê, repond, repondu, dart, rassembles, exploites, moise, cretin, coutent, passee, seche, publies, paques, reparer, fache, gache, sincere, lair, lamour, forets, reglement, composes, pélerinage, particulierement, imprimes, lumieres, situes, cense, largent, bibliothéque, signales, poete, premierement, resoudre, defend, pecher, conge, nen, supprimes, grece, parlè, collégues, males, cultives, comite, defi, siecles, symptome, géné |
+| accent-loss rate f (§11.4 step 3) | 0.022 (237 497 plain and 10 550 793 accented occurrences in 1544 classes; spec, French dump only: 0.032); 252 148 counts moved in 4017 classes (a → à 93 258, la → là 19 407, ou → où 14 634, sur → sûr 6 133, voila → voilà 4 286, passe → passé 3 879 …) |
+| missing-space artefacts dropped (§11.6 step 6) | 74 (etje, queje, cece, quelquechose, biensur, niles, biensûr, ilsa, maisje, estjuste, missa, ajamais …); kept by the name / English-word guard: aqui, deen, dema, depaul, dude, dudes, larue, late, lavie, leclair … |
+| fused elisions dropped (§11.6 step 7) | 1 394 (men, tai, ny, dex, len, jaime, ten, dou, quest, lon, nest, quil, cétait, lestrade, quon, lun …) |
+| letters of the prefixes dropped (§11.6 step 3) | qu, jusqu, lorsqu, puisqu, quoiqu |
+| dropped as foreign words | 4 993 |
+| kept without being a French form (count ≥ 40) | 8 941 |
+| coverage of the top 20 000 keys | 95.05 % French dump alone with a simplified accent merge (95.16 % with the English dump, which is therefore not used); 94.77 % of the final counts |
+| Tatoeba stock names | Algérie, Australie, Boston, Fadil, John, Layla, Marie, Mary, Mennad, Rima, Sami, Skura, Tatoeba, Tom, Yanni, Youba, Ziri |
+
+| File | Bytes | SHA-256 |
+|---|---:|---|
+| `fr-FR.words.gz` | 610 829 | `641c12cbe0d814861fc35971e7323134ff9e61f8aa1be8fb7563a50086eadd96` |
+| `fr-FR.pairs.gz` | 1 510 396 | `b46e1120965b7c74a78c3e9a05ce6870809ce8b90b52be5417e17d982126f5a7` |
+
+Word-list payload SHA-256 `f8a658a8…d26ac4`. Size in the APK: 2.12 MB (word list + pairs). All lists of accepted and
+dropped keys are in `tools/dictionary-build.json` (`fr-FR-extra`).
+
+Rules of the French build that the specification leaves to the implementation (05b §11, open point 19; all in
+`tools/dictbuild/wiktionary_fr.py` and `build_fr.py`, questions in spec/QUESTIONS.md):
+
+- **Two-stage Wiktionary pass**: the dump is read once; per word title (letters, inner hyphens or apostrophes, or a
+  final apostrophe) its language codes and the French section reduced to headings, lines of form and definitions are
+  cached (`build-data/cache/frwiktionary-20261001-fr.tsv.gz`, 6.58 million titles, 1.89 million French sections) and
+  classified on every build. A title seen with `’` and with `'` (a page and its redirect) keeps the union of its
+  languages. Templates are only read as text, never expanded.
+- **Page kinds**: pointer pages are French sections whose every sense is a "variante typographique" section, an old or
+  wrong spelling ("Ancienne orthographe de", "Graphie ancienne", "Mauvaise orthographe", "Écriture … avec omission du
+  signe diacritique", "Variante par contrainte typographique", a variant labelled désuet / vieilli / avant 1835 /
+  archaïsme, or a variant marked "(incorrecte)"); the 1990 reform variants (`{{variante orthographique de}}` with
+  `{{ortho1990}}`) and other variants stay forms. Letter pages: a "lettre" section or senses that only name a letter
+  ("qu"). Elision pages: titles ending in an apostrophe whose French senses define an elision (all 14 prefixes have one;
+  "quelqu'" and "y'" are elision pages that are no prefixes). Senses in a `flexion` section are inflections.
+- **Coverage and the English dump**: the rule of the Spanish build (the English dump only below 95 %), measured with a
+  simplified accent merge (a key counts if a key of its accent class is a French form).
+- **Apostrophe tokens**: a cut first part is shared out only if it has two or more letters before the apostrophe
+  ("quelqu'", "aujourd'", "presqu'", "entr'"); single letters + apostrophe ("y'", "p'", "o'") follow rule 4.
+- **Hyphen tokens**: empty parts ("est-", "-ce") are allowed, every non-empty part must be letters (this reproduces the
+  counts of §11.1 exactly). A token without a page of its own becomes the compound "prefix + token" when that is a French
+  page ("est-à-dire" → "c'est-à-dire"). A compound with a page keeps the page's spelling ("Jean-Pierre"); the euphonic
+  "t" need not be a form.
+- **Accent merge** (§11.4 step 1): a key goes to a form with diacritics and ligatures at the same positions and of the
+  same length, else to the most frequent form of the class; guards: an English title of the French dump or a name
+  (mostly capitalised in running text) only into a form at least as frequent (§11.4), and a spelling the sentence
+  sources use at least twice and at least as often as the target (the guard of the Italian build).
+- **Dominated spellings** (§11.4 step 2): without the Italian build's subtitle guard; kind (b) needs the same length
+  and diacritics at the same positions. Acronyms and names under the key of a fused elision ("CEST", "JAI") become
+  class-0 forms; typed in lower case they are case errors.
+- **Accent-loss rate** (§11.4 step 3): classes whose accented form has a ligature are left out.
+- **Fused elisions** (§11.6 step 7): the elided-phrase counts of every French form of the remainder's accent class are
+  summed ("jusqua" → jusqu'à, "cetait" → c'était).
+- **Missing-space artefacts** (§11.6 step 6): names and English titles of the French dump are caught first and follow
+  step 8; other foreign titles ("etje") do not protect a key.
+- **Running-text case evidence** (§11.3): a capitalised token whose first capital lacks its accent ("Etat") counts for the
+  form with the accented capital when its own key is no French form.
+- **Pairs** (§11.7): rule 2 compares followers whose letters are equal after removing diacritics and expanding ligatures;
+  the totals c(prev, ·) include the dropped pairs, and a prefix as follower takes one of the 48 places, as in Italian.
+- **Stock names** (§5 step 3): counted on the §5 tokens of the Tatoeba sentences (prefix tokens are no capitalised
+  words, apostrophe words are one token); the subtitle share of an apostrophe word uses its whole-word count.
 
 # App data sources
 

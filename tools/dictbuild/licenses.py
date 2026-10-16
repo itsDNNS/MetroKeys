@@ -32,7 +32,12 @@ IT_WORDS = ("Word list: FrequencyWords (c) Hermit Dave (OpenSubtitles 2018), CC 
             "from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, accents restored, elisions "
             "separated, case, frequency classes), CC BY-SA 4.0.")
 
-WORDS = {"de": DE_WORDS, "en": EN_WORDS, "es": ES_WORDS, "pt": PT_WORDS, "it": IT_WORDS}
+FR_WORDS = ("Word list: FrequencyWords (c) Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; spellings from Wiktionary "
+            "(fr.wiktionary.org), authors see page histories, CC BY-SA 4.0; sentence statistics from Tatoeba (CC BY 2.0 FR) "
+            "and Mozilla Common Voice (CC0). Modified (filtered, accents and ligatures restored, elisions separated, "
+            "hyphenated forms split, compounds, case, frequency classes), CC BY-SA 4.0.")
+
+WORDS = {"de": DE_WORDS, "en": EN_WORDS, "es": ES_WORDS, "pt": PT_WORDS, "it": IT_WORDS, "fr": FR_WORDS}
 
 
 def text(tag, scowl_notice=None):

@@ -307,6 +307,77 @@
    "path": "cv/it/wiki.it.rerun-2021-10.txt",
    "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/it/wiki.it.rerun-2021-10.txt",
    "sha256": "499cfa27a09ee41e405ae818100a951f2960cb87aaa1e62f90f37c03ba4b5d44"
+  },
+  {
+   "path": "fw/fr_full.txt",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/525f9b560de45753a5ea01069454e72e9aa541c6/content/2018/fr/fr_full.txt",
+   "sha256": "dda23c3025fc195b3a7996af26371dcf3abd1aa2cd7218dbbb7c92a49780ab0c"
+  },
+  {
+   "path": "wiktionary/frwiktionary-20261001-pages-articles.xml.bz2",
+   "url": "https://dumps.wikimedia.org/frwiktionary/20261001/frwiktionary-20261001-pages-articles.xml.bz2",
+   "sha256": "f2e66b90f1686c5862f5aa7e73ed60d5d33575bf9f13dd2f264c9addd0de7b5d",
+   "sha1": "ecd5d75d7a13205c4fceb04bb9d4a1087fc980b5"
+  },
+  {
+   "path": "tatoeba/fra_sentences.tsv.bz2",
+   "url": "https://downloads.tatoeba.org/exports/per_language/fra/fra_sentences.tsv.bz2",
+   "sha256": "fac31d82b216c95affee7dffcee6c0ae59c45f254ebbfbbf8abb9e66da86ee8f"
+  },
+  {
+   "path": "cv/fr/sentence-collector.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/sentence-collector.txt",
+   "sha256": "214f3d5b0110e86e3f2018ca6971b918db8ad5cc4c5612ebab58cd0849fb0715"
+  },
+  {
+   "path": "cv/fr/global-sprint-fr.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/global-sprint-fr.txt",
+   "sha256": "f6ac598f5e0c9f208488d32edc25b1081e8cbe73bd8381f596e7a8c1794a93ee"
+  },
+  {
+   "path": "cv/fr/vfvv1.1.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/vfvv1.1.txt",
+   "sha256": "41d3ccc0b7c614dd5a8873d0dbb13dd6ab68ec9f020d496d51df62d391637120"
+  },
+  {
+   "path": "cv/fr/vfvv2.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/vfvv2.txt",
+   "sha256": "cc0277f9689508930893ef4a911ca11da9dbe34b80e0bcb3685e18aee967c27f"
+  },
+  {
+   "path": "cv/fr/vfvv3.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/vfvv3.txt",
+   "sha256": "197faa3efba2a6c1a95f08bfbd1d4421663b24d279c9be10432480562070b271"
+  },
+  {
+   "path": "cv/fr/vfvv4.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/vfvv4.txt",
+   "sha256": "0b61d8fd1c5bd104f1ccddc6d5c7dcffc947ca84bfd14c6036b22542987783ff"
+  },
+  {
+   "path": "cv/fr/vfvv5.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/vfvv5.txt",
+   "sha256": "c74b20b9d19b7086f8009ef2a10606597291731d601c887d6e1cf20d1a466e2b"
+  },
+  {
+   "path": "cv/fr/vfvv6.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/vfvv6.txt",
+   "sha256": "10fb631ae95b6f445de40ba1d378835619de81d6883df4d951bad5c6c9f3da92"
+  },
+  {
+   "path": "cv/fr/issue2259_deleted_export_readd_fixed.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/issue2259_deleted_export_readd_fixed.txt",
+   "sha256": "df45e97514a3662277f2e60a463b3d8a4d061142c01e364d1ce405f9092e79e8"
+  },
+  {
+   "path": "cv/fr/wiki-1.fr.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/wiki-1.fr.txt",
+   "sha256": "8c2488675866b7c6e4a1d06a5b8f896b9012a46f5c8bf10026550ed73f8b6154"
+  },
+  {
+   "path": "cv/fr/wiki-2.fr.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/wiki-2.fr.txt",
+   "sha256": "38b9df9c0b0f997ab53854ca607b40d9a9117ad111b81b498fe0bfd9980ab93b"
   }
  ]
 }

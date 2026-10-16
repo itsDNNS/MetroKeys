@@ -18,13 +18,15 @@ app (next stage) only translates editor state into queries and applies the resul
 
 ## Languages
 
-Keyboard languages: German (`de-DE`), US English (`en-US`), Spanish (`es-ES`), Portuguese (Brazil, `pt-BR`, 0.6.1) and
-Italian (`it-IT`, 0.6.2).
+Keyboard languages: German (`de-DE`), US English (`en-US`), Spanish (`es-ES`), French (France, `fr-FR`, 0.6.3),
+Portuguese (Brazil, `pt-BR`, 0.6.1) and Italian (`it-IT`, 0.6.2).
 Everything that differs between them is one `LanguageParams` instance (`LanguageParams.ALL`, fixed language order =
 alphabetical by tag): the weights and limits of 05 §1.1, the language rules (`prefixAccents` with one or more accented
 letters per base letter, `oneLetterWords`, `singleLetterFix`, `compoundLinks` = null for no compounds,
-`missingSpaceSplit`, `ingRule`, `elisionPrefixes`, `accentSwap`, `hideClassZero`), the fallback grid of 05 §4 (rows and the start of row 2: Spanish
-and Portuguese have ten keys without indent, ñ / ç last), the shape-writing constants
+`missingSpaceSplit`, `ingRule`, `elisionPrefixes`, `accentSwap`, `hideClassZero`, `elisionValidSlack`,
+`capsUnaccented`), the fallback grid of 05 §4 (rows and the starts of rows 2 and 3: Spanish and Portuguese have ten keys
+without indent in row 2, ñ / ç last; French AZERTY has ten keys in row 2 and starts row 3 at 0.2 · width), the
+shape-writing constants
 of 06 §7.1 (`ShapeParams`; English uses its own column since 0.6) and the emoji table. A further language adds one
 instance, its dictionary files and a build profile (DATA-SOURCES.md).
 
@@ -116,8 +118,8 @@ Both files are gzip streams (written by `tools/dictbuild/common.py`, read by `Le
   payload; then per previous word (sentence start first) up to 48 followers as (key index, pair class, form index),
   best class first. A table whose binding does not match is rejected (`PairTableMismatchException`);
   `Dictionary.load` then runs without pairs.
-- **Version 2** (0.6.2, languages with an elision prefix table, so far only it-IT; the other languages stay at
-  version 1 and their files are unchanged): the word list ends with the prefix table (count, then per prefix its text
+- **Version 2** (0.6.2, languages with an elision prefix table: it-IT and, since 0.6.3, fr-FR; the other languages stay
+  at version 1 and their files are unchanged): the word list ends with the prefix table (count, then per prefix its text
   and class; `Lexicon.prefixClass`); in the pair table the previous-word slots keyCount + 1 + p and the follower indices
   keyCount + p are elision prefix p, and follower counts are varints (a prefix keeps up to `PREFIX_FOLLOWERS_MAX` =
   4000 followers). `PairTable` keeps one start offset per slot (`start[s] … start[s + 1]`), which is also smaller than
@@ -128,9 +130,10 @@ computed on the way), never held as a whole. The front-coded keys are kept only 
 character per tree node) with their lengths and common-prefix lengths; the breadth-first prefix tree (children
 contiguous and sorted, so lookups are binary searches and node order is (depth, text)) is then built level by level —
 a key's node at depth d is new exactly when its common prefix with the previous key is shorter than d — into arrays of
-exactly the node count: de-DE ≈ 717 000 nodes, en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 711 keys). Explicit forms are a sorted index array with their
+exactly the node count: de-DE ≈ 717 000 nodes, en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 711 keys),
+fr-FR (174 316 keys). Explicit forms are a sorted index array with their
 texts; pair-table followers go straight into primitive arrays. Two languages with pair tables retain 24–35 MB of JVM
-heap and load within a 44 MB maximum heap, three 39–48 MB within 60 MB (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
+heap and load within a 44 MB maximum heap, three 39–50 MB within 60 MB (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
 string per key and per-character build arrays). Loading both takes ≈ 0.2–0.3 s on a desktop JVM. Completions are a best-first search over the per-node maximum class; the fuzzy search walks the tree with
 optimal-string-alignment rows and prunes with the row minimum (and the row before it, which keeps the pruning
 admissible with transpositions). Shape writing reuses the same tree as its word index; contact words not in the
@@ -146,22 +149,26 @@ python3 tools/build_dictionaries.py build      # all languages; writes engine/sr
 python3 tools/build_dictionaries.py build es-ES   # one language (≈ 1.5 minutes once the Wiktionary passes are cached)
 python3 tools/build_dictionaries.py build pt-BR   # ≈ 1.5 minutes once the Portuguese sections are cached
 python3 tools/build_dictionaries.py build it-IT   # ≈ 8 minutes once the Italian sections are cached (three sentence passes)
+python3 tools/build_dictionaries.py build fr-FR   # ≈ 10 minutes once the French sections are cached
 ```
 
 `build-data/` is git-ignored (downloads and caches; the Wiktionary passes are cached in
 `build-data/cache/dewiktionary-20261001.tsv.gz`, `eswiktionary-20261001.tsv.gz`,
 `enwiktionary-20261001-spanish.tsv.gz`, and for Portuguese the raw Portuguese sections `ptwiktionary-20261001-pt.tsv.gz`
 and `enwiktionary-20261001-pt.tsv.gz`, for Italian `itwiktionary-20261001-it.tsv.gz` and
-`enwiktionary-20261001-it.tsv.gz`, which are classified on every build; the English dump takes ≈ 15 minutes per
-pass). Downloads are read in place (bz2/tar streams); from the SCOWL
+`enwiktionary-20261001-it.tsv.gz`, for French `frwiktionary-20261001-fr.tsv.gz` (titles with their language codes and
+the reduced French sections, ≈ 5 minutes) and, only for the coverage report, `enwiktionary-20261001-fr.tsv.gz`, which
+are classified on every build; the English dump takes ≈ 15 minutes per pass). Downloads are read in place (bz2/tar streams); from the SCOWL
 archive only the plain lists and the `Copyright` file are extracted, no script is run. The build is deterministic
 (sorted iteration, gzip with mtime 0); its counts and output hashes are written to `tools/dictionary-build.json`
 and documented in [DATA-SOURCES.md](DATA-SOURCES.md). Pipeline modules (`tools/dictbuild/`):
 `wiktionary_de.py` (§3.2), `build_de.py` (§3.3–3.7), `build_en.py` (§4), `wiktionary_es.py` (§8.2), `build_es.py`
 (§8), `wiktionary_pt.py` (§9.2: section extraction and page kinds of both dumps), `build_pt.py` (§9.1, §9.3–§9.7),
 `wiktionary_it.py` (§10.2), `build_it.py` (§10.1, §10.3–§10.6; also the §5 tokens of Italian),
-`casing.py` (case decision §3.4, shared by de, es, pt and it), `pairs.py` (§5, per-language pair profiles; Italian
-prefix tokens and the elided-pair filter in `ItalianPairCounter`), `common.py`
+`wiktionary_fr.py` (§11.2), `build_fr.py` (§11.1, §11.3–§11.7; also the §5 tokens of French),
+`casing.py` (case decision §3.4, shared by de, es, pt, it and fr), `pairs.py` (§5, per-language pair profiles; Italian
+prefix tokens and the elided-pair filter in `ItalianPairCounter`, the two French elided-pair filters in
+`FrenchPairCounter`), `common.py`
 (classes and binary formats), `licenses.py` (attribution texts). `build_dictionaries.py` holds one build profile per
 language (`PROFILES`, 05b §7).
 
@@ -176,12 +183,14 @@ loads every pair of languages with pair tables in a separate JVM with `-Xmx44m` 
 queries and a multilingual swipe (retained heap in 0.6.2: de+en 32.8 MB, de+es 34.9 MB, en+es 28.6 MB, de+pt 30.8 MB,
 en+pt 24.5 MB, es+pt 26.6 MB, it+de 34.5 MB, it+en 27.5 MB, it+es 29.6 MB, it+pt 25.6 MB; de+en+es 47.1 MB,
 de+en+pt 43.2 MB, de+es+pt 45.4 MB, en+es+pt 38.8 MB, it+de+en 46.0 MB, it+de+es 48.0 MB, it+de+pt 44.1 MB,
-it+en+es 41.8 MB, it+en+pt 37.8 MB, it+es+pt 39.9 MB);
+it+en+es 41.8 MB, it+en+pt 37.8 MB, it+es+pt 39.9 MB; 0.6.3 with French: fr+de 34.9 MB, fr+en 28.7 MB, fr+es 30.8 MB, fr+it 29.9 MB, fr+pt 26.7 MB;
+fr+de+en 47.2 MB, fr+de+es 49.2 MB, fr+de+it 48.1 MB, fr+de+pt 45.2 MB, fr+en+es 43.0 MB, fr+en+it 41.9 MB,
+fr+en+pt 39.0 MB, fr+es+it 44.1 MB, fr+es+pt 41.0 MB, fr+it+pt 40.0 MB);
 `SpanishExamplesTest`, `SpanishShapeTest` (06 E8/E9), `ActiveLanguagesTest` (the five-language example of 05 §14.5) and
 `MultilingualTest.threeLanguages` cover 0.6; `PortugueseExamplesTest` (05 §17.9 and the pt rows of §18),
 `PortugueseShapeTest` (06 E10/E11, acceptance test) and `TouchModelTest.portugueseGeometry` cover 0.6.1;
 `ItalianExamplesTest` (05 §17.10, the it rows of §18, accent swap, learning and proofing of elided words),
-`ItalianShapeTest` (06 E12–E14, elided index, acceptance test) and `ActiveLanguagesTest.theFiveSupportedLanguages`
+`ItalianShapeTest` (06 E12–E14, elided index, acceptance test) and `ActiveLanguagesTest.theFiveSupportedLanguages` (since 0.6.3 `theSixSupportedLanguages`)
 cover 0.6.2;
 `LexiconStructureTest` checks the trees built from the front-coded keys and the streaming key lookup;
 `LearnedWordListTest` the list of every stored unknown word (also from learned data without dictionaries).
@@ -280,5 +289,41 @@ penalty. `-PshowOutput` shows test output.
   (c'è first), E14 searchCost(l'acqua) = 194.4 + LM (the synthetic trace's skipped angles sum to 92° instead of 78°).
   Deviations from the spec's expected outcomes are recorded in spec/QUESTIONS.md ("perch" + space → "Percy", "sé" not in
   the bar after "se"). Shape-writing acceptance for Italian: 0.936 (47 words incl. elided words).
+
+- **French (0.6.3)**: `LanguageParams.FRENCH` with the fr-FR column of 05 §1.1 and 06 §7.1, the 14 elision prefixes,
+  `ACCENT_SWAP` (also á → à, the picker slip), `hideClassZero` (the dominated spellings of 05b §11.4 step 2 are valid
+  but never offered), `ELISION_VALID_SLACK` 30 and `CAPS_UNACCENTED`; AZERTY fallback grid (05 §4, row 3 from 0.2 ·
+  width). `FrenchExamplesTest` (05 §17.11, the fr rows of §18), `FrenchShapeTest` (06 E15–E17, AZERTY neighbourhoods,
+  compounds, ligatures, acceptance test) and `FrenchInputLogicTest` (app) cover it.
+- **Ligatures** (05 §5, every language): `EditDistance` treats œ/æ as o/a with a diacritic (typed o for œ costs
+  `ED_DIACRITIC`) and has the ligature rule (typed "oe"/"ae" for œ/æ: `ED_DIACRITIC`, plus `ED_CASE` when the case of the
+  first typed letter differs; UNITS 1); the prefix list of §8.4 adds the variant with "oe"/"ae" replaced by œ/æ when the
+  language's `PREFIX_ACCENTS` list a ligature; follower matching of §8.2.1 expands œ → oe; the touch model and shape
+  writing put œ/æ on the o/a keys (`KeyboardGeometry.baseLetter`).
+- **Unaccented capitals** (`CAPS_UNACCENTED`, fr): validity rules 1 and 2 accept a stored form whose display differs only
+  by accents on capitals the user typed without them (`Lexicon.looseKeys` walks the tree with every unaccented capital
+  matching its accented letters); the edit cost of such a pair is 0 and UNITS counts 0.
+- **Completion prefix** (05 §8.3, every language): the shortest beginning of the candidate that holds len characters
+  when `'` `.` `-` are not counted and a ligature counts as two (`LanguageEngine.completionPrefix`).
+- **Hyphen compounds and apostrophe words** (05 §2.2, 05b §11.5): the dictionary stores them under alias keys
+  ("estce" → est-ce, "aujourdhui" → aujourd'hui; an apostrophe word also under its own key). `Lexicon.keyIndex` looks a
+  word with a hyphen up under its alias key, so `exact`, `exactClass` and the LM cost of a compound work; typed without
+  the hyphen it is reached through `canonical` (filler 0), completions and the shape index. A picked or autocorrected
+  compound is learned piece by piece (`UserModel.learn` splits at hyphens too), and the learning language is chosen
+  from its pieces.
+- **Letters of an elision prefix** (05 §8.5, §10.1 step 2a, every language with prefixes): a typed word whose lower-cased
+  letters are those of a prefix and that is not valid is never autocorrected; with two or more letters (and a prefix
+  table) the prefix candidate stands first in the ranked list, and in multilingual typing first after the
+  autocorrection when the top language has it (`LanguageSuggestions.prefixFirst`). Italian "dell" + space stays "dell"
+  (before 0.6.3: "delk").
+- **Elision followers** (05 §8.2.1): "vowel" includes y and the ligatures (all languages with prefix tables, so Italian
+  followers starting with y now count as well).
+- **French worked examples**: computed values of this build are printed by the tests (lm(très) 66, lm(déjà) 72 → score
+  107, lm(j'ai) 50, lm(jusqu'à) 78 → score 89, lm(qu'elle) 69 against "quelle" 76, lm(est-ce) 63, lm(peut-être) 70).
+  Deviations from the spec's expected outcomes are recorded in spec/QUESTIONS.md ("Il ouvre la fenetr": "fenêtre" first
+  but not autocorrected, AC_MARGIN; "etje" → "être"). Shape writing: E15 searchCost(moi) = 0 + LM, E16 c'est = 42 +
+  skipped angles / 5 + LM (the synthetic trace's corner at d is flatter than the spec's 75°), E17 très = 8 + LM; the
+  French acceptance test (46 words with a z q w m, accents, ligatures, elided and hyphenated entries): see the test
+  output.
 
 Questions with assumptions that matter are recorded in the specification (`spec/QUESTIONS.md`, not published).

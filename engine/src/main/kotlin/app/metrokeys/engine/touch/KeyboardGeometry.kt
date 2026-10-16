@@ -44,7 +44,7 @@ public class KeyboardGeometry(
     /**
      * Key of [letter] for the touch model (05 §4): its own key; a letter without a key of its own lives on its base
      * letter's key (the letter with its diacritic removed: ä à á â → a, í ì î ï → i, ñ → n, ç → c, ý ÿ → y …;
-     * ß, § → s). On the Spanish page ñ has its own key, on the German and English pages it lives on n.
+     * œ → o, æ → a; ß, § → s). On the Spanish page ñ has its own key, on the German and English pages it lives on n.
      */
     public fun touchKey(letter: Char): LetterKey? {
         val low = Character.toLowerCase(letter)
@@ -73,6 +73,9 @@ public class KeyboardGeometry(
         public fun baseLetter(c: Char): Char? {
             val low = Character.toLowerCase(c)
             if (low == 'ß') return 's'
+            // the ligatures live on the key of their first letter (05 §4, 06 §4.2)
+            if (low == 'œ') return 'o'
+            if (low == 'æ') return 'a'
             val d = Normalizer.normalize(low.toString(), Normalizer.Form.NFD)
             val b = d[0]
             return if (b != low && Character.isLetter(b)) b else null
@@ -90,7 +93,8 @@ public class KeyboardGeometry(
 
         /**
          * The fallback grid of 05 §4 on a [width] × [height] letter area: keys 0.1 · width × 0.25 · height, row 1 from
-         * x = 0, row 2 from the language's start (0.05 · width; Spanish 0), row 3 from 0.15 · width.
+         * x = 0, row 2 from the language's start (0.05 · width; Spanish 0), row 3 from the language's start (0.15 · width;
+         * French 0.2).
          */
         @JvmStatic
         @JvmOverloads
@@ -98,7 +102,7 @@ public class KeyboardGeometry(
             val params = LanguageParams.forLanguage(languageTag)
             val kw = width * 0.1f
             val kh = height * 0.25f
-            val offsets = floatArrayOf(0f, params.fallbackRow2Start * width, 0.15f * width)
+            val offsets = floatArrayOf(0f, params.fallbackRow2Start * width, params.fallbackRow3Start * width)
             val keys = ArrayList<LetterKey>()
             for ((r, row) in params.fallbackRows.withIndex()) {
                 for ((i, c) in row.withIndex()) {

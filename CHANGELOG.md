@@ -3,6 +3,40 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.6.3 – 2026-10-16
+
+### Languages
+- New keyboard language **French (France)**: the AZERTY letter rows (a z q w m in their French places, six letters in
+  the third row between wider shift and backspace keys) with à â æ, é è ê ë, î ï, ô œ, ù û ü, ÿ and ç on long press, the
+  apostrophe on the first symbol page and the guillemets « » on the long press of `"`, "espace" on the space bar,
+  "FRA"/"FR" on the language key and picker, `.com .fr` first among the domain endings in France, and a decimal comma on
+  the number pad. The language key cycles DEU → ENG → ESP → FRA → ITA → POR.
+- French dictionary built from free sources (subtitle frequencies including their apostrophe and hyphenated forms,
+  French Wiktionary, Tatoeba and Common Voice; CC BY-SA 4.0, attribution on the licenses page): missing and wrong
+  accents are corrected ("tres" → "très", "deja" → "déjà", "garcon" → "garçon", "trés" → "très"), ligatures are
+  restored ("coeur" → "cœur", "oeuvre" → "œuvre"), words that exist in both spellings stay as typed with the accented
+  one offered ("a"/"à", "ou"/"où", "la"/"là"), capitals without their accent are correct ("Etat", "ECOLE"), and a
+  missing space is fixed ("quelquechose" → "quelque chose").
+- Elision without an apostrophe key: "jai" → "j'ai", "cest" → "c'est", "quil" → "qu'il", "lhomme" → "l'homme",
+  "jusqua" → "jusqu'à"; typed with the apostrophe, only the rest is corrected ("c'etait" → "c'était"); a valid word
+  offers its elided twin ("quelle" → "qu'elle"); after "c'" or "jusqu'" the bar offers whole words ("c'est",
+  "jusqu'à"). Words with an inner apostrophe stay whole and are corrected without it ("aujourdhui" →
+  "aujourd'hui", "quelquun" → "quelqu'un").
+- Hyphenated words: frequent compounds and inversions typed without the hyphen are corrected and completed ("estce"
+  → "est-ce", "peutetre" → "peut-être", "dismoi" → "dis-moi"); typed with the hyphen, each part is a word of its own.
+- Shape writing for French on AZERTY: accented letters and ligatures through their base keys ("très", "cœur"), elided
+  words ("c'est", "j'ai") and hyphenated words ("est-ce") in one gesture.
+
+### Typing
+- The letters of an elision prefix ("qu", "jusqu"; Italian "dell", "nell", "quest") are never autocorrected: they stay
+  as typed at a space, and the prefix ("qu'", "dell'") stands first in the suggestion bar. Before, Italian "dell" +
+  space became "delk".
+- Typed "oe"/"ae" for the ligatures œ/æ count as a small accent error in every language.
+- A picked hyphenated word is learned part by part.
+
+### Settings
+- French on the languages page; any number of the six keyboard languages can be enabled.
+
 ## 0.6.2 – 2026-10-16
 
 ### Languages

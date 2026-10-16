@@ -38,6 +38,8 @@ class MemoryBudgetTest {
         probe(HEAP_TWO_MB, "it-IT", "en-US")
         probe(HEAP_TWO_MB, "it-IT", "es-ES")
         probe(HEAP_TWO_MB, "it-IT", "pt-BR")
+        // French (0.6.3)
+        for (other in listOf("de-DE", "en-US", "es-ES", "it-IT", "pt-BR")) probe(HEAP_TWO_MB, "fr-FR", other)
     }
 
     @Test
@@ -54,6 +56,9 @@ class MemoryBudgetTest {
         probe(HEAP_THREE_MB, "it-IT", "en-US", "es-ES")
         probe(HEAP_THREE_MB, "it-IT", "en-US", "pt-BR")
         probe(HEAP_THREE_MB, "it-IT", "es-ES", "pt-BR")
+        // three languages including French (0.6.3): every set of fr and two of the five others
+        val others = listOf("de-DE", "en-US", "es-ES", "it-IT", "pt-BR")
+        for (i in others.indices) for (j in i + 1 until others.size) probe(HEAP_THREE_MB, "fr-FR", others[i], others[j])
     }
 
     companion object {
@@ -79,6 +84,8 @@ object MemoryProbe {
         engine.query(Query("Muito obrigado pela aten"))
         engine.query(Query("Grazie per lacqu"))
         engine.query(Query("dell'"))
+        engine.query(Query("Je pense quil"))
+        engine.query(Query("c'"))
         val keys = "vielleicht".map { g.shapeKey(it)!! }
         val xs = FloatArray(keys.size * 8) { i -> keys[i / 8].centerX + (if (i / 8 + 1 < keys.size) (keys[i / 8 + 1].centerX - keys[i / 8].centerX) * (i % 8) / 8f else 0f) }
         val ys = FloatArray(keys.size * 8) { i -> keys[i / 8].centerY + (if (i / 8 + 1 < keys.size) (keys[i / 8 + 1].centerY - keys[i / 8].centerY) * (i % 8) / 8f else 0f) }

@@ -236,6 +236,11 @@ public class PredictionEngine(
             bar.add(Suggestion(ac.display, SuggestionKind.CORRECTION, -LmCost.roundHalfAway(ac.cost + pen), top.languageTag, true))
             seen.add(ac.display)
         }
+        // letters of an elision prefix of the top language ("qu"): its prefix candidate first (05 §8.5)
+        if (top.prefixFirst && ac == null) {
+            val p = top.ranked[0]
+            if (seen.add(p.display)) bar.add(p.toSuggestion(top.languageTag, -LmCost.roundHalfAway(p.cost + weightPenalty(topWeight))))
+        }
         for (e in entries) {
             if (bar.size >= Params.BAR_MAX) break
             if (seen.add(e.c.display)) bar.add(e.c.toSuggestion(e.tag, -LmCost.roundHalfAway(e.cost)))
@@ -372,7 +377,7 @@ public class PredictionEngine(
     public fun learningLanguage(word: String, previousWords: List<String>): LanguageEngine {
         val engines = runningEngines()
         if (engines.size == 1) return engines[0]
-        val parts = word.split(' ').map { TextModel.trimNonWord(it) }.filter { it.isNotEmpty() }
+        val parts = word.split(' ', '-').map { TextModel.trimNonWord(it) }.filter { it.isNotEmpty() }
         val knowing = engines.filter { e -> parts.isNotEmpty() && parts.all { e.lexicon.keyIndex(e.stripElision(it)) >= 0 } }
         if (knowing.size == 1) return knowing[0]
         val weights = languageWeights(previousWords.flatMap { it.split(' ') }.filter { it.isNotEmpty() }.reversed())

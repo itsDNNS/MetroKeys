@@ -8,6 +8,7 @@ import app.metrokeys.keyboard.layout.KeyRole
 import app.metrokeys.keyboard.layout.LayoutSet
 import app.metrokeys.keyboard.layout.Page
 import app.metrokeys.keyboard.layout.hitTest
+import app.metrokeys.settings.Prefs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -170,11 +171,63 @@ class LayoutDataTest {
 
     @Test
     fun languageKeyOrderByLabel() {
-        val labels = listOf("layouts-pt.json", "layouts-it.json", "layouts-es.json", "layouts-de.json", "layouts-en.json").associate { n ->
-            layout(n).let { it.language to it.languageInfo.label }
-        }
-        assertEquals(listOf("de-DE", "en-US", "es-ES", "it-IT", "pt-BR"), labels.keys.sortedWith(compareBy({ labels.getValue(it) }, { it })))
-        assertEquals(listOf("DEU", "ENG", "ESP", "ITA", "POR"), labels.values.sorted())
+        val labels = listOf("layouts-pt.json", "layouts-it.json", "layouts-fr.json", "layouts-es.json", "layouts-de.json",
+            "layouts-en.json").associate { n -> layout(n).let { it.language to it.languageInfo.label } }
+        // 01 §11.2: DEU < ENG < ESP < FRA < ITA < POR, the same order as the tags (07 §9.5)
+        assertEquals(listOf("de-DE", "en-US", "es-ES", "fr-FR", "it-IT", "pt-BR"), labels.keys.sortedWith(compareBy({ labels.getValue(it) }, { it })))
+        assertEquals(listOf("DEU", "ENG", "ESP", "FRA", "ITA", "POR"), labels.values.sorted())
+        assertEquals(Prefs.SUPPORTED_LANGUAGES, labels.keys.sorted())
+    }
+
+    @Test
+    fun frenchPages() {
+        val fr = layout("layouts-fr.json")
+        assertEquals("fr-FR", fr.language)
+        assertEquals("FRA", fr.languageInfo.label)
+        assertEquals("FR", fr.languageInfo.subLabel)
+        assertEquals("FR", fr.domainRegion)
+        assertEquals(listOf(".com", ".fr", ".org", ".net"), fr.domains)
+        val p = fr.page("text.letters")
+        // AZERTY (01 §3.7): ten keys in rows 1 and 2 without indent, six letters in row 3 between 0.2-wide side keys
+        fun row(top: Float) = p.keys.filter { it.rect.top == top && it.isLetter }.sortedBy { it.rect.left }
+        assertEquals("azertyuiop", row(0f).joinToString("") { it.output!! })
+        assertEquals("qsdfghjklm", row(0.25f).joinToString("") { it.output!! })
+        assertEquals(0f, row(0.25f).first().rect.left)
+        assertEquals("wxcvbn", row(0.5f).joinToString("") { it.output!! })
+        assertEquals(0.2f, row(0.5f).first().rect.left, 1e-4f)
+        val shift = p.keys.first { it.role == KeyRole.SHIFT }
+        assertEquals(0.2f, shift.rect.right - shift.rect.left, 1e-4f)
+        val back = p.keys.first { it.role == KeyRole.BACKSPACE }
+        assertEquals(0.8f, back.rect.left, 1e-4f)
+        // the alternates of the Spanish lists: à is the 4th cell of a, œ the 6th of o, ç the 2nd of c (01 §3.7)
+        assertEquals(listOf("á", "â", "à", "ä", "æ", "å"), p.keys.first { it.output == "a" }.alternates.map { it.output })
+        assertEquals(listOf("ó", "ô", "ò", "ö", "œ", "ø"), p.keys.first { it.output == "o" }.alternates.map { it.output })
+        assertEquals(listOf("ç", "©"), p.keys.first { it.output == "c" }.alternates.map { it.output })
+        assertEquals(listOf("ý", "ÿ"), p.keys.first { it.output == "y" }.alternates.map { it.output })
+        assertEquals(listOf("§"), p.keys.first { it.output == "s" }.alternates.map { it.output })
+        assertTrue(p.keys.first { it.output == "t" }.alternates.isEmpty())
+        assertTrue(p.keys.first { it.output == "d" }.alternates.isEmpty())
+        // no apostrophe on the letter page (01 §3.7)
+        assertTrue(p.keys.none { k -> k.output == "'" || k.alternates.any { it.output == "'" || it.output == "’" } })
+        val dot = p.keys.first { it.output == "." && it.rect.top == 0.75f }
+        assertEquals(listOf(",", "?", "!", "-"), dot.alternates.map { it.output })
+        assertEquals("espace", p.keys.first { it.role == KeyRole.SPACE }.label)
+        val urlDot = fr.page("url.letters").keys.first { it.output == "." && it.rect.top == 0.75f }
+        assertEquals(listOf("/", ":", "\"", "&", "+", "-"), urlDot.alternates.map { it.output })
+        // symbols-1: the apostrophe (` ‘ ’), the guillemets as 4th and 5th cells of ", € with $ £ ¥ ¢ ¤ (01 §3.7, §4)
+        val sym = fr.page("text.symbols-1")
+        assertEquals(listOf("`", "‘", "’"), sym.keys.first { it.output == "'" }.alternates.map { it.output })
+        assertEquals(listOf("”", "“", "»", "«"), sym.keys.first { it.output == "\"" }.alternates.map { it.output })
+        assertEquals(listOf("$", "£", "¥", "¢", "¤"), sym.keys.first { it.output == "€" }.alternates.map { it.output })
+        // the symbol pages keep the common side keys (next-page key 0–0.15, backspace 0.85–1.0)
+        assertEquals(0.85f, sym.keys.first { it.role == KeyRole.BACKSPACE }.rect.left, 1e-4f)
+        val decimal = fr.page("number.numpad").keys.first { it.rect.top == 0.75f && it.rect.left == 0f }
+        assertEquals(",", decimal.output)
+        assertEquals(listOf(".", "-"), decimal.alternates.map { it.output })
+        val multi = layout("layouts-fr-multi.json").page("text.letters")
+        assertEquals("FRA", layout("layouts-fr-multi.json").languageInfo.label)
+        assertEquals("espace", multi.keys.first { it.role == KeyRole.SPACE }.label)
+        assertTrue(multi.keys.any { it.role == KeyRole.LANGUAGE })
     }
 
     @Test

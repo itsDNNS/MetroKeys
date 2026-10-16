@@ -115,6 +115,8 @@ public class LanguageSuggestions internal constructor(
     public val corrections: List<Candidate>,
     /** Autocorrection decided by this language (05 §10.1), or null. */
     public val autoCorrection: Candidate?,
+    /** True if the typed word is the letters of an elision prefix and [ranked] starts with that prefix (05 §8.5). */
+    public val prefixFirst: Boolean = false,
 ) {
     /** Candidate-bar entries of this language alone (05 §9), without emoji. */
     public fun bar(): List<Candidate> {
@@ -254,6 +256,10 @@ public class LanguageEngine @JvmOverloads constructor(
             val canon = lexicon.canonical(word)
             if (canon != null && upperDisplay(canon) == word) return Validity(true, lm(canon, prev, nameField), 2)
         }
+        // 1, 2 with unaccented capitals (CAPS_UNACCENTED, fr): "Etat" for "État", "ECOLE" for "école"
+        if (params.capsUnaccented) unaccentedCapitalForm(word, mode, decap != null)?.let {
+            return Validity(true, lm(it, prev, nameField), 1)
+        }
         val caseError = isCaseError(word, mode)
         // 3 learned
         if (!caseError) {
@@ -283,6 +289,40 @@ public class LanguageEngine @JvmOverloads constructor(
             if (lexicon.exact(d)) return Validity(true, lm(d, prev, nameField), 7)
         }
         return Validity.INVALID
+    }
+
+    /**
+     * 05 §7 rules 1 and 2 with `CAPS_UNACCENTED`: the stored form whose display (as stored, first letter upper-cased if
+     * [firstUpper], all caps in ALL CAPS mode) equals [word] when an upper-case letter of [word] without diacritic may
+     * stand for the same capital with a diacritic; null if there is none.
+     */
+    private fun unaccentedCapitalForm(word: String, mode: CaseMode, firstUpper: Boolean): String? {
+        val loose = BooleanArray(word.length) { i ->
+            val c = word[i]
+            Character.isUpperCase(c) && EditDistance.stripDiacritic(Character.toLowerCase(c)) == Character.toLowerCase(c)
+        }
+        if (loose.none { it }) return null
+        for (k in lexicon.looseKeys(word, loose)) {
+            for (f in lexicon.formsOf(k)) {
+                if (unaccentedMatch(word, f.text) || (firstUpper && unaccentedMatch(word, capitalizeFirst(f.text))) ||
+                    (mode == CaseMode.ALL_CAPS && unaccentedMatch(word, upperDisplay(f.text)))
+                ) return f.text
+            }
+        }
+        return null
+    }
+
+    private fun unaccentedMatch(word: String, display: String): Boolean {
+        if (word.length != display.length || word == display) return false
+        for (i in word.indices) {
+            val a = word[i]
+            val b = display[i]
+            if (a == b) continue
+            if (!(Character.isUpperCase(a) && Character.isUpperCase(b) &&
+                    EditDistance.isUnaccentedCapital(Character.toLowerCase(a), Character.toLowerCase(b)))
+            ) return false
+        }
+        return true
     }
 
     /** Compound rule (05 §7 rule 6): the cost max(lm(head), lm(tail)), or null. */
@@ -552,7 +592,10 @@ public class LanguageEngine @JvmOverloads constructor(
                 put(f.text, LmCost.cost(LmCost.pairProbability(f.pairClass)) + Params.COMP_SURCHARGE)
             }
         }
-        val allCaps = typed.any { Character.isLetter(it) } && typed.filter { Character.isLetter(it) }.all { Character.isUpperCase(it) }
+        // all caps only for a prefix of two or more capitals ("DELL'"; a single capital is a sentence start, "C'" →
+        // "C'est", as the case mode of §6 needs two letters for ALL CAPS)
+        val letters = typed.filter { Character.isLetter(it) }
+        val allCaps = letters.length >= 2 && letters.all { Character.isUpperCase(it) }
         val merged = LinkedHashMap<String, Candidate>()
         for ((w, c) in costs) {
             val d = typed + if (allCaps) upperDisplay(w) else w
@@ -597,7 +640,7 @@ public class LanguageEngine @JvmOverloads constructor(
         for (word in pool) {
             if (hidden(word)) continue
             val d = display(word, mode)
-            if (EditDistance.units(w, d) > maxUnits) continue
+            if (EditDistance.units(w, d, params.capsUnaccented) > maxUnits) continue
             val e = ed.weighted(w, d, taps)
             val c = b.candidate(word, d)
             val cost = b.lm(word) + e
@@ -654,9 +697,8 @@ public class LanguageEngine @JvmOverloads constructor(
             for (word in words) {
                 if (hidden(word)) continue
                 val d = display(word, mode)
-                if (d.length < len) continue
-                val prefix = d.substring(0, len)
-                val u = EditDistance.units(w, prefix)
+                val prefix = completionPrefix(d, len) ?: continue
+                val u = EditDistance.units(w, prefix, params.capsUnaccented)
                 if (u > maxUnits) continue
                 val l = b.lm(word)
                 if (l + Params.COMP_EDIT_FACTOR * u / len > Params.COMP_LIMIT) continue
@@ -678,9 +720,18 @@ public class LanguageEngine @JvmOverloads constructor(
             }
         }
         val corrections = byCorrection.take(Params.CORR_KEEP)
-        val ranked = all.filter { it.cost < Candidate.INF }.sortedWith(compareBy<Candidate>({ it.cost }, { it.display }))
+        var ranked = all.filter { it.cost < Candidate.INF }.sortedWith(compareBy<Candidate>({ it.cost }, { it.display }))
+        // letters of an elision prefix with at least two letters ("qu", "jusqu", "dell"): the prefix candidate first (§8.5)
+        var prefixFirst = false
+        if (elidedPrefix == null && lexicon.hasPrefixTable && low.length >= 2 && isPrefixLetters(low)) {
+            val i = ranked.indexOfFirst { it.isElisionPrefix }
+            if (i >= 0) {
+                ranked = listOf(ranked[i]) + ranked.filterIndexed { j, _ -> j != i }
+                prefixFirst = true
+            }
+        }
         val ac = if (correctionsOnly) null else decideAutocorrection(ctx, w, validity, corrections, b, elidedPrefix != null)
-        return LanguageSuggestions(languageTag, w, validity, ranked, corrections, ac)
+        return LanguageSuggestions(languageTag, w, validity, ranked, corrections, ac, prefixFirst)
     }
 
     /**
@@ -719,20 +770,23 @@ public class LanguageEngine @JvmOverloads constructor(
                 val word = prefix + f.text
                 val d = display(word, mode)
                 val l = LmCost.cost(10.0.pow(preLog + f.log10p))
+                if (split && validity.valid && params.elisionValidSlack != null &&
+                    l + ed.weighted(w, d, ctx.taps) > validity.cost + params.elisionValidSlack
+                ) continue
                 val c = b.byDisplay[d] ?: Candidate(word, d, l).also { b.byDisplay[d] = it }
                 if (l < c.lm) {
                     c.lm = l
                     c.word = word
                 }
                 if (split) {
-                    // 1 elision split: a correction candidate
+                    // 1 elision split: a correction candidate (for a valid W only within ELISION_VALID_SLACK, fr)
                     val e = ed.weighted(w, d, ctx.taps)
                     if (l + e < c.correctionCost) {
                         c.correctionCost = l + e
                         c.ed = e
                     }
                 } else if (d.length > w.length) {
-                    // 2 elided completion
+                    // 2 elided completion (the first len + 1 characters of D)
                     val cost = l + Params.COMP_SURCHARGE + ed.weighted(w, d.substring(0, w.length + 1), ctx.taps)
                     if (cost < c.completionCost) c.completionCost = cost
                 }
@@ -847,8 +901,54 @@ public class LanguageEngine @JvmOverloads constructor(
             for (v in variants.take(Params.PREFIX_VARIANTS_MAX)) out.add(v.text)
         }
         if (w.contains("ss", ignoreCase = true)) out.add(w.replace("ss", "ß").replace("SS", "ß").replace("Ss", "ß").replace("sS", "ß"))
+        // 4 "oe"/"ae" → "œ"/"æ" in languages whose PREFIX_ACCENTS list the ligatures (fr)
+        if (ligatures && (w.contains("oe", ignoreCase = true) || w.contains("ae", ignoreCase = true))) out.add(withLigatures(w))
         return out
     }
+
+    private val ligatures: Boolean = params.prefixAccents.values.any { 'œ' in it || 'æ' in it }
+
+    /** [w] with every "oe" replaced by "œ" and "ae" by "æ", the case of the first letter kept ("Oe" → "Œ"). */
+    private fun withLigatures(w: String): String {
+        val sb = StringBuilder(w.length)
+        var i = 0
+        while (i < w.length) {
+            val a = w[i]
+            val la = Character.toLowerCase(a)
+            if (i + 1 < w.length && Character.toLowerCase(w[i + 1]) == 'e' && (la == 'o' || la == 'a')) {
+                val lig = if (la == 'o') 'œ' else 'æ'
+                sb.append(if (Character.isUpperCase(a)) Character.toUpperCase(lig) else lig)
+                i += 2
+            } else {
+                sb.append(a)
+                i++
+            }
+        }
+        return sb.toString()
+    }
+
+    /**
+     * The completion prefix of §8.3: the shortest beginning of [d] that holds [len] characters when the fillers `'` `.`
+     * `-` are not counted and a ligature œ/æ counts as two; null if [d] is too short.
+     */
+    internal fun completionPrefix(d: String, len: Int): String? {
+        var n = 0
+        for (i in d.indices) {
+            if (n >= len) return d.substring(0, i)
+            val c = d[i]
+            n += when (Character.toLowerCase(c)) {
+                '\'', '.', '-' -> 0
+                'œ', 'æ' -> 2
+                else -> 1
+            }
+        }
+        return if (n >= len) d else null
+    }
+
+    /** True if the lower-cased [low] is the letters of one of the language's elision prefixes without the apostrophe. */
+    private fun isPrefixLetters(low: String): Boolean = low in prefixLetters
+
+    private val prefixLetters: Set<String> = params.elisionPrefixes.mapTo(HashSet()) { it.dropLast(1) }
 
     // ------------------------------------------------------------------ autocorrection (§10.1)
 
@@ -875,6 +975,8 @@ public class LanguageEngine @JvmOverloads constructor(
             }
             return c
         }
+        // 2a letters of an elision prefix ("qu", "jusqu", "dell") that are no valid word: never autocorrected
+        if (!elidedRemainder && !validity.valid && isPrefixLetters(toKey(w))) return null
         if (w.any { it.isDigit() || TextModel.isOrdinalIndicator(it) } || user.isRejected(w)) return null
         val best = corrections.firstOrNull() ?: return null
         if (validity.valid && !(validity.cost > params.acValidRare && best.lm < params.acValidTarget)) return null
@@ -990,18 +1092,26 @@ public class LanguageEngine @JvmOverloads constructor(
     }
 
     private companion object {
-        /** Lower-case text with every diacritic removed (05 §8.2.1 follower matching). */
+        /** Lower-case text with every diacritic removed and the ligatures expanded (œ → oe, æ → ae; 05 §8.2.1). */
         fun stripAll(s: String): String {
             val sb = StringBuilder(s.length)
-            for (c in s) sb.append(EditDistance.stripDiacritic(c))
+            for (c in s) {
+                when (c) {
+                    'œ' -> sb.append("oe")
+                    'æ' -> sb.append("ae")
+                    else -> sb.append(EditDistance.stripDiacritic(c))
+                }
+            }
             return sb.toString()
         }
 
-        /** True if [w] starts with a vowel (with or without diacritic) or "h" (05 §8.2.1). */
+        /** True if [w] starts with a vowel (a e i o u y, with or without diacritic, œ, æ) or "h" (05 §8.2.1). */
         fun startsVowelOrH(w: String): Boolean {
             if (w.isEmpty()) return false
-            val c = Character.toLowerCase(EditDistance.stripDiacritic(Character.toLowerCase(w[0])))
-            return c in "aeiouh"
+            val low = Character.toLowerCase(w[0])
+            if (low == 'œ' || low == 'æ') return true
+            val c = Character.toLowerCase(EditDistance.stripDiacritic(low))
+            return c in "aeiouyh"
         }
     }
 }
