@@ -190,6 +190,74 @@ def run(dump_path, out_path):
     os.replace(tmp, out_path)
 
 
+WORTART = re.compile(r"\{\{Wortart\|([^|{}]+)\|Deutsch\}\}")
+
+
+def pos_run(dump_path, out_path):
+    """Parts of speech of the German sections (05b §3.7, 0.6.5): for every single-word title with a German section, the
+    values of its {{Wortart|…|Deutsch}} headings. Cached as a gzip TSV: title TAB part|part|…"""
+    pos = {}
+    title = None
+    ns = None
+    buf = None
+    with bz2.open(dump_path, "rt", encoding="utf-8") as f:
+        for line in f:
+            if buf is not None:
+                end = line.find("</text>")
+                if end >= 0:
+                    buf.append(line[:end])
+                    if ns == "0" and title is not None and SINGLE_WORD.match(title):
+                        page_pos(title, html.unescape("".join(buf)), pos)
+                    buf = None
+                else:
+                    buf.append(line)
+                continue
+            s = line.strip()
+            if s.startswith("<title>"):
+                title = html.unescape(s[7:-8])
+                ns = None
+            elif s.startswith("<ns>"):
+                ns = s[4:-5]
+            elif s.startswith("<text"):
+                gt = line.find(">")
+                rest = line[gt + 1:]
+                if s.endswith("/>"):
+                    continue
+                end = rest.find("</text>")
+                if end >= 0:
+                    if ns == "0" and SINGLE_WORD.match(title or ""):
+                        page_pos(title, html.unescape(rest[:end]), pos)
+                else:
+                    buf = [rest]
+    tmp = out_path + ".tmp"
+    with gzip.open(tmp, "wt", encoding="utf-8") as out:
+        for t in sorted(pos):
+            out.write(f"{t}\t{'|'.join(sorted(pos[t]))}\n")
+    os.replace(tmp, out_path)
+
+
+def page_pos(title, text, pos):
+    in_german = False
+    for line in text.split("\n"):
+        if LANG_HEADING.match(line):
+            in_german = bool(GERMAN_HEADING.match(line))
+            if in_german:
+                pos.setdefault(title, set())
+            continue
+        if in_german and line.startswith("==="):
+            for m in WORTART.finditer(line):
+                pos[title].add(m.group(1).strip())
+
+
+def load_pos(path):
+    out = {}
+    with gzip.open(path, "rt", encoding="utf-8") as f:
+        for line in f:
+            t, _, p = line.rstrip("\n").partition("\t")
+            out[t] = set(p.split("|")) if p else set()
+    return out
+
+
 def load(path):
     titles, de_forms, counts = set(), set(), {}
     with gzip.open(path, "rt", encoding="utf-8") as f:

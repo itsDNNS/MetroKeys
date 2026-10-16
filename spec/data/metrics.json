@@ -428,7 +428,6 @@
   "popupHideDelayMs": 75,
   "pickerHoldMs": 100,
   "pickerSlideEndMs": 300,
-  "pickerStayAfterReleaseMs": 1000,
   "autocorrectFlashMs": 300
  },
  "animations": {

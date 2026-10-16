@@ -65,7 +65,9 @@ switch reuses the dictionary that stays). `Dictionary.bundledContains(tag, keys)
 contains, from the loaded instance or by streaming through the compressed file without building it
 (`Lexicon.containedKeys`); `LearnedWordList.of(models, knownKeys)` builds the learned words list of 05 §12.5 from learned
 data alone with such a lookup (the settings use both). `Dictionary.bundledLicenseText(tag)` gives the attribution text
-for the licences screen. Queries are thread-safe; learned data is synchronised internally.
+for the licences screen. Queries are thread-safe; learned data is synchronised internally. `queryObserver` (0.6.5) is
+called at the start of every `query` on the calling thread, so the keyboard's tests (and debug checks) can verify that
+no query runs on its UI thread.
 
 ## Data flow of a query
 
@@ -130,10 +132,11 @@ computed on the way), never held as a whole. The front-coded keys are kept only 
 character per tree node) with their lengths and common-prefix lengths; the breadth-first prefix tree (children
 contiguous and sorted, so lookups are binary searches and node order is (depth, text)) is then built level by level —
 a key's node at depth d is new exactly when its common prefix with the previous key is shorter than d — into arrays of
-exactly the node count: de-DE ≈ 717 000 nodes (236 223 keys since 0.6.4), en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 711 keys),
+exactly the node count: de-DE ≈ 1 781 000 nodes (857 274 keys since 0.6.5 with the dictionary-only forms; 717 000 nodes and 236 223 keys in 0.6.4), en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 711 keys),
 fr-FR (174 316 keys). Explicit forms are a sorted index array with their
 texts; pair-table followers go straight into primitive arrays. Two languages with pair tables retain 24–35 MB of JVM
-heap and load within a 44 MB maximum heap, three 39–50 MB within 60 MB (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
+heap without German and 56–60 MB with German since 0.6.5 (24–35 MB before) and load within an 80 MB maximum heap (44 MB
+before 0.6.5), three 39–43 MB without and 68–74 MB with German within 88 MB (60 MB before) (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
 string per key and per-character build arrays). Loading both takes ≈ 0.2–0.3 s on a desktop JVM. Completions are a best-first search over the per-node maximum class; the fuzzy search walks the tree with
 optimal-string-alignment rows and prunes with the row minimum (and the row before it, which keeps the pruning
 admissible with transpositions). Shape writing reuses the same tree as its word index; contact words not in the
@@ -162,7 +165,7 @@ are classified on every build; the English dump takes ≈ 15 minutes per pass). 
 archive only the plain lists and the `Copyright` file are extracted, no script is run. The build is deterministic
 (sorted iteration, gzip with mtime 0); its counts and output hashes are written to `tools/dictionary-build.json`
 and documented in [DATA-SOURCES.md](DATA-SOURCES.md). Pipeline modules (`tools/dictbuild/`):
-`wiktionary_de.py` (§3.2), `build_de.py` (§3.3–3.7; since 0.6.4 step 6a, the damping of non-German keys, also
+`wiktionary_de.py` (§3.2; since 0.6.5 also the parts of speech of the German sections for the lemma variant of §3.7), `build_de.py` (§3.3–3.7; since 0.6.5 the dictionary-only forms of §3.7 in both variants; since 0.6.4 step 6a, the damping of non-German keys, also
 in the pair table via `PairCounter(damped=…)`, and the real-word typos with the neighbour keys of
 `spec/data/layouts-de.json`), `build_en.py` (§4), `wiktionary_es.py` (§8.2), `build_es.py`
 (§8), `wiktionary_pt.py` (§9.2: section extraction and page kinds of both dumps), `build_pt.py` (§9.1, §9.3–§9.7),
@@ -181,8 +184,12 @@ conformance checklist of 05 §18 (`ConformanceTest`) and unit tests of all parts
 where the spec's numbers depend on them. The rules of 05 §12.5 are covered with the real dictionaries: "usz" → "ist",
 "Usz" → "Ist", "pqt" does not reach "ist"; an unknown word typed twice is still corrected and known after the third
 use; acceptance by picking or "add to dictionary"; one or two undos; forgetting; the version-1 data format. `MemoryBudgetTest`
-loads every pair of languages with pair tables in a separate JVM with `-Xmx44m` and the sets of three with `-Xmx60m`, runs
-queries and a multilingual swipe (retained heap in 0.6.2: de+en 32.8 MB, de+es 34.9 MB, en+es 28.6 MB, de+pt 30.8 MB,
+loads every pair of languages with pair tables in a separate JVM with `-Xmx80m` (44 MB before 0.6.5) and the sets of three
+with `-Xmx88m` (60 MB before), runs queries and a multilingual swipe (retained heap in 0.6.5 with the dictionary-only
+German forms: de+en 57.8 MB, de+es 59.8 MB, de+pt 55.9 MB, it+de 58.7 MB, fr+de 59.9 MB; de+en+es 71.7 MB, de+en+pt
+67.7 MB, de+es+pt 69.7 MB, it+de+en 70.7 MB, it+de+es 72.6 MB, it+de+pt 68.7 MB, fr+de+en 71.7 MB, fr+de+es 73.7 MB,
+fr+de+it 72.7 MB, fr+de+pt 69.9 MB; sets without German as below; the peak while loading needs up to 76 MB for it+de;
+retained heap in 0.6.2: de+en 32.8 MB, de+es 34.9 MB, en+es 28.6 MB, de+pt 30.8 MB,
 en+pt 24.5 MB, es+pt 26.6 MB, it+de 34.5 MB, it+en 27.5 MB, it+es 29.6 MB, it+pt 25.6 MB; de+en+es 47.1 MB,
 de+en+pt 43.2 MB, de+es+pt 45.4 MB, en+es+pt 38.8 MB, it+de+en 46.0 MB, it+de+es 48.0 MB, it+de+pt 44.1 MB,
 it+en+es 41.8 MB, it+en+pt 37.8 MB, it+es+pt 39.9 MB; 0.6.3 with French: fr+de 34.9 MB, fr+en 28.7 MB, fr+es 30.8 MB, fr+it 29.9 MB, fr+pt 26.7 MB;
@@ -229,7 +236,8 @@ penalty. `-PshowOutput` shows test output.
 - **Touch keys**: the touch model uses the alternates listed in 05 §4 (ä → a …), shape writing removes any
   diacritic (06 §4.2). Nominal key size = the most common letter-key width/height (05 open point 3).
 - **Completion ties** (05 open point 2): equal classes are returned shorter first, then alphabetically.
-- **Next-word display**: equal costs are ordered by text as the rule says (so "Das 49" precedes "Sie 49").
+- **Next-word display**: equal costs are ordered by text as the rule says (in 0.6.4 "Das 49" preceded "Sie 49"; since
+  0.6.5 "Das" costs 50, see the German dictionary-only forms below).
 - **Stricter learning everywhere**: 05 §12.2's "typed twice" text and its worked example predate §12.5; §12.5 is
   applied to every use of learned words (the worked example is tested with an accepted word).
 - **Learned words list**: every stored form the dictionaries do not know (also used once); each stored case form is its
@@ -340,5 +348,12 @@ penalty. `-PshowOutput` shows test output.
   "heute", "zi" → "zu"). The damped keys (names, foreign words) counted below 100 times also end at class 0 and are
   hidden the same way (spec/QUESTIONS.md). `ShortKeysAndNamesTest` covers 05 §17.7a, step 6a, the damping and the
   real-word typos; "Das war really" now scores 242 (best candidate "reales"; 05 §17.3 gives 236 with "Reilly").
+
+- **Dictionary-only German forms (0.6.5, 05b §3.7)**: every German Wiktionary form without a subtitle occurrence is in
+  the word list with class 1 (621 051 keys; DATA-SOURCES.md). They are valid, offered and correction targets like any
+  rare word: "Die App ist nicht performanz" offers "performant" first (no autocorrection; "Performanz" second),
+  also in de+en (`ShortKeysAndNamesTest.performanzOffersPerformant`). All other German worked examples are unchanged
+  except two next-word costs, because the new keys are also counted in the pair sources: after "Vielen " anderen 53 and
+  Fällen 55 (05 §17.7: 52 and 54, order unchanged) and "Das" 50 at the text start (49); spec/QUESTIONS.md.
 
 Questions with assumptions that matter are recorded in the specification (`spec/QUESTIONS.md`, not published).

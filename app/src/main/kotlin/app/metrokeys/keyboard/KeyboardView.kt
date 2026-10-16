@@ -338,7 +338,9 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
 
     // ================================================================ drawing
 
-    override fun onDraw(canvas: Canvas) {
+    override fun onDraw(canvas: Canvas) = app.metrokeys.ime.Perf.section("mk:draw") { drawAll(canvas) }
+
+    private fun drawAll(canvas: Canvas) {
         val now = SystemClock.uptimeMillis()
         updateSlide(now)
         val m = metrics
@@ -365,8 +367,9 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
         drawCompact(canvas)
         drawPopup(canvas, now)
         drawPicker(canvas, now)
+        // the key popup is static: it disappears through popupRunnable, not through animation frames
         if (m.s > 0 && (strip.animating(now) || emojiPanel.animating(now) || clipPanel.animating(now) || traceOverlay.animating(now) ||
-                picker?.let { now - it.openTime < 320 } == true || popupHideAt > now)
+                picker?.let { now - it.openTime < 320 } == true)
         ) {
             postInvalidateOnAnimation()
         }
@@ -997,7 +1000,9 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
     }
 
     /** Key choice at touch-down (03 §1.1a). */
-    private fun chooseKey(touched: Key, x: Float, y: Float): Key {
+    private fun chooseKey(touched: Key, x: Float, y: Float): Key = app.metrokeys.ime.Perf.section("mk:chooseKey") { chooseKeyNow(touched, x, y) }
+
+    private fun chooseKeyNow(touched: Key, x: Float, y: Float): Key {
         if (!touched.isLetter || !controller.keyChoiceAllowed() || !controller.currentWordNonEmpty()) return touched
         val own = controller.prefixClass(touched.output!!.lowercase())
         if (own >= 0) return touched

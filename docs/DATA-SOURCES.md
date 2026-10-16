@@ -98,25 +98,25 @@ byte-identical to 0.5.2, and two Spanish runs gave identical bytes).
 
 | | de-DE | reference (05b) | en-US | reference (05b) |
 |---|---:|---:|---:|---:|
-| keys | 236 223 (0.6.4; 236 559 before) | 236 823 | 163 405 | 163 419 |
-| cased forms | 241 563 (241 914) | 242 784 | 164 040 | 164 114 |
+| keys | 857 274 (0.6.5; 236 223 in 0.6.4, 236 559 before) | 236 823 | 163 405 | 163 419 |
+| cased forms | 864 361 (241 563; 241 914) | 242 784 | 164 040 | 164 114 |
 | S | 16.357883 | 16.357883 | 14.976348 | 14.976349 |
 | maxCount | 5 890 279 | – | 24 812 233 | – |
 | corpusTokens | 156 169 536 | 156 169 536 | 695 682 540 | 695 682 540 |
 | alias keys (replacing a word) | – | – | 79 (11) | 79 (11) |
 | possessive forms | – | – | 34 855 | 34 883 |
-| pair previous words | 52 820 (53 004) | 53 012 | 42 124 | 42 131 |
-| pairs | 558 993 (561 563) | 561 595 | 590 533 | 590 661 |
+| pair previous words | 55 267 (52 820; 53 004) | 53 012 | 42 124 | 42 131 |
+| pairs | 566 548 (558 993; 561 563) | 561 595 | 590 533 | 590 661 |
 
 | File | Bytes | SHA-256 |
 |---|---:|---|
-| `de-DE.words.gz` (0.6.4) | 962 464 | `4db8a773af87378dd1b5aef4e52d9d28236779d3df149a38f3379fc2842c8c7b` |
-| `de-DE.pairs.gz` (0.6.4) | 1 850 717 | `0d8fe4eff09adb81adc34221e3e11b8cd0679b128502445055447120bed4e6be` |
+| `de-DE.words.gz` (0.6.5) | 1 936 431 | `30b3ac90279991003d60651a0d5b7efa6c82937ff436aa8759f43388a4aa96e8` |
+| `de-DE.pairs.gz` (0.6.5) | 1 942 877 | `457238c79acb756b43668a5d64f45e41f7e098867ef3173d7d42a6e2f89e6a83` |
 | `en-US.words.gz` | 519 514 | `0d0595b450b30387511006ce39691e8c248e5d7175041f50d65899bb2e5b1f9b` |
 | `en-US.pairs.gz` | 1 927 135 | `2dde9255fc17e317a7bec8ad1aa7f24ceb6c0b66379299c1ae25472518457e91` |
 
 The SHA-256 of the uncompressed word-list payloads (stored in the pair tables as binding) are
-`47f6f56f…57033d9` (de-DE, 0.6.4; before `c51a843f…c8637ad`) and `ceac596e…ec3fb43f` (en-US), see dictionary-build.json.
+`96b4fb91…5183a730` (de-DE, 0.6.5; 0.6.4 `47f6f56f…57033d9`, before `c51a843f…c8637ad`) and `ceac596e…ec3fb43f` (en-US), see dictionary-build.json.
 
 ### Spanish (es-ES, first build, 0.6.0)
 
@@ -442,6 +442,35 @@ the changed build code (into a separate directory) gave byte-identical files for
 - **Kept 2–3-letter keys that are no form of the language** (report only, `shortKeysNotForms`; a form = German / Spanish /
   Portuguese / Italian / French Wiktionary form, English = SCOWL key): de-DE 3 keys; most frequent: dad (46472), the (28674), wär (23099); en-US 8 keys; most frequent: ohh (26185), erm (14625), im (6553), ive (993), lol (867), omg (557), ily (188), itd (13);
   es-ES 685 keys; most frequent: joe (45636), tom (43486), jim (27653), amy (19799), ted (13688), tim (12307), roy (9331), ian (7992), lou (7704), liz (7187), vic (4958), ias (4613), sid (4547), meg (4422), eve (4386); pt-BR 864 keys; most frequent: sam (60584), max (36139), fbi (27285), amy (23627), huh (17350), ed (14455), ted (14177), mac (10695), pré (10582), ooh (10010), roy (9655), lou (9325), gus (7669), doc (7603), vic (5651); it-IT 677 keys; most frequent: sam (33675), joe (24476), jim (15377), amy (13630), ted (9437), sig (8992), huh (5998), ian (5311), gus (5255), ron (5122), bla (4740), liz (4444), lou (4427), uhm (3852), eun (3508); fr-FR 131 keys; most frequent: ooh (7428), ohh (2236), déj (2021), jae (1743), iui (1736), axl (1174), hwa (630), atf (584), ème (568), ctu (550), ryu (509), jeb (465), uhh (443), unh (421), fda (419).
+
+### German rebuild (0.6.5)
+
+05b §3.7 "Dictionary-only German forms": every German form of the German Wiktionary (titles with a German section and
+the single-token forms of the German overview tables, §3.2) whose key never occurs in the subtitle list (count 0) and
+consists of 2–27 letters of the §3.1 alphabet is added with **class 1** for each form of the §3.4 case decision (no
+damping). Steps 1–8, the damping and the real-word typos are computed before and are unchanged (9228 damped keys, 115
+real-word typos, 336 short keys dropped by step 6a, identical lists). The other languages were not rebuilt; their build
+code and files are unchanged.
+
+The build writes both variants of the rule (`dictionaryOnlyForms` in dictionary-build.json; the lemma variant needs a
+second pass over the German dump, cached as `build-data/cache/dewiktionary-20261001-pos.tsv.gz`: the parts of speech
+`{{Wortart|…|Deutsch}}` of every German section; a lemma is a title with a part of speech other than an inflected form
+– Deklinierte Form, Konjugierte Form, Dekliniertes Gerundivum, Komparativ, Superlativ, Partizip I, Partizip II,
+Erweiterter Infinitiv):
+
+| | keys | added keys | forms | pairs | `de-DE.words.gz` | `de-DE.pairs.gz` |
+|---|---:|---:|---:|---:|---:|---:|
+| before (0.6.4) | 236 223 | – | 241 563 | 558 993 | 962 464 | 1 850 717 |
+| all forms (**used**) | 857 274 | 621 051 | 864 361 | 566 548 | 1 936 431 (+973 967) | 1 942 877 (+92 160) |
+| lemmas only | 306 019 | 69 796 | 311 950 | 563 134 | 1 282 788 (+320 324) | 1 879 141 (+28 424) |
+
+The word list grows by 0.97 MB < 1.5 MB, so all forms are added. Samples of added keys: Aabenraas, auskochtest,
+deportier, festgetretenes, herangenaht, kompromisslosesten, Nauruerin, Rückenschwimmens, thürmst, vorstossendem,
+performant. The pair table changes too, because the pair sources (Tatoeba, Common Voice, §5) now count the new keys:
+"vielen" has more counted followers, so after "Vielen " "anderen" costs 53 and "Fällen" 55 (52 and 54 before, order
+unchanged) and "Das" at the text start 50 (49); all other German worked examples are unchanged. Memory: the German tree
+has ≈ 1 781 000 nodes (717 000); the keyboard with de+en peaks at 87.3 MB of Dalvik heap on the emulator (63.0 MB
+before), de+en+fr at 101.2 MB (78.0 MB), see APP.md and spec/QUESTIONS.md.
 
 # App data sources
 

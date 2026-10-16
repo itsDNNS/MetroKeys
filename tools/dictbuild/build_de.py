@@ -42,6 +42,14 @@ DAMPING = 0.01
 # case, and whose one-key-aside substitution or swap is a German form at least TYPO_RATIO times as frequent gets class 0
 TYPO_MAX_COUNT = 100
 TYPO_RATIO = 5000
+# §3.7 dictionary-only German forms (0.6.5): the lowest class that is still offered (class 0 is never offered)
+DICT_ONLY_CLASS = 1
+# §3.7: if the word list grows by more than this (compressed bytes), only lemmas are added
+DICT_ONLY_MAX_GROWTH = 1_500_000
+# §3.7 lemmas: German parts of speech of inflected-form pages (spec/QUESTIONS.md, 0.6.5); a title is a lemma if its
+# German section has any other part of speech
+FORM_POS = {"Deklinierte Form", "Konjugierte Form", "Dekliniertes Gerundivum", "Komparativ", "Superlativ", "Partizip I",
+            "Partizip II", "Erweiterter Infinitiv"}
 # neighbour keys as the engine's touch model sees them (05 §4): proximity at the key centres <= NEAR_MAX
 TOUCH_KX, TOUCH_KY, TOUCH_UNIT, NEAR_MAX = 13516.8, 18432.0, 35.0, 1000
 
@@ -308,3 +316,42 @@ class GermanBuilder:
             forms.sort(key=lambda fc: -fc[1])
             entries[key] = forms
         return entries
+
+    # §3.7 (0.6.5)
+    def dictionary_only_keys(self, entries, lemma_keys=None):
+        """German-form keys without any subtitle occurrence (valid alphabet, 2…27 letters), not yet in [entries];
+        with [lemma_keys] only those."""
+        out = []
+        for key in sorted(self.forms_by_key):
+            if key in self.counts or key in entries:
+                continue
+            if not 2 <= len(key) <= 27 or any(ch not in ALLOWED for ch in key):
+                continue
+            if lemma_keys is not None and key not in lemma_keys:
+                continue
+            out.append(key)
+        return out
+
+    def add_dictionary_only(self, entries, lemma_keys=None):
+        """Adds the dictionary-only German forms with class DICT_ONLY_CLASS, case from §3.4, no damping; returns the
+        added keys."""
+        added = []
+        for key in self.dictionary_only_keys(entries, lemma_keys):
+            dec = self.case_decision(key) or [(key, 1.0)]
+            forms = []
+            seen = set()
+            for form, _ in dec:
+                if form in seen or jlower(form) != key:
+                    continue
+                seen.add(form)
+                forms.append((form, DICT_ONLY_CLASS))
+            if forms:
+                entries[key] = forms
+                added.append(key)
+        return added
+
+
+def lemma_keys(pos_by_title):
+    """Keys of the titles whose German section has a part of speech other than an inflected form (§3.7 lemmas)."""
+    return {jlower(t) for t, pos in pos_by_title.items() if pos - FORM_POS}
+

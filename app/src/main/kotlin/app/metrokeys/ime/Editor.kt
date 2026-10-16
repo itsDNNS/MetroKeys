@@ -50,4 +50,7 @@ interface Editor {
      * [suggestions], or plain [word] when [suggestions] is null, keeping the caret at [caret].
      */
     fun restyleWord(start: Int, end: Int, word: String, suggestions: List<String>?, caret: Int)
+
+    /** Drops any copy of the field's text kept by this editor ([CachingEditor]); the next read asks the field. */
+    fun invalidateCache() {}
 }

@@ -32,7 +32,7 @@ class SpanishInputLogicTest {
     fun setUp() {
         editor = FakeEditor()
         sched = FakeScheduler()
-        logic = InputLogic(editor, sched, object : InputLogic.Listener {
+        logic = InputLogic(CachingEditor(editor), sched, object : InputLogic.Listener {
             override fun onStrip(content: StripContent) {}
 
             override fun onAutoCorrected(correction: String) {

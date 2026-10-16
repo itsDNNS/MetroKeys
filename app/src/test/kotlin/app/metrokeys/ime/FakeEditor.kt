@@ -160,6 +160,10 @@ class FakeEditor : Editor {
 
     override fun restyleWord(start: Int, end: Int, word: String, suggestions: List<String>?, caret: Int) {
         check(text.substring(start, end) == word) { "restyle of a changed word" }
+        // like InputConnectionEditor: the word is made the composing region and committed again, which ends any
+        // composing region
+        compStart = -1
+        compEnd = -1
         if (suggestions == null) marks.remove(start until end) else marks[start until end] = suggestions
     }
 
@@ -177,14 +181,46 @@ class FakeEditor : Editor {
     override fun toString(): String = text.substring(0, selStart) + "|" + text.substring(selStart)
 }
 
-/** Runs background work at once and main-thread work when [run] is called, with a controllable clock. */
+/**
+ * Runs background work at once (or, with [deferBackground], when [runBackground] is called) and main-thread work when
+ * [run] is called, with a controllable clock. [inBackground] tells whether background work is running.
+ */
 class FakeScheduler : Scheduler {
     var time = 10_000L
     private val queue = ArrayList<Pair<Long, () -> Unit>>()
+    var inBackground = false
+        private set
+    var deferBackground = false
+    private val pending = ArrayList<() -> Unit>()
 
     override fun now(): Long = time
 
-    override fun background(task: () -> Unit) = task()
+    override fun background(task: () -> Unit) {
+        if (deferBackground) {
+            pending.add(task)
+            return
+        }
+        val was = inBackground
+        inBackground = true
+        try {
+            task()
+        } finally {
+            inBackground = was
+        }
+    }
+
+    /** Runs the deferred background tasks in order (also ones they post). */
+    fun runBackground() {
+        while (pending.isNotEmpty()) {
+            val t = pending.removeAt(0)
+            inBackground = true
+            try {
+                t()
+            } finally {
+                inBackground = false
+            }
+        }
+    }
 
     override fun main(delayMs: Long, task: () -> Unit): () -> Unit {
         val e = (time + delayMs) to task

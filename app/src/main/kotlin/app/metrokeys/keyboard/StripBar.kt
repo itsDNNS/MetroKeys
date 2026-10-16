@@ -55,6 +55,7 @@ class StripBar(private val v: KeyboardView) {
     private var chipStart = 0L
     private var chipW = 0f
     private var chipText = ""
+    private var chipWidthKey: Any? = null
 
     // a message in place of a suppressed toast
     private var message: String? = null
@@ -282,7 +283,10 @@ class StripBar(private val v: KeyboardView) {
     private fun updateChipTarget() {
         val c = v.controller.chip
         chip = c
-        if (c != null) {
+        // the width is measured again only when the chip's content or the strip width changed (not per key)
+        val key = c?.let { Triple(it.text, it.image?.image, stripWidth) }
+        if (c != null && (key != chipWidthKey || c.image != null)) {
+            chipWidthKey = key
             val w = chipWidth(c)
             if (w != chipW) {
                 chipW = w
@@ -333,7 +337,8 @@ class StripBar(private val v: KeyboardView) {
     }
 
     fun animating(now: Long): Boolean =
-        (scroller?.isMoving == true) || slot != slotTo || chipSlot != chipTo || (flashWord != null)
+        // the autocorrection flash is static: endFlash redraws when it is over
+        (scroller?.isMoving == true) || slot != slotTo || chipSlot != chipTo
 
     // ================================================================ drawing
 

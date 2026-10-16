@@ -3,6 +3,30 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.6.5 – 2026-10-16
+
+### Performance
+- Typing fast no longer makes the keyboard wait for the app: it keeps its own copy of the text around the cursor
+  instead of asking the text field 5–7 times per key, so each key is handled in well under a millisecond on the main
+  thread (before up to 20–40 ms at a space). Measured on the emulator with German and English at nine keys per second:
+  the corrected word appears in the app 17 ms after the space (median, 63 ms before; slowest 34 ms instead of 158 ms),
+  and the keyboard drew no slow frame during 326 keys (323 before). Details in docs/APP.md, "Performance".
+- Suggestions and autocorrection are computed in the background as soon as a word changes; a space typed quickly uses
+  that result instead of computing it on the spot. The suggestion bar still updates after the usual typing pause, and
+  every autocorrection still applies.
+- Swiped words are inserted without waiting for the app (main-thread time 0.4 ms instead of 14 ms).
+- The clipboard, the ringer mode and the app bar are no longer queried at every key; the key popup and the
+  autocorrection flash no longer redraw the keyboard continuously while they are shown.
+
+### German dictionary
+- Words of written German that never occur in the subtitle corpus are now known: every German Wiktionary form without a
+  subtitle occurrence is added with the lowest offered frequency (621 051 words, e.g. "performant", "Rückenschwimmens",
+  "kompromisslosesten"). "Die App ist nicht performanz" now offers "performant" first. The word list grows from
+  0.96 MB to 1.94 MB (the release APK from 14.6 MB to 15.7 MB) and the keyboard needs about 24 MB more memory with
+  German loaded (still within the limits). Two next-word suggestions moved by one point (after "Vielen ": "anderen",
+  "Fällen"; "Das" at the text start); their order is unchanged.
+- The other languages' dictionaries are unchanged.
+
 ## 0.6.4 – 2026-10-16
 
 ### Keyboard

@@ -205,16 +205,57 @@ def write_licenses(copyright_path=None, tags=None):
             f.write(licenses.text(tag, notice))
 
 
+def trial_sizes(tag, builder, entries, table):
+    """Sizes of the word list and pair table of [entries] written to a scratch directory (§3.7 build report)."""
+    tmp = os.path.join(CACHE, "trial")
+    os.makedirs(tmp, exist_ok=True)
+    words_path = os.path.join(tmp, f"{tag}.words.gz")
+    pairs_path = os.path.join(tmp, f"{tag}.pairs.gz")
+    digest, keys = common.write_word_list(words_path, tag, builder.scale, builder.max_count, builder.corpus_tokens, entries)
+    common.write_pair_table(pairs_path, tag, digest, keys, entries, table)
+    return {"keys": len(keys), "forms": sum(len(v) for v in entries.values()),
+            "wordsBytes": os.path.getsize(words_path), "pairsBytes": os.path.getsize(pairs_path),
+            "pairs": sum(len(v) for v in table.values())}
+
+
 def build_german(stats):
     wikt_cache = os.path.join(CACHE, "dewiktionary-20261001.tsv.gz")
     if not os.path.exists(wikt_cache):
         print("Wiktionary pass (a few minutes)")
         wiktionary_de.run(os.path.join(SRC, WIKT_DUMP), wikt_cache)
+    pos_cache = os.path.join(CACHE, "dewiktionary-20261001-pos.tsv.gz")
+    if not os.path.exists(pos_cache):
+        print("Wiktionary part-of-speech pass (a few minutes)")
+        wiktionary_de.pos_run(os.path.join(SRC, WIKT_DUMP), pos_cache)
     de = build_de.GermanBuilder(os.path.join(SRC, "fw", "de_full.txt"), wiktionary_de.load(wikt_cache))
     de_entries = de.build(os.path.join(ROOT, "spec", "data", "layouts-de.json"))
-    de_keys = sorted(de_entries)
-    de_table = build_pairs("de", de_entries, de_keys, "deu_sentences.tsv.bz2", "deu", "de",
-                           damped=de.damped, damping=build_de.DAMPING)
+
+    # §3.7 dictionary-only German forms (0.6.5): every form first; only lemmas if the word list grows too much
+    def variant(lemmas):
+        entries = dict(de_entries)
+        added = de.add_dictionary_only(entries, lemmas)
+        keys = sorted(entries)
+        table = build_pairs("de", entries, keys, "deu_sentences.tsv.bz2", "deu", "de",
+                            damped=de.damped, damping=build_de.DAMPING)
+        size = trial_sizes("de-DE", de, entries, table)
+        return entries, keys, table, added, size
+
+    base_size = trial_sizes("de-DE", de, de_entries, build_pairs("de", de_entries, sorted(de_entries), "deu_sentences.tsv.bz2",
+                                                                  "deu", "de", damped=de.damped, damping=build_de.DAMPING))
+    all_entries, all_keys, all_table, all_added, all_size = variant(None)
+    lemmas = build_de.lemma_keys(wiktionary_de.load_pos(pos_cache))
+    lem_entries, lem_keys, lem_table, lem_added, lem_size = variant(lemmas)
+    growth = all_size["wordsBytes"] - base_size["wordsBytes"]
+    use_lemmas = growth > build_de.DICT_ONLY_MAX_GROWTH
+    de_entries, de_keys, de_table = (lem_entries, lem_keys, lem_table) if use_lemmas else (all_entries, all_keys, all_table)
+    dict_only = {
+        "variantUsed": "lemmas" if use_lemmas else "allForms",
+        "before": base_size,
+        "allForms": dict(all_size, addedKeys=len(all_added)),
+        "lemmasOnly": dict(lem_size, addedKeys=len(lem_added)),
+        "addedSample": [f"{k} {forms_text((lem_entries if use_lemmas else all_entries)[k])}"
+                        for k in (lem_added if use_lemmas else all_added)[::max(1, len(lem_added if use_lemmas else all_added) // 100)][:100]],
+    }
     # 0.6.4 report: step 6a and the damping of non-German keys (§3.6)
     top = sorted(de.damped, key=lambda k: (-de.count(k), k))
     stats["de-DE-extra"] = {
@@ -226,6 +267,7 @@ def build_german(stats):
         "realWordTypos": len(de.typos),
         "realWordTyposTop150": [f"{k} {de.count(k)} -> {w} {de.count(w)}"
                                 for k, w in sorted(de.typos.items(), key=lambda kw: (-de.count(kw[0]), kw[0]))[:150]],
+        "dictionaryOnlyForms": dict_only,
     }
     write_outputs("de-DE", de.scale, de.max_count, de.corpus_tokens, de_entries, de_table, stats)
     write_licenses(tags=["de-DE"])

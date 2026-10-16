@@ -50,6 +50,23 @@ class ShortKeysAndNamesTest {
         for (k in listOf("dad", "the", "wär")) assertTrue(de.lexicon.forms(k).isNotEmpty(), k)
     }
 
+    /** 05 §17.7a (0.6.5): a dictionary-only German form (05b §3.7) is offered. */
+    @Test
+    fun performanzOffersPerformant() {
+        show("Die App ist nicht performanz")
+        // no subtitle occurrence: added from the German Wiktionary with class 1, the lowest offered class
+        assertEquals(1, de.lexicon.exactClass("performant"))
+        val r = engine.query(Query("Die App ist nicht performanz"))
+        val top3 = r.suggestions.take(3).map { it.text }
+        println("performanz: ac=${r.autoCorrection} bar=${r.suggestions.map { it.text }}")
+        assertTrue("performant" in top3, top3.toString())
+        // also German with English (multilingual)
+        val multi = TestDictionaries.multilingual("de-DE", TestDictionaries.german(), TestDictionaries.english())
+        val m = multi.query(Query("Die App ist nicht performanz"))
+        println("performanz de+en: ac=${m.autoCorrection} bar=${m.suggestions.map { it.text }}")
+        assertTrue("performant" in m.suggestions.take(3).map { it.text }, m.suggestions.toString())
+    }
+
     @Test
     fun cursosOffersCursorFirst() {
         show("Cursos")

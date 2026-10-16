@@ -66,7 +66,39 @@ class Feedback(private val context: Context) {
         sampleIds.clear()
     }
 
-    private fun ringerNormal(): Boolean = audio?.ringerMode == AudioManager.RINGER_MODE_NORMAL
+    /** The ringer mode, read once and then updated by its broadcast (no call to the audio service per key). */
+    @Volatile
+    private var ringerNormalCached = readRingerNormal()
+    private val ringerReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(c: Context?, i: android.content.Intent?) {
+            ringerNormalCached = readRingerNormal()
+        }
+    }
+    private var receiverRegistered = try {
+        androidx.core.content.ContextCompat.registerReceiver(
+            context, ringerReceiver, android.content.IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION),
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        true
+    } catch (_: RuntimeException) {
+        false
+    }
+
+    private fun readRingerNormal(): Boolean = audio?.ringerMode == AudioManager.RINGER_MODE_NORMAL
+
+    private fun ringerNormal(): Boolean = if (receiverRegistered) ringerNormalCached else readRingerNormal()
+
+    /** Releases the sounds and stops following the ringer mode (service end). */
+    fun shutdown() {
+        release()
+        if (receiverRegistered) {
+            receiverRegistered = false
+            try {
+                context.unregisterReceiver(ringerReceiver)
+            } catch (_: RuntimeException) {
+            }
+        }
+    }
 
     fun play(kind: SoundKind) {
         if (!soundsOn || volumePercent <= 0 || !ringerNormal()) return

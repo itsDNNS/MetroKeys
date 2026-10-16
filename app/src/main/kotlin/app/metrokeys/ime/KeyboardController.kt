@@ -55,30 +55,41 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     private val handler = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor { r -> Thread(r, "metrokeys-engine").apply { isDaemon = true } }
 
+    /** Queries of the current word (InputLogic's ahead queries and strip updates), not queued behind the worker. */
+    private val typingWorker = Executors.newSingleThreadExecutor { r -> Thread(r, "metrokeys-typing").apply { isDaemon = true } }
+
     val scheduler = object : Scheduler {
         override fun now(): Long = SystemClock.uptimeMillis()
 
-        override fun background(task: () -> Unit) {
+        override fun background(task: () -> Unit) = run(worker, "mk:bg", task)
+
+        override fun query(task: () -> Unit) = run(typingWorker, "mk:query", task)
+
+        private fun run(executor: java.util.concurrent.ExecutorService, section: String, task: () -> Unit) {
             // InputMethodService.onDestroy finishes the input view after destroy() shut the worker down (when the
             // user switches to another keyboard while this one is shown); the learned data was saved by destroy()
-            if (worker.isShutdown) return
-            worker.execute {
-                try {
-                    task()
-                } catch (e: RuntimeException) {
-                    android.util.Log.e("MetroKeys", "engine task failed", e)
+            if (executor.isShutdown) return
+            try {
+                executor.execute {
+                    try {
+                        Perf.section(section) { task() }
+                    } catch (e: RuntimeException) {
+                        android.util.Log.e("MetroKeys", "engine task failed", e)
+                    }
                 }
+            } catch (_: java.util.concurrent.RejectedExecutionException) {
             }
         }
 
         override fun main(delayMs: Long, task: () -> Unit): () -> Unit {
-            val r = Runnable { task() }
+            val r = Runnable { Perf.section("mk:main") { task() } }
             if (delayMs <= 0) handler.post(r) else handler.postDelayed(r, delayMs)
             return { handler.removeCallbacks(r) }
         }
     }
 
-    val editor = InputConnectionEditor(service, service)
+    /** The field, with a copy of the text around the caret so typing does not wait for the app (CachingEditor). */
+    val editor = CachingEditor(InputConnectionEditor(service, service))
     val logic = InputLogic(editor, scheduler, this)
     val feedback = Feedback(service)
 
@@ -184,9 +195,10 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         clipImages.release()
         contacts.release()
         dictation.release()
-        feedback.release()
+        feedback.shutdown()
         saveLearned()
         worker.shutdown()
+        typingWorker.shutdown()
     }
 
     private fun loadTexts() {
@@ -210,6 +222,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
 
     /** Settings changed (07 §9.1: applied without restart). */
     fun applySettings(s: KeyboardSettings, initial: Boolean = false) {
+        appBarCache = null
         val old = settings
         settings = s
         logic.settings = s
@@ -343,6 +356,8 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         clipboardPanelOpen = false
         miniKeyboardOpen = false
         appBarExpanded = false
+        appBarCache = null
+        refreshClipState()
         logic.startInput(f, info?.initialSelStart ?: 0, info?.initialSelEnd ?: 0)
         showStartPage()
         recordCurrentClip()
@@ -350,6 +365,8 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
 
     fun onShow() {
         loadTexts()
+        appBarCache = null
+        refreshClipState()
         // the permission may have been granted or revoked since (05 §13)
         contacts.update(settings.contactsWordSource)
         view?.onShown()
@@ -404,7 +421,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
 
     // ================================================================ InputLogic.Listener
 
-    override fun onStrip(content: StripContent) {
+    override fun onStrip(content: StripContent): Unit = Perf.section("mk:strip") {
         strip = content
         view?.onStrip(content)
     }
@@ -415,7 +432,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         view?.announce(str(R.string.a11y_corrected, correction))
     }
 
-    override fun onTextChanged() {
+    override fun onTextChanged(): Unit = Perf.section("mk:textChanged") {
         updateAutoShift()
         view?.onFieldStateChanged()
     }
@@ -493,8 +510,10 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
 
     /** Touch-down feedback and the keys that act on touch-down (03 §1.2, §4, §7.1, §8.2). */
     fun keyDown(key: Key) {
-        feedback.play(soundFor(key))
-        feedback.vibrate()
+        Perf.section("mk:feedback") {
+            feedback.play(soundFor(key))
+            feedback.vibrate()
+        }
         when (key.role) {
             KeyRole.PAGE, KeyRole.EMOJI -> key.target?.let { switchToPage(it) }
             KeyRole.SHIFT -> shiftDown()
@@ -530,6 +549,17 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
 
     /** Release of a key: its character is typed / its function runs (03 §1.2). [x], [y] in key-area px. */
     fun keyCommit(key: Key, x: Float, y: Float) {
+        val name = when (key.role) {
+            KeyRole.CHAR -> "mk:commit:char"
+            KeyRole.SPACE -> "mk:commit:space"
+            KeyRole.BACKSPACE -> "mk:commit:backspace"
+            else -> "mk:commit:other"
+        }
+        Perf.allocCounter()
+        Perf.section(name) { commitKey(key, x, y) }
+    }
+
+    private fun commitKey(key: Key, x: Float, y: Float) {
         when (key.role) {
             KeyRole.CHAR -> {
                 val out = key.outputText(isShifted) ?: return
@@ -649,6 +679,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         // the selection order decides the active set with more than three languages (05 §14.5)
         val recency = ActiveLanguages.selected(settings.languageRecency, tag, settings.languages)
         settings = settings.copy(activeLanguage = tag, languageRecency = recency)
+        appBarCache = null
         Prefs.of(context).edit().putString(Prefs.ACTIVE_LANGUAGE, tag)
             .putString(Prefs.LANGUAGE_RECENCY, ActiveLanguages.format(recency)).apply()
         val activeSet = activeSet(settings, tag)
@@ -696,7 +727,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         scheduler.background {
             val r = e.recognizeShape(trace, before, f)
             val texts = r.texts(shiftState)
-            scheduler.main(0) { logic.applySwipe(r, texts) }
+            scheduler.main(0) { Perf.section("mk:applySwipe") { logic.applySwipe(r, texts) } }
         }
     }
 
@@ -724,7 +755,24 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
 
     /** "Can paste" of 03 §6.6.2: also false while the recently-copied chip is shown. */
     val canPaste: Boolean
-        get() = clipboard.hasPrimaryClip() && !this.field.isPassword && !appBarHasClipboard() && chip == null
+        get() = clipPresent && !this.field.isPassword && !appBarHasClipboard() && chip == null
+
+    /** The system clipboard holds a clip / a text clip: read when it changes, at input start and when shown (not per frame). */
+    private var clipPresent = false
+    private var clipIsText = false
+
+    private fun refreshClipState() {
+        clipPresent = try {
+            clipboard.hasPrimaryClip()
+        } catch (_: SecurityException) {
+            false
+        }
+        clipIsText = clipPresent && try {
+            clipboard.primaryClipDescription?.hasMimeType("text/*") == true
+        } catch (_: SecurityException) {
+            false
+        }
+    }
 
     private fun appBarHasClipboard(): Boolean = settings.navMode == app.metrokeys.settings.NavMode.APP_BAR &&
         (settings.navTap.contains("clipboard") || settings.navHold.contains("clipboard"))
@@ -739,8 +787,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         get() = settings.clipboardHistory && strip.allowsClipboardButton && !this.field.isPassword &&
             clipboardHasText() && !appBarHasClipboard() && !clipHistory.isEmpty(System.currentTimeMillis())
 
-    private fun clipboardHasText(): Boolean =
-        clipboard.primaryClipDescription?.let { it.hasMimeType("text/*") } ?: false
+    private fun clipboardHasText(): Boolean = clipIsText
 
     // ================================================================ recently-copied chip (03 §6.11)
 
@@ -795,6 +842,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     }
 
     private fun onClipChanged() {
+        refreshClipState()
         recordCurrentClip(fromListener = true)
         view?.onClipboardChanged()
     }
@@ -959,11 +1007,19 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
 
     // ================================================================ application bar (03 §11, §12)
 
-    fun appBarButtons(): List<AppBarButton> = (0..2).map { i ->
-        val tap = settings.navTap[i]
-        val hold = settings.navHold[i]
-        buttonFor(i, tap, hold)
+    /**
+     * The three buttons. They are built once per input start, show and settings change (labels, app icons); per text
+     * change only the enabled state of the field-action button is re-evaluated (03 §12.5.2).
+     */
+    fun appBarButtons(): List<AppBarButton> {
+        val built = appBarCache ?: (0..2).map { i -> buttonFor(i, settings.navTap[i], settings.navHold[i]) }.also { appBarCache = it }
+        if (built.none { it.tap == "editor" }) return built
+        val on = fieldActionEnabled()
+        return if (built.all { it.tap != "editor" || it.enabled == on }) built
+        else built.map { if (it.tap == "editor") it.copy(enabled = on) else it }.also { appBarCache = it }
     }
+
+    private var appBarCache: List<AppBarButton>? = null
 
     private fun buttonFor(i: Int, tap: String, hold: String): AppBarButton {
         if (tap.startsWith("app:")) {

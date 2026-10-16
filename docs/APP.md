@@ -12,8 +12,10 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew :engine:test testDebugUnitTest lintDebug ass
 **Release build.** `assembleRelease` minifies with R8 (`proguard-android-optimize.txt`) and shrinks resources. No own
 keep rules are needed (reasons in `app/proguard-rules.pro`): manifest components are kept by AAPT's rules, the engine
 loads its dictionaries by absolute Java resource paths, and the only reflective call targets a framework method. The
-release APK (14.6 MB in 0.6.4, 14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
-writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences; for 0.6.4 the
+release APK (15.7 MB in 0.6.5 with the dictionary-only German forms, 14.6 MB in 0.6.4, 14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
+writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences; for 0.6.5 fast typing in Google Messages with German and English (ten keys per second,
+"ich habe dke katze gesehen und dke maus …": every "dke" → "die"), "Die App ist nicht performanz" → "performant" first,
+a swipe of "vielleicht" and the settings app; for 0.6.4 the
 lighter key labels, a pick for a word around the caret, "zi " / "zj " → "zu", "Cursos" → "Cursor" first, "Ich komme heure " →
 "heute", "Uberpeufe " → "Überprüfe" and the app bar (an empty part does nothing, "…" toggles). Signing uses
 `keystore.properties` in the repository root when present (README, "Building"); the version is `appVersionName` /
@@ -28,8 +30,9 @@ The layout, metrics and theme data of `spec/data/` are packaged unchanged as ass
 MetroKeysService (InputMethodService)        Android lifecycle, insets, hardware keys, inline autofill
  └─ KeyboardController                       pages, shift, languages, panels, app bar, dictation, clipboard
      ├─ InputLogic ── Editor                 text rules of spec 04 over an editor abstraction
-     │                └─ InputConnectionEditor
-     ├─ PredictionEngine (engine module)     loaded on a worker thread
+     │                └─ CachingEditor        copy of the text around the caret (0.6.5)
+     │                    └─ InputConnectionEditor
+     ├─ PredictionEngine (engine module)     loaded on a worker thread; current-word queries on a typing thread
      ├─ ClipboardHistory + ClipImages        history model; image files, thumbnails (own thread)
      │   └─ ClipImageProvider                read-only content provider for commitContent
      └─ KeyboardView (custom View)           drawing and touch of everything below
@@ -50,8 +53,10 @@ feedback, motion), `app.metrokeys.keyboard.layout` (layout data model and hit te
 
 ### Threads
 
-Everything runs on the main thread except engine work: dictionary loading, queries, learning, shape recognition and
-proofreading go through one worker thread (`Scheduler.background`).
+Everything runs on the main thread except engine work: dictionary loading, learning, saving, shape recognition,
+next-word predictions and proofreading go through one worker thread (`Scheduler.background`); the queries of the
+current word run on an own typing thread (`Scheduler.query`), so they never wait behind a proofreading run or a save.
+The typing path asks the engine nothing on the main thread (0.6.5, see "Performance").
 
 ### Memory (00 "Quality requirements", 05b §6)
 
@@ -88,8 +93,72 @@ fr+it 56.7 / 32.1 → 60.2 / 35.6 MB; de+en+fr 75.6 / 51.1 → 78.0 / 53.4, de+e
 
 The whole scenario (0.5) also runs with the per-app heap limit lowered to 64 MB (`dalvik.vm.heapgrowthlimit`, root on the
 emulator) without an OutOfMemoryError; the default limit is 192 MB. Results come back with a generation number; an
-outdated answer is dropped (03 §6.2). Autocorrection at a separator uses the last query result for the same text or
-runs the query synchronously, so a fast trigger is never missed.
+outdated answer is dropped (03 §6.2). Autocorrection at a separator uses the background query of the current word
+started at its last change (waiting for it if it is still running), so a fast trigger is never missed (0.6.5).
+With the dictionary-only German forms (0.6.5, 857 274 German keys instead of 236 223; same measurement, sampled
+every ≈ 0.3 s while loading, then after a swipe of "vielleicht"): de+en 87.3 / 62.7 MB (0.6.4: 63.0 / 39.0),
+de+en+fr 98.7 / 74.2 → 101.2 / 76.6 MB (0.6.4: 75.6 / 51.1 → 78.0 / 53.4). Both stay below the 96 MB and 128 MB of
+00 "Quality requirements", with a smaller margin for two languages (spec/QUESTIONS.md).
+
+### Performance (0.6.5)
+
+Owner report: "the keyboard sometimes lags behind when I type fast" (German + English, multilingual). Measured on the
+emulator (x86_64 on a desktop CPU, software GPU) with the release build typing into Google Messages: 326 taps at
+≈ 9 per second for 36 s (German and English sentences with typos, two backspaces), replayed with exact timing on the
+touchscreen device, traced with `atrace` (the keyboard's own trace sections `mk:*`, `Perf`), plus 19 swipes. Per key:
+main-thread time of the touch-down and release events, time from the event to the next frame of the keyboard
+(popup) and of the app (the text), synchronous binder calls of the main thread, frames over 16 ms, garbage
+collections and bytes allocated (process-wide counter `mk:allocKiB`).
+
+What cost main-thread time in 0.6.4: every key read the field through the InputConnection 5–7 times (text before
+and after the caret for the word, the auto-shift, the app bar's send state, the strip; the clipboard and the ringer
+mode through the system). Each read is a synchronous call that the app answers on its UI thread after it has applied
+the keyboard's earlier edits, so the keyboard waited for the app's layout of every character; at a space it also
+computed the autocorrection query itself (the delayed typing query had never run while typing fast). The key popup
+and the autocorrection flash requested animation frames for their whole duration. GC pauses and allocations on the
+main thread were not significant.
+
+Changes:
+- `CachingEditor` keeps a copy of the text around the caret that the keyboard's own commits, deletions and composing
+  text (a swiped word) update; it is dropped at input start, when the keyboard is shown, at caret moves and unexpected
+  selection updates, for selections set by the keyboard, keys sent to the app, the paste action and editor actions,
+  and the first key after a pause of 1 s reads the field again. Spelling marks are applied only after the field's own
+  text was read again.
+- Every change of the current word starts its query at once on the typing thread (`InputLogic.AheadQuery`, only the
+  newest one runs); the strip still shows it after the delay of 03 §6.2, and the autocorrection trigger takes its
+  result (waiting for it when it is still running, computing it itself only if it has not started yet).
+- The clipboard state is read when the clip changes, at input start and when the keyboard is shown; the app bar's
+  buttons are built once per input start, show and settings change; the ringer mode follows its broadcast; the
+  recently-copied chip is measured when its content changes; "add to dictionary" runs on the worker.
+- The key popup and the autocorrection flash are static: they end by a posted redraw, not by animation frames.
+
+Results (0.6.4 → 0.6.5):
+
+| ms, median / p95 (0.6.4 → 0.6.5) | 1 language (de) | 2 languages (de, en) | 3 languages (de, en, fr) |
+|---|---|---|---|
+| letter: main thread at the release (commit) | 3.6 / 9.5 → 0.3 / 0.9 | 5.3 / 13.6 → 0.3 / 0.8 | 4.5 / 10.5 → 0.3 / 0.8 |
+| letter: main thread at touch-down (popup, sound, key choice) | 1.0 / 15.5 → 0.3 / 0.5 | 1.2 / 18.8 → 0.3 / 0.6 | 1.3 / 13.7 → 0.3 / 0.6 |
+| space: main thread at the release (autocorrection, learning) | 18.3 / 34.5 → 0.3 / 1.0 | 21.1 / 31.4 → 0.4 / 0.9 | 19.1 / 33.7 → 0.4 / 0.9 |
+| backspace: main thread at the release | 12.3 / 18.2 → 0.4 / 0.7 | 12.4 / 26.2 → 0.5 / 0.9 | 12.9 / 19.1 → 0.4 / 0.5 |
+| letter: release → frame of the app with the letter | 22.3 / 53.2 → 16.6 / 25.4 | 29.1 / 58.1 → 17.2 / 29.2 | 23.1 / 51.0 → 16.0 / 25.9 |
+| space: release → frame of the app with the corrected word | 59.3 / 113.3 → 16.6 / 25.7 | 62.6 / 128.7 → 16.9 / 29.1 | 62.0 / 120.8 → 16.1 / 27.7 |
+| letter: touch-down → keyboard frame with the popup | 30.1 / 53.5 → 14.6 / 23.5 | 37.8 / 61.2 → 15.6 / 21.7 | 30.1 / 47.9 → 14.3 / 21.7 |
+| synchronous calls to the app or system per letter / space (median) | 5 / 7 → 0 / 0 | 5 / 7 → 0 / 0 | 5 / 7 → 0 / 0 |
+| engine query on the main thread at a space | 1.0 / 2.3 → none | 2.0 / 5.1 → none | 3.3 / 7.6 → none |
+| keyboard frames over 16 ms (326 keys) | 139 → 1 | 323 → 0 | 112 → 1 |
+| main-thread CPU time of the run (s) | 1.33 → 0.65 | 1.71 → 0.64 | 1.83 → 0.66 |
+| GCs during the run (total ms, concurrent) | 4 (21) → 8 (19) | 4 (18) → 12 (21) | 8 (35) → 21 (53) |
+| allocated per key, whole process (KiB, median) | 68 → 160 | 64 → 256 | 36 → 416 |
+| swipe: main thread applying the result | 9.3 / 19.9 → 0.3 / 1.5 | 13.8 / 22.1 → 0.4 / 2.7 | 15.0 / 24.3 → 0.3 / 1.1 |
+| swipe: release → keyboard frame with the word | 48.8 / 69.8 → 49.0 / 65.8 | 46.8 / 73.9 → 49.1 / 69.6 | 63.2 / 79.4 → 43.8 / 68.5 |
+
+The keyboard's frames on this emulator are dominated by the software GPU (≈ 14 ms per buffer swap); the popup latency
+is therefore not representative of a phone, the relative change is. The background query of the current word took
+0.9 / 1.5 / 2.2 ms (median, 1 / 2 / 3 languages) on the typing thread; it raises the allocations per key, collected
+by the concurrent GC off the main thread. `TypingPathTest` checks that fast typing asks the engine nothing on the
+main thread (`PredictionEngine.queryObserver`), that the strip keeps the typing pause, the fallback when the query has
+not started, and that typing reads the field only after pauses; `CachingEditorTest` compares the copy with the field
+over 6000 random edits. All `InputLogic` tests run through `CachingEditor`.
 
 ### Own edits versus caret moves
 

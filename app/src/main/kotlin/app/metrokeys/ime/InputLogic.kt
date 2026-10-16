@@ -15,12 +15,21 @@ import app.metrokeys.engine.text.TrailingSpaceAction
 import app.metrokeys.engine.touch.Tap
 import app.metrokeys.settings.KeyboardSettings
 import java.text.BreakIterator
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /** Timers and threads for [InputLogic]; replaced by a synchronous one in tests. */
 interface Scheduler {
     fun now(): Long
 
     fun background(task: () -> Unit)
+
+    /**
+     * Runs a typing query off the main thread: queries of the current word, which should not wait behind learning,
+     * proofreading or saving (production: an own thread; tests: [background]).
+     */
+    fun query(task: () -> Unit) = background(task)
 
     /** Runs [task] on the main thread after [delayMs]; returns a cancel function. */
     fun main(delayMs: Long, task: () -> Unit): () -> Unit
@@ -31,7 +40,10 @@ interface Scheduler {
  * autocorrection and its undo, picks, trailing/smart space, double-space period, backspace and word delete,
  * resumption with stored lists, swiped words, emoji insertion, Enter, caret moves and spelling marks.
  *
- * All calls happen on the main thread; engine queries run through [Scheduler.background].
+ * All calls happen on the main thread; engine queries run through [Scheduler.background] and [Scheduler.query]. The
+ * typing path asks the engine nothing on the main thread: every change of the current word starts its query at once in
+ * the background ([AheadQuery]), the strip shows it after the delay of 03 §6.2, and an autocorrection trigger takes it
+ * (waiting for it if it is still running) instead of computing it.
  */
 class InputLogic(
     private val editor: Editor,
@@ -109,6 +121,8 @@ class InputLogic(
      */
     fun startInput(field: FieldState, selStart: Int, selEnd: Int) {
         this.field = field
+        editor.invalidateCache()
+        ahead = null
         this.selStart = maxOf(0, selStart)
         this.selEnd = maxOf(0, selEnd)
         compStart = -1
@@ -133,6 +147,8 @@ class InputLogic(
      * shows that word's candidates again.
      */
     fun reshown() {
+        editor.invalidateCache()
+        ahead = null
         finishComposing()
         resetWordState()
         lastWasBackspace = false
@@ -253,6 +269,8 @@ class InputLogic(
      * edits and composing-only changes.
      */
     fun onSelectionUpdate(newStart: Int, newEnd: Int, candStart: Int, candEnd: Int): Boolean {
+        // a composing region the keyboard did not set up (it sets one only for a swiped word): its copy may be wrong
+        if (candStart >= 0 && swiped == null) editor.invalidateCache()
         val idx = expected.indexOfFirst { it.first == newStart && it.second == newEnd }
         if (idx >= 0) {
             repeat(idx + 1) { expected.removeFirst() }
@@ -268,6 +286,8 @@ class InputLogic(
             return false
         }
         expected.clear()
+        // the editor changed the text or the caret itself: read the text again
+        editor.invalidateCache()
         // selecting exactly the word still being typed is not a resumption (03 §6.4 item 5)
         val stillTyped = typedSinceMove && swiped == null && selStart == selEnd && newEnd == selStart && newStart < newEnd
         val typingList = strip.takeIf { it.kind == StripKind.TYPING }
@@ -368,7 +388,10 @@ class InputLogic(
     }
 
     private fun noteKey() {
-        lastKeyTime = scheduler.now()
+        val now = scheduler.now()
+        // the first key after a pause reads the field again (the app may have changed it without moving the caret)
+        if (now - lastKeyTime >= CACHE_REFRESH_PAUSE_MS) editor.invalidateCache()
+        lastKeyTime = now
         lastWasBackspace = false
         caretWord = false
     }
@@ -726,7 +749,10 @@ class InputLogic(
         val item = content.items.getOrNull(index) ?: return
         noteKey()
         if (item.addWord) {
-            engine?.addWord(content.word, field.info)
+            val e = engine
+            val w = content.word
+            val f = field.info
+            if (e != null) scheduler.background { e.addWord(w, f) }
             marked.removeAll { r -> r.start == content.wordStart && r.end == content.wordStart + content.word.length }
             showStrip(StripContent.EMPTY)
             scheduleSpellRun()
@@ -1061,22 +1087,80 @@ class InputLogic(
         }
         cancelQuery?.invoke()
         val gen = ++generation
+        startAhead(engine)
         val delay = TextRules.queryDelayMs(gapMs)
         cancelQuery = scheduler.main(delay) { runTypingQuery(engine, gen) }
     }
 
-    private fun runTypingQuery(engine: PredictionEngine, gen: Int) {
+    /**
+     * The query of the current word as it is now, or null when the strip shows nothing for it (no word, a word longer
+     * than 27 characters, the caret inside a word).
+     */
+    private fun currentTypingQuery(): Query? {
         val before = editor.textBefore(BEFORE).toString()
         val after = editor.textAfter(AFTER).toString()
         val word = TextModel.currentWord(before)
-        if (word.isEmpty() || word.length > TextModel.WORD_MAX_LEN || TextRules.caretInsideWord(after)) {
-            showStrip(StripContent.EMPTY)
+        if (word.isEmpty() || word.length > TextModel.WORD_MAX_LEN || TextRules.caretInsideWord(after)) return null
+        return Query(before, after, ArrayList(taps), field.info)
+    }
+
+    /**
+     * A background query of the current word, started at once at every change of the word and independent of the
+     * strip's delayed update (03 §6.2): the strip update and an autocorrection trigger use its result. [state] decides
+     * who computes it: the query thread when it starts it first, else the main thread that [claim]ed it.
+     */
+    private class AheadQuery(val query: Query) {
+        val state = AtomicInteger(PENDING)
+        @Volatile
+        var result: Prediction? = null
+        val done = CountDownLatch(1)
+
+        /** The main thread takes over a query that has not started yet; true if it did. */
+        fun claim(): Boolean = state.compareAndSet(PENDING, CLAIMED)
+
+        companion object {
+            const val PENDING = 0
+            const val RUNNING = 1
+            const val DONE = 2
+            const val CLAIMED = 3
+        }
+    }
+
+    @Volatile
+    private var ahead: AheadQuery? = null
+
+    private fun startAhead(engine: PredictionEngine) {
+        val q = currentTypingQuery()
+        if (q == null) {
+            ahead = null
             return
         }
-        val q = Query(before.takeLast(BEFORE), after, ArrayList(taps), field.info)
+        val a = AheadQuery(q)
+        ahead = a
+        scheduler.query {
+            // replaced by a newer word state, or claimed by the main thread
+            if (ahead !== a || !a.state.compareAndSet(AheadQuery.PENDING, AheadQuery.RUNNING)) return@query
+            try {
+                a.result = Perf.section("mk:aheadQuery") { engine.query(q) }
+            } finally {
+                a.state.set(AheadQuery.DONE)
+                a.done.countDown()
+            }
+        }
+    }
+
+    private fun runTypingQuery(engine: PredictionEngine, gen: Int) = Perf.section("mk:typingQuery") {
+        val q = currentTypingQuery()
+        if (q == null) {
+            showStrip(StripContent.EMPTY)
+            return@section
+        }
+        val word = TextModel.currentWord(q.before)
         val start = selStart - word.length
-        scheduler.background {
-            val p = engine.query(q)
+        val a = ahead?.takeIf { it.query == q }
+        // after the ahead query on the same thread: its result is ready unless it was skipped or claimed
+        scheduler.query {
+            val p = a?.takeIf { it.state.get() == AheadQuery.DONE }?.result ?: engine.query(q)
             scheduler.main(0) {
                 if (gen != generation) return@main
                 lastPrediction = p
@@ -1089,13 +1173,23 @@ class InputLogic(
     private var lastPrediction: Prediction? = null
     private var lastPredictionBefore: String? = null
 
-    /** The prediction for the word before the caret, from the last result or computed now (autocorrection). */
+    /**
+     * The prediction for the word before the caret at an autocorrection trigger: the last strip result for the same
+     * text, else the ahead query of this text (waiting for it while it runs), else – only when that query has not
+     * started yet or the text differs – computed now.
+     */
     private fun predictionNow(before: String, after: String): Prediction? {
         val engine = engine ?: return null
         val b = before.takeLast(BEFORE)
         val last = lastPrediction
         if (last != null && lastPredictionBefore == b) return last
-        return engine.query(Query(b, after, ArrayList(taps), field.info))
+        val q = Query(b, after, ArrayList(taps), field.info)
+        val a = ahead
+        if (a != null && a.query == q && !a.claim()) {
+            val ready = Perf.section("mk:awaitAhead") { a.done.await(AHEAD_WAIT_MS, TimeUnit.MILLISECONDS) }
+            if (ready) a.result?.let { return it }
+        }
+        return Perf.section("mk:syncQuery") { engine.query(q) }
     }
 
     private fun requestPredictions() {
@@ -1184,13 +1278,17 @@ class InputLogic(
         cancelSpell = scheduler.main(Proofreader.RUN_DELAY_MS) { spellRun(engine) }
     }
 
-    private fun spellRun(engine: PredictionEngine) {
+    private fun spellRun(engine: PredictionEngine) = Perf.section("mk:spellRun") { spellRunNow(engine) }
+
+    private fun spellRunNow(engine: PredictionEngine) {
         if (selStart != selEnd) return
         if (stylesSupported == null) {
             if (editor.textBefore(1).isEmpty() && editor.textAfter(1).isEmpty()) return
             stylesSupported = editor.supportsStyles()
         }
         if (stylesSupported != true) return
+        // the check may use the keyboard's copy of the text; changing marks rewrites words, so the result is applied only
+        // if the field's own text (read again below) is still the checked one
         val before = editor.textBefore(Proofreader.RANGE).toString()
         val after = editor.textAfter(Proofreader.RANGE).toString()
         val base = selStart - before.length
@@ -1205,7 +1303,8 @@ class InputLogic(
             scheduler.main(0) {
                 if (gen != spellGeneration || sel != selStart || selStart != selEnd) return@main
                 if (res.add.isEmpty() && res.remove.isEmpty()) return@main
-                // the text must be unchanged
+                // the text must be unchanged: compared with the field itself, not with the copy
+                editor.invalidateCache()
                 val nb = editor.textBefore(Proofreader.RANGE).toString()
                 val na = editor.textAfter(Proofreader.RANGE).toString()
                 if (nb + na != text) return@main
@@ -1229,6 +1328,7 @@ class InputLogic(
         val c = selStart
         val touching = marked.filter { it.start <= c && c <= it.end }
         if (touching.isEmpty()) return
+        editor.invalidateCache()
         val before = editor.textBefore(BEFORE).toString()
         val after = editor.textAfter(AFTER).toString()
         val base = selStart - before.length
@@ -1260,6 +1360,12 @@ class InputLogic(
         const val AFTER = 20
         const val KEYCODE_DEL = 67
         const val KEYCODE_ENTER = 66
+
+        /** The first key after this pause reads the field's text again instead of the keyboard's copy. */
+        const val CACHE_REFRESH_PAUSE_MS = 1000L
+
+        /** Longest wait of an autocorrection trigger for the running ahead query before it computes the query itself. */
+        const val AHEAD_WAIT_MS = 1000L
 
         private val breaker: BreakIterator = BreakIterator.getCharacterInstance()
 

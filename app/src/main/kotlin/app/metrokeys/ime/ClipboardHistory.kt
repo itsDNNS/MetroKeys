@@ -102,7 +102,10 @@ class ClipboardHistory {
         removeWhere { true }
     }
 
-    fun isEmpty(now: Long): Boolean = list(now).isEmpty()
+    fun isEmpty(now: Long): Boolean {
+        trim(now)
+        return entries.isEmpty()
+    }
 
     /** Image files of entries removed since the last call (expiry, delete, clear). */
     fun takeDroppedImages(): List<String> {

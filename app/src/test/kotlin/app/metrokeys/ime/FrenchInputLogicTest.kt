@@ -36,7 +36,7 @@ class FrenchInputLogicTest {
         editor = FakeEditor()
         sched = FakeScheduler()
         corrected.clear()
-        logic = InputLogic(editor, sched, object : InputLogic.Listener {
+        logic = InputLogic(CachingEditor(editor), sched, object : InputLogic.Listener {
             override fun onStrip(content: StripContent) {}
 
             override fun onAutoCorrected(correction: String) {

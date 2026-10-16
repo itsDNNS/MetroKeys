@@ -178,8 +178,16 @@ public class PredictionEngine(
 
     // ------------------------------------------------------------------ queries (§2, §9, §11, §14)
 
+    /**
+     * Called at the start of every [query] on the calling thread: lets the keyboard (debug builds, tests) check that
+     * queries do not run on its UI thread.
+     */
+    @Volatile
+    public var queryObserver: ((Query) -> Unit)? = null
+
     /** Suggestions for the current word, or next-word predictions when the current word is empty. */
     public fun query(q: Query): Prediction {
+        queryObserver?.invoke(q)
         if (TextRules.caretInsideWord(q.after)) return Prediction.EMPTY
         val ctx = QueryContext.of(q.before, q.taps, q.field.nameField)
         if (ctx.word.isEmpty()) return predictNext(q)
