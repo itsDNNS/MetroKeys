@@ -132,8 +132,8 @@ computed on the way), never held as a whole. The front-coded keys are kept only 
 character per tree node) with their lengths and common-prefix lengths; the breadth-first prefix tree (children
 contiguous and sorted, so lookups are binary searches and node order is (depth, text)) is then built level by level —
 a key's node at depth d is new exactly when its common prefix with the previous key is shorter than d — into arrays of
-exactly the node count: de-DE ≈ 1 089 000 nodes (320 804 keys since 0.6.6 with the dictionary-only lemmas; 1 781 000 nodes and 857 274 keys in 0.6.5 with all dictionary-only forms; 717 000 nodes and 236 223 keys in 0.6.4), en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 711 keys),
-fr-FR (174 316 keys). Explicit forms are a sorted index array with their
+exactly the node count: de-DE ≈ 1 091 400 nodes (322 189 keys since 0.6.7 with the abbreviation titles and prefix compounds; 1 089 000 nodes and 320 804 keys in 0.6.6 with the dictionary-only lemmas; 1 781 000 nodes and 857 274 keys in 0.6.5 with all dictionary-only forms; 717 000 nodes and 236 223 keys in 0.6.4), en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 063 keys since 0.6.7, 185 711 before),
+fr-FR (174 238 keys since 0.6.7, 174 316 before). Explicit forms are a sorted index array with their
 texts; pair-table followers go straight into primitive arrays. Two languages with pair tables retain 24–35 MB of JVM
 heap without German and 38–42 MB with German since 0.6.6 (56–60 MB in 0.6.5, 31–35 MB in 0.6.4) and load within a 56 MB
 maximum heap (0.6.5: 80 MB, 0.6.4: 44 MB), three 39–43 MB without and 50–57 MB with German within 68 MB (0.6.5: 88 MB,
@@ -172,7 +172,8 @@ in the pair table via `PairCounter(damped=…)`, and the real-word typos with th
 (§8), `wiktionary_pt.py` (§9.2: section extraction and page kinds of both dumps), `build_pt.py` (§9.1, §9.3–§9.7),
 `wiktionary_it.py` (§10.2), `build_it.py` (§10.1, §10.3–§10.6; also the §5 tokens of Italian),
 `wiktionary_fr.py` (§11.2), `build_fr.py` (§11.1, §11.3–§11.7; also the §5 tokens of French),
-`casing.py` (case decision §3.4, shared by de, es, pt, it and fr), `pairs.py` (§5, per-language pair profiles; Italian
+`wiktionary_affix.py` (0.6.7: abbreviation and prefix titles of every dump, 05b §3.6; cached as
+`build-data/cache/<dump>wiktionary-20261001-affix.tsv.gz`), `casing.py` (case decision §3.4, shared by de, es, pt, it and fr), `pairs.py` (§5, per-language pair profiles; Italian
 prefix tokens and the elided-pair filter in `ItalianPairCounter`, the two French elided-pair filters in
 `FrenchPairCounter`), `common.py`
 (classes and binary formats), `licenses.py` (attribution texts). `build_dictionaries.py` holds one build profile per
@@ -294,15 +295,15 @@ penalty. `-PshowOutput` shows test output.
   `ED_DIACRITIC`; a typed accented letter for a plain one stays a substitution of the same key (`ED_SUBSTITUTE`).
 - **Class-0 Italian spellings** ("perche", "citta", "cè"): valid, but `hideClassZero` keeps them out of corrections,
   completions and shape writing (05 §1.1 notes on it-IT: "never suggested").
-- **Elided words in shape writing** (06 §4.1): a second index (`Lexicon.fromEntries`, 6 580 entries) of prefix +
+- **Elided words in shape writing** (06 §4.1): a second index (`Lexicon.fromEntries`, 6 506 entries since 0.6.7, 6 581 before) of prefix +
   static follower with the class of p_pre · P(F | P′); its context bonus mixes P(prefix | previous word) into p_pre. After
   a prefix ("l'" + swipe) the previous word is the prefix and the elided index is not searched.
 - **Italian worked examples** (05 §17.10, 06 E12–E14): computed values of this build: lm(perché) 53 (score 54),
   lm(più) 60, lm(città) 78, lm(però) 79, lm(è | c') 22 (score 32), lm(l'acqua) 81, "Un " → po' first, "dell'" →
   dell'ultimo, dell'acqua, dell'anno …; E12 searchCost(più) = 16 + LM, E13 class(c'è) 215 against class(ce) 195
   (c'è first), E14 searchCost(l'acqua) = 194.4 + LM (the synthetic trace's skipped angles sum to 92° instead of 78°).
-  Deviations from the spec's expected outcomes are recorded in spec/QUESTIONS.md ("perch" + space → "Percy", "sé" not in
-  the bar after "se"). Shape-writing acceptance for Italian: 0.936 (47 words incl. elided words).
+  Deviations from the spec's expected outcomes are recorded in spec/QUESTIONS.md ("sé" not in the bar after "se";
+  "perch" + space → "Percy" until 0.6.6, since the damping of 0.6.7 "perché" stands first and nothing is autocorrected). Shape-writing acceptance for Italian: 0.936 (47 words incl. elided words).
 
 - **French (0.6.3)**: `LanguageParams.FRENCH` with the fr-FR column of 05 §1.1 and 06 §7.1, the 14 elision prefixes,
   `ACCENT_SWAP` (also á → à, the picker slip), `hideClassZero` (the dominated spellings of 05b §11.4 step 2 are valid
@@ -361,5 +362,24 @@ penalty. `-PshowOutput` shows test output.
   de+en (`ShortKeysAndNamesTest.performanzOffersPerformant`). All German worked examples are unchanged except "Das" at
   the text start, 50 (05 §17.7: 49), because the new keys are also counted in the pair sources; after "Vielen " anderen
   52 and Fällen 54 are again the values of 05 §17.7 (0.6.5: 53 and 55); spec/QUESTIONS.md.
+
+- **Short keys and names in es, pt, it, fr (0.6.7, 05b §3.6 "Other languages")**: the Spanish, Portuguese, Italian and
+  French dictionaries drop non-form keys of up to 3 letters counted below 20 000 times and count the keys kept only by
+  the count rule (names and foreign words of the dubbed films) with count / 100 (DATA-SOURCES.md). No engine change:
+  damped keys counted below 100 times get class 0, which Italian and French hide (`hideClassZero`; valid, never
+  offered, autocorrected by §10.1 step 5 like the German ones), while Spanish and Portuguese keep offering class-0
+  words with the lowest rank (spec/QUESTIONS.md). Changes in the printed test values: Italian "perch" → no
+  autocorrection, "perché" first ("Percy" class 124 → 49, `ItalianExamplesTest.example7Completions`); E12's fifth
+  candidate "Pu" (dropped by step 6a) is replaced by "Po", E17's fifth "Tess" by "Ted"; elided shape-index entries it
+  6 581 → 6 501 (6 506 with the abbreviation titles), fr 14 457 → 14 438. `ShortKeysAndNamesTest.step6aAndDampingInOtherLanguages` checks dropped, kept and
+  damped keys of the four languages. `MemoryBudgetTest` retained heaps are at most 0.15 MB lower (de+es 42.4 MB); shape-writing acceptance values are unchanged.
+
+- **Abbreviation titles (0.6.7, 05b §3.6)**: a Wiktionary title ending in "." makes the key without it a form in
+  German, Spanish, Portuguese, Italian and French; a title ending in "-" (a prefix) is no form, only the first part of
+  a German compound, and a key among the 5000 most frequent English keys never becomes a form this way (English guard;
+  DATA-SOURCES.md; English unchanged, its build uses no Wiktionary). No engine change: "usw", "bzw",
+  "etc", "vgl" are German words and stay as typed ("Äpfel, Birnen usw" is not autocorrected), Spanish "etc" too
+  (`ShortKeysAndNamesTest.abbreviationTitlesAreForms`); German "of" (prefix "of-") stays dropped by step 6a. The German
+  key count of `LexiconStructureTest` is 322 189.
 
 Questions with assumptions that matter are recorded in the specification (`spec/QUESTIONS.md`, not published).

@@ -11,7 +11,7 @@ import math
 import re
 
 import casing
-from common import freq_class, jlower
+from common import DAMPING, damped_max, freq_class, jlower, short_key_dropped
 from wiktionary_pt import strip_diacritics
 
 # 05 §1.1 ELISION_PREFIXES (notes on it-IT), in order of their frequency in the frequency source
@@ -225,7 +225,7 @@ class SentenceStats:
 
 
 class ItalianBuilder:
-    def __init__(self, freq_path, it_pages, en_pages):
+    def __init__(self, freq_path, it_pages, en_pages, abbreviations=None):
         """[it_pages], [en_pages]: (titles, {title: kinds}) of the classified Wiktionary passes."""
         self.report = {}
         self.dumps = [("it", it_pages), ("en", en_pages)]
@@ -236,6 +236,7 @@ class ItalianBuilder:
         self.foreign_titles = {t for t in it_pages[0] if t == jlower(t) and not t.endswith("'")}
         self._read_counts(freq_path)
         self._collect_pages()
+        self._abbreviations(abbreviations or {})
         self.stats = None
 
     # ------------------------------------------------------------------ §10.1 counts
@@ -325,6 +326,26 @@ class ItalianBuilder:
         for _, (titles, pages) in self.dumps:
             prefix_titles |= {t.lower() for t in titles if t.endswith("'")}
         self.report["elisionPrefixesWithoutPage"] = [p for p in PREFIXES if p not in prefix_titles]
+
+    def _abbreviations(self, abbreviations):
+        """§3.6 abbreviation and affix titles (0.6.7): {dump: forms} ("sig" of "sig.") are forms of their dump, not
+        inflected; the keys that are forms only by this rule are recorded."""
+        self.abbreviation_keys = set()
+        used = {d for d, _ in self.dumps}
+        for dump, forms in sorted(abbreviations.items()):
+            if dump not in used:
+                continue
+            for form in sorted(forms):
+                key = jlower(form)
+                if not key_chars_ok(key) and "'" not in key:
+                    continue
+                if key not in self.forms_by_key:
+                    self.abbreviation_keys.add(key)
+                self.forms_by_key.setdefault(key, set()).add(form)
+                self.form_dumps.setdefault(key, set()).add(dump)
+                self.inflected.setdefault(key, {})[dump] = False  # an abbreviation page is no inflection
+                self.pointer_target.pop(key, None)
+                self.letter_keys.discard(key)
 
     def is_form(self, key):
         return key in self.forms_by_key or key in self.accepted
@@ -724,21 +745,38 @@ class ItalianBuilder:
             dropped["fusedElision"] += 1
             return None
         if count >= KEEP_MIN_COUNT:
-            if key in self.foreign_titles and count < FOREIGN_MAX:
-                dropped["foreign"] += 1
-                if len(dropped["foreignExamples"]) < 40 and count >= 2000:
-                    dropped["foreignExamples"].append(key)
+            sel = self._count_rule(key, count, dropped)
+            if sel and short_key_dropped(n, count):
+                # 05b §3.6 step 6a (0.6.7): a non-form of at most 3 letters needs count >= 20 000
+                dropped["shortKeyStep6a"] += 1
+                self.short_dropped.append(key)
                 return None
-            dec = self.case_decision(key)
-            if dec:
-                return dec
-            titles = self.titles_by_key.get(key, set())
-            if key in titles or not titles:
-                return [(key, 1.0)]
-            best = sorted(titles, key=lambda f: (casing.case_kind_rank(f), f))[0]
-            return [(best, 1.0)]
+            if sel:
+                self.damped.add(key)  # 05b §3.6 damping (0.6.7): kept only by the count rule
+            return sel
         dropped["rare"] += 1
         return None
+
+    def _count_rule(self, key, count, dropped):
+        """§10.5 count rule (German §3.6 step 7) for a non-form counted at least KEEP_MIN_COUNT times."""
+        if key in self.foreign_titles and count < FOREIGN_MAX:
+            dropped["foreign"] += 1
+            if len(dropped["foreignExamples"]) < 40 and count >= 2000:
+                dropped["foreignExamples"].append(key)
+            return None
+        dec = self.case_decision(key)
+        if dec:
+            return dec
+        titles = self.titles_by_key.get(key, set())
+        if key in titles or not titles:
+            return [(key, 1.0)]
+        best = sorted(titles, key=lambda f: (casing.case_kind_rank(f), f))[0]
+        return [(best, 1.0)]
+
+    def effective_count(self, key):
+        """The count used for classes and pairs: damped for keys kept only by the count rule (05b §3.6, 0.6.7)."""
+        c = self.counts.get(key, 0)
+        return c * DAMPING if key in self.damped else c
 
     def artefacts(self):
         """§10.5 steps 5 and 6: missing-space artefacts and fused elisions (non-forms only)."""
@@ -791,9 +829,12 @@ class ItalianBuilder:
         for t in self.titles:
             self.titles_by_key.setdefault(jlower(t), set()).add(t)
         dropped = {k: 0 for k in ("implausible", "oneLetter", "nonItalianCharacters", "formBelowCount2",
-                                  "elisionFragment", "missingSpace", "fusedElision", "foreign", "rare")}
+                                  "elisionFragment", "missingSpace", "fusedElision", "foreign", "shortKeyStep6a",
+                                  "rare")}
         dropped["foreignExamples"] = []
-        entries = {}
+        self.damped = set()
+        self.short_dropped = []
+        selected = {}
         kept_unknown = 0
         for key in sorted(self.counts):
             n = len(letters_of(key))
@@ -804,7 +845,13 @@ class ItalianBuilder:
                 continue
             if not self.is_form(key):
                 kept_unknown += 1
-            count = self.counts[key]
+            selected[key] = sel
+        # S and the class formula after the damping (05b §3.6)
+        self.max_count = damped_max(self.counts, self.damped)
+        self.scale = 255.0 / math.log(self.max_count)
+        entries = {}
+        for key, sel in selected.items():
+            count = self.effective_count(key)
             forms = []
             seen = set()
             for f, share in sel:

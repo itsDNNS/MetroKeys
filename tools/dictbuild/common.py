@@ -72,6 +72,25 @@ def freq_class(count, scale):
     return max(0, min(255, round_half_away(math.log(count) * scale)))
 
 
+# 05b §3.6 step 6a and the damping of non-forms, as applied by the Spanish, Portuguese, Italian and French builds
+# (0.6.7; the German build has its own copy of the same values since 0.6.4): a key of at most SHORT_KEY_LEN letters
+# that is no form of the language is kept only if its count is >= SHORT_KEY_MIN, and a key kept only by the count rule
+# counts with count x DAMPING for its classes and the pair table
+SHORT_KEY_LEN = 3
+SHORT_KEY_MIN = 20000
+DAMPING = 0.01
+
+
+def short_key_dropped(letters, count):
+    """05b §3.6 step 6a: a non-form key with [letters] letters and subtitle [count] is dropped."""
+    return letters <= SHORT_KEY_LEN and count < SHORT_KEY_MIN
+
+
+def damped_max(counts, damped):
+    """maxCount after the damping (05b §3.6: S and the class formula are computed after it)."""
+    return max(c * DAMPING if k in damped else c for k, c in counts.items())
+
+
 PAIR_B = 255.0 / math.log(1e5)
 
 

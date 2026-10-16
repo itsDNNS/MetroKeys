@@ -9,7 +9,7 @@ import math
 import re
 
 import casing
-from common import capitalize_first, freq_class, jlower
+from common import DAMPING, capitalize_first, damped_max, freq_class, jlower, short_key_dropped
 
 EXCLUDED_LETTERS = set("İıŉſĸ")
 SPANISH_PLAIN = set("abcdefghijklmnopqrstuvwxyzáéíóúüñ")
@@ -152,7 +152,7 @@ class PhraseCounter:
 
 
 class SpanishBuilder:
-    def __init__(self, freq_path, es_pass, en_pass, stats):
+    def __init__(self, freq_path, es_pass, en_pass, stats, abbreviations=()):
         """[es_pass], [en_pass]: the sets of the Wiktionary passes (wiktionary_es.load); [en_pass] None = Spanish dump
         alone. Variant pages (only pointing to another spelling) may be merged into an accented word by the accent
         merge ("tambien" → "también"), otherwise they stay Spanish forms ("sólo", "éste")."""
@@ -169,6 +169,11 @@ class SpanishBuilder:
                                if all(k not in f or k in i for f, i in listed)}
         self.phrase_keys = {jlower(t) for p in passes for t in p["P"]}
         forms = set().union(*(p["F"] for p in passes)) | variants
+        # §3.6 abbreviation and affix titles (0.6.7): "etc." is a form "etc" ([abbreviations] of the dumps in use)
+        known = {jlower(f) for f in forms}
+        self.abbreviation_keys = {jlower(f) for f in abbreviations if all(c in ALLOWED for c in jlower(f))} - known
+        forms |= set(abbreviations)
+        self.inflected_keys -= {jlower(f) for f in abbreviations}  # an abbreviation page is no inflection
         self.forms_by_key = {}
         for f in forms:
             k = jlower(f)
@@ -398,22 +403,39 @@ class SpanishBuilder:
                 dropped["missingSpaceExamples"].append(key)
             return None
         if count >= KEEP_MIN_COUNT:
-            if self._misaccented(key):
-                dropped["misaccented"] += 1
+            sel = self._count_rule(key, count, dropped)
+            if sel and short_key_dropped(len(key), count):
+                # 05b §3.6 step 6a (0.6.7): a non-form of at most 3 letters needs count >= 20 000
+                dropped["shortKeyStep6a"] += 1
+                self.short_dropped.append(key)
                 return None
-            if key in self.titles and count < FOREIGN_MAX:
-                dropped["foreign"] += 1
-                return None
-            dec = self.case_decision(key)
-            if dec:
-                return dec
-            titles = self.titles_by_key.get(key, set())
-            if key in titles or not titles:
-                return [(key, 1.0)]
-            best = sorted(titles, key=lambda f: (casing.case_kind_rank(f), f))[0]
-            return [(best, 1.0)]
+            if sel:
+                self.damped.add(key)  # 05b §3.6 damping (0.6.7): kept only by the count rule
+            return sel
         dropped["rare"] += 1
         return None
+
+    def _count_rule(self, key, count, dropped):
+        """§8.5 step 6 (the rule of German §3.6 step 7) for a non-form counted at least KEEP_MIN_COUNT times."""
+        if self._misaccented(key):
+            dropped["misaccented"] += 1
+            return None
+        if key in self.titles and count < FOREIGN_MAX:
+            dropped["foreign"] += 1
+            return None
+        dec = self.case_decision(key)
+        if dec:
+            return dec
+        titles = self.titles_by_key.get(key, set())
+        if key in titles or not titles:
+            return [(key, 1.0)]
+        best = sorted(titles, key=lambda f: (casing.case_kind_rank(f), f))[0]
+        return [(best, 1.0)]
+
+    def effective_count(self, key):
+        """The count used for classes and pairs: damped for keys kept only by the count rule (05b §3.6, 0.6.7)."""
+        c = self.counts.get(key, 0)
+        return c * DAMPING if key in self.damped else c
 
     def build(self):
         self.titles_by_key = {}
@@ -421,9 +443,11 @@ class SpanishBuilder:
             self.titles_by_key.setdefault(jlower(t), set()).add(t)
         self._plain_forms = {k.translate(STRIP_ACUTE) for k in self.forms_by_key if not any(c in ACUTE for c in k)}
         dropped = {k: 0 for k in ("implausible", "oneLetter", "nonSpanishCharacters", "formBelowCount2",
-                                  "missingSpace", "misaccented", "foreign", "rare")}
+                                  "missingSpace", "misaccented", "foreign", "shortKeyStep6a", "rare")}
         dropped["missingSpaceExamples"] = []
-        entries = {}
+        self.damped = set()
+        self.short_dropped = []
+        selected = {}
         kept_unknown = 0
         for key in sorted(self.counts):
             if not (2 <= len(key) <= 27 or len(key) == 1):
@@ -433,7 +457,13 @@ class SpanishBuilder:
                 continue
             if not self.is_form(key):
                 kept_unknown += 1
-            count = self.counts[key]
+            selected[key] = sel
+        # S and the class formula after the damping (05b §3.6)
+        self.max_count = damped_max(self.counts, self.damped)
+        self.scale = 255.0 / math.log(self.max_count)
+        entries = {}
+        for key, sel in selected.items():
+            count = self.effective_count(key)
             forms = []
             seen = set()
             for f, share in sel:

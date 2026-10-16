@@ -169,11 +169,14 @@ class ItalianExamplesTest {
 
     @Test
     fun example7Completions() {
-        // "perché" is the first completion; by the unchanged rules of §10.1 the correction "Percy" (a name of the dubbed
-        // films, ED 116) becomes the autocorrection and stands before it (spec/QUESTIONS.md)
+        // "perché" is the first completion. Before 0.6.7 the correction "Percy" (a name of the dubbed films, class 124,
+        // ED 116) became the autocorrection and stood before it; since the damping of non-forms (05b §3.6, class 49) it
+        // is too expensive, so "perché" is the first entry and nothing is autocorrected (spec/QUESTIONS.md)
         val perch = engine.query(Query("perch"))
         println("perch: ac=${perch.autoCorrection} bar=${perch.suggestions.map { s -> s.text }}")
         assertEquals("perché", perch.suggestions.first { s -> !s.isAutoCorrection }.text)
+        assertNull(perch.autoCorrection)
+        assertEquals("perché", perch.suggestions.first().text)
         assertEquals("perché", it.query("perch").ranked.first().display)
         assertEquals("tournée", bar("La band è in tourne").first(), bar("La band è in tourne").toString())
     }

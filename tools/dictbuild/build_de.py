@@ -111,8 +111,15 @@ def has_noun_suffix(key):
 
 
 class GermanBuilder:
-    def __init__(self, freq_path, wikt):
+    def __init__(self, freq_path, wikt, abbreviations=(), prefixes=()):
+        """[abbreviations]: forms of the abbreviation titles ("usw" of "usw.", §3.6, 0.6.7); [prefixes]: the prefix titles
+        without the hyphen ("anti" of "anti-"), which are no forms but may be the first part of a compound (§3.5)."""
+        self.prefix_parts = {jlower(p) for p in prefixes}
         self.titles, self.de_forms, counts = wikt
+        before = {jlower(f) for f in self.de_forms}
+        self.de_forms = set(self.de_forms) | {f for f in abbreviations if all(ch in ALLOWED for ch in jlower(f))}
+        # keys that are German forms only by the abbreviation and affix rule
+        self.abbreviation_keys = {jlower(f) for f in self.de_forms} - before
         # running-text variants per key (occurring >= 2 times)
         self.variants = {}
         for tok, c in counts.items():
@@ -145,6 +152,7 @@ class GermanBuilder:
         self.damped = set()
         self.short_dropped = []
         self.typos = {}
+        self.prefix_compounds = set()  # keys kept by step 5 only through a prefix as first part (report)
 
     def is_german_form(self, key):
         return key in self.forms_by_key
@@ -168,8 +176,10 @@ class GermanBuilder:
         dec = self.case_decision(key) or []
         return any(f[0].isupper() for f, _ in dec) or any(f[0].isupper() for f in self.forms_by_key.get(key, ()))
 
-    def _compound_part_ok(self, part):
-        return self.is_german_form(part) and self.count(part) >= 20 and part not in FUNCTION_WORDS
+    def _compound_part_ok(self, part, first=False):
+        """A German form counted ≥ 20 times and no function word; the first part may also be a prefix title (0.6.7)."""
+        known = self.is_german_form(part) or (first and part in self.prefix_parts)
+        return known and self.count(part) >= 20 and part not in FUNCTION_WORDS
 
     # §3.5
     def compound_case(self, key):
@@ -182,8 +192,10 @@ class GermanBuilder:
                 if not modifier.endswith(link):
                     continue
                 stem = modifier[:len(modifier) - len(link)] if link else modifier
-                if len(stem) < 3 or not self._compound_part_ok(stem):
+                if len(stem) < 3 or not self._compound_part_ok(stem, first=True):
                     continue
+                if not self.is_german_form(stem):
+                    self._prefix_hit = True
                 head_primary = self.primary_form(head)
                 stem_primary = self.primary_form(stem)
                 cap = (head_primary[0].isupper()
@@ -214,8 +226,11 @@ class GermanBuilder:
                 return self.case_decision(key) or [(key, 1.0)], 4
             return None, 4
         if len(key) >= 6 and count >= 4:
+            self._prefix_hit = False
             comp = self.compound_case(key)
             if comp is not None:
+                if self._prefix_hit:
+                    self.prefix_compounds.add(key)
                 return self.case_decision(key) or [(comp, 1.0)], 5
         # step 6 (glued German forms) is not applied, see spec/QUESTIONS.md (0.6.4)
         if len(key) <= SHORT_KEY_LEN and count < SHORT_KEY_MIN:
@@ -284,6 +299,7 @@ class GermanBuilder:
         self.damped = set()
         self.short_dropped = []
         self.typos = {}
+        self.prefix_compounds = set()
         for key in sorted(self.counts):
             if not 2 <= len(key) <= 27:
                 continue
@@ -351,7 +367,13 @@ class GermanBuilder:
         return added
 
 
-def lemma_keys(pos_by_title):
-    """Keys of the titles whose German section has a part of speech other than an inflected form (§3.7 lemmas)."""
-    return {jlower(t) for t, pos in pos_by_title.items() if pos - FORM_POS}
+def lemma_keys(pos_by_title, abbreviations=None):
+    """Keys of the titles whose German section has a part of speech other than an inflected form (§3.7 lemmas); with
+    [abbreviations] ({form: parts of speech} of the abbreviation and affix titles, 0.6.7) also those forms whose title
+    has such a part of speech."""
+    keys = {jlower(t) for t, pos in pos_by_title.items() if pos - FORM_POS}
+    for form, pos in (abbreviations or {}).items():
+        if pos - FORM_POS:
+            keys.add(jlower(form))
+    return keys
 

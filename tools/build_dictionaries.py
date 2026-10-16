@@ -30,6 +30,7 @@ import build_pt  # noqa: E402
 import common  # noqa: E402
 import licenses  # noqa: E402
 import pairs  # noqa: E402
+import wiktionary_affix  # noqa: E402
 import wiktionary_de  # noqa: E402
 import wiktionary_es  # noqa: E402
 import wiktionary_fr  # noqa: E402
@@ -191,6 +192,97 @@ def short_nonforms(entries, is_form, count):
     return [f"{k} {int(count(k))} {forms_text(entries[k])}" for k in rows]
 
 
+def nonform_report(builder, entries, stock, stock_damped):
+    """05b §3.6 "Other languages" (0.6.7) build report: the short keys dropped by step 6a (that the count rule would have
+    kept) and the keys damped as kept only by the count rule, most frequent first; [stock_damped] is the stock-name list
+    the §5 step 3 rule would give with the damped subtitle counts (report only, not used)."""
+    count = builder.count
+    top = sorted(builder.damped, key=lambda k: (-count(k), k))
+    return {
+        "shortKeysDroppedByStep6a": len(builder.short_dropped),
+        "shortKeysDroppedByStep6aList": [f"{k} {count(k)}" for k in sorted(builder.short_dropped, key=lambda k: (-count(k), k))],
+        "dampedKeys": len(builder.damped),
+        "dampedKeysClass0": sum(1 for k in builder.damped if k in entries and all(c == 0 for _, c in entries[k])),
+        "dampedTop50": [f"{k} {count(k)} {forms_text(entries.get(k, []))}" for k in top[:50]],
+        "stockNamesWithDampedSubtitleCounts": sorted(stock_damped),
+        "stockNamesChangedByDampedCounts": sorted(set(stock) ^ set(stock_damped)),
+    }
+
+
+def damped_counts(counts, builder):
+    return {k: c * common.DAMPING if k in builder.damped else c for k, c in counts.items()}
+
+
+ENGLISH_GUARD_RANK = 5000
+_english_top = None
+
+
+def english_top():
+    """05b §3.6 English guard (0.6.7): the ENGLISH_GUARD_RANK most frequent keys of the pinned English FrequencyWords
+    list (line order, lower-cased with Java case mapping, duplicates counted once)."""
+    global _english_top
+    if _english_top is None:
+        keys = []
+        seen = set()
+        with open(os.path.join(SRC, "fw", "en_full.txt"), encoding="utf-8") as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) != 2:
+                    continue
+                k = common.jlower(parts[0])
+                if k not in seen:
+                    seen.add(k)
+                    keys.append(k)
+                    if len(keys) == ENGLISH_GUARD_RANK:
+                        break
+        _english_top = set(keys)
+    return _english_top
+
+
+def abbreviations(lang, dumps, ending="."):
+    """05b §3.6 "Abbreviation and affix titles" (0.6.7): {dump: {form: parts of speech}} of the titles ending in
+    [ending] ("." abbreviations, which are forms; "-" prefixes, German compound parts only) with a section of [lang] in
+    each of [dumps] (one cached pass per dump)."""
+    out = {}
+    for dump in dumps:
+        path = wiktionary_affix.cache_path(CACHE, dump)
+        if not os.path.exists(path):
+            print(f"{dump} Wiktionary pass, abbreviation and affix titles")
+            wiktionary_affix.extract(os.path.join(SRC, f"wiktionary/{dump}wiktionary-20261001-pages-articles.xml.bz2"),
+                                     path, dump)
+        out[dump] = wiktionary_affix.load([path], lang, ending)
+    if ending == ".":
+        # English guard: an abbreviation title of a frequent English key makes no form
+        guard = english_top()
+        for d, forms in out.items():
+            GUARDED.setdefault(lang, {}).setdefault(d, set()).update(common.jlower(f) for f in forms
+                                                                     if common.jlower(f) in guard)
+        out = {d: {f: p for f, p in forms.items() if common.jlower(f) not in guard} for d, forms in out.items()}
+    return out
+
+
+GUARDED = {}  # language -> dump -> keys whose abbreviation titles the English guard ignored (report)
+
+
+def abbreviation_report(keys, entries, count, titles, lang=None, is_form=None, dumps=None):
+    """Build report of the keys that are forms only by the abbreviation rule, most frequent first, and of the keys the
+    English guard kept from becoming forms (with their decision: stored forms, or dropped)."""
+    rows = sorted(keys, key=lambda k: (-count(k), k))
+    kept = [k for k in rows if k in entries]
+    by_dump = GUARDED.get(lang, {})
+    pool = set().union(*(v for d, v in by_dump.items() if dumps is None or d in dumps)) if by_dump else set()
+    guarded = sorted((k for k in pool if is_form and not is_form(k)), key=lambda k: (-count(k), k))
+    return {
+        "englishGuardKeys": len(guarded),
+        "englishGuardKeysList": [f"{k} {int(count(k))} {forms_text(entries[k]) if k in entries else '(dropped)'}"
+                                 for k in guarded],
+        "abbreviationTitles": titles,
+        "abbreviationKeys": len(keys),
+        "abbreviationKeysInWordList": len(kept),
+        "abbreviationKeysTop60": [f"{k} {int(count(k))} {forms_text(entries[k])}" for k in kept[:60]],
+    }
+
+
 def write_licenses(copyright_path=None, tags=None):
     tags = tags or [t for t in PROFILES if t != "en-US" or copyright_path]
     scowl_notice = None
@@ -227,13 +319,16 @@ def build_german(stats):
     if not os.path.exists(pos_cache):
         print("Wiktionary part-of-speech pass (a few minutes)")
         wiktionary_de.pos_run(os.path.join(SRC, WIKT_DUMP), pos_cache)
-    de = build_de.GermanBuilder(os.path.join(SRC, "fw", "de_full.txt"), wiktionary_de.load(wikt_cache))
+    de_abbr = abbreviations("de", ["de"])["de"]
+    de_prefixes = abbreviations("de", ["de"], "-")["de"]
+    de = build_de.GermanBuilder(os.path.join(SRC, "fw", "de_full.txt"), wiktionary_de.load(wikt_cache), de_abbr,
+                                de_prefixes)
     de_entries = de.build(os.path.join(ROOT, "spec", "data", "layouts-de.json"))
 
     # §3.7 dictionary-only German lemmas (0.6.6): lemmas without a subtitle occurrence or with exactly one, class 1
     base_size = trial_sizes("de-DE", de, de_entries, build_pairs("de", de_entries, sorted(de_entries), "deu_sentences.tsv.bz2",
                                                                   "deu", "de", damped=de.damped, damping=build_de.DAMPING))
-    lemmas = build_de.lemma_keys(wiktionary_de.load_pos(pos_cache))
+    lemmas = build_de.lemma_keys(wiktionary_de.load_pos(pos_cache), de_abbr)
     unseen = sum(1 for k in de.dictionary_only_keys(de_entries, lemmas) if de.count(k) == 0)
     de_entries = dict(de_entries)
     added = de.add_dictionary_only(de_entries, lemmas)
@@ -259,6 +354,12 @@ def build_german(stats):
         "realWordTyposTop150": [f"{k} {de.count(k)} -> {w} {de.count(w)}"
                                 for k, w in sorted(de.typos.items(), key=lambda kw: (-de.count(kw[0]), kw[0]))[:150]],
         "dictionaryOnlyForms": dict_only,
+        **abbreviation_report(de.abbreviation_keys, de_entries, de.count, len(de_abbr), "de", de.is_german_form),
+        "abbreviationKeysDictionaryOnly": sorted(k for k in added if k in de.abbreviation_keys),
+        "prefixParts": len(de.prefix_parts),
+        "keysByPrefixCompounds": len(de.prefix_compounds),
+        "keysByPrefixCompoundsTop60": [f"{k} {de.count(k)} {forms_text(de_entries[k])}"
+                                       for k in sorted(de.prefix_compounds, key=lambda k: (-de.count(k), k))[:60]],
     }
     write_outputs("de-DE", de.scale, de.max_count, de.corpus_tokens, de_entries, de_table, stats)
     write_licenses(tags=["de-DE"])
@@ -314,9 +415,11 @@ def build_spanish(stats):
     cv_used = [[fn, weight] for fn, weight, _ in cv_files("es")]
     freq = os.path.join(SRC, "fw", "es_full.txt")
     # §8.2 point 3: the English dump is used if the Spanish dump alone recognises < 95 % of the top 20 000 keys
-    es_alone = build_es.SpanishBuilder(freq, es_pass, None, st).coverage()
+    es_abbr = abbreviations("es", ["es", "en"])
+    es_alone = build_es.SpanishBuilder(freq, es_pass, None, st, es_abbr["es"]).coverage()
     use_en = es_alone < 0.95
-    es = build_es.SpanishBuilder(freq, es_pass, en_pass if use_en else None, st)
+    es_abbr_used = set(es_abbr["es"]) | (set(es_abbr["en"]) if use_en else set())
+    es = build_es.SpanishBuilder(freq, es_pass, en_pass if use_en else None, st, es_abbr_used)
     with_en = es.coverage()
     phrases = build_es.PhraseCounter(p for _, p in es.fused_candidates())
     for text, _, _ in sentences():
@@ -325,7 +428,8 @@ def build_spanish(stats):
     es_entries = es.build()
     es_keys = sorted(es_entries)
     stock, top30, added = build_es.stock_names(st, es.counts)
-    es_table = build_pairs("es", es_entries, es_keys, "spa_sentences.tsv.bz2", "spa", "es", stock)
+    es_table = build_pairs("es", es_entries, es_keys, "spa_sentences.tsv.bz2", "spa", "es", stock,
+                           damped=es.damped, damping=common.DAMPING)
     report = dict(es.report)
     report.update({
         "coverageTop20000SpanishDumpOnly": round(es_alone, 4),
@@ -341,6 +445,9 @@ def build_spanish(stats):
         "properNounKeys": sum(1 for v in es_entries.values() if v[0][0][0].isupper()),
     })
     report["shortKeysNotForms"] = short_nonforms(es_entries, es.is_form, es.count)  # 05b §3.6 (0.6.4)
+    report.update(nonform_report(es, es_entries, stock, build_es.stock_names(st, damped_counts(es.counts, es))[0]))
+    report.update(abbreviation_report(es.abbreviation_keys, es_entries, es.count, len(es_abbr_used), "es", es.is_form,
+                                      ["es", "en"] if use_en else ["es"]))
     stats["es-ES-extra"] = report
     write_outputs("es-ES", es.scale, es.max_count, es.corpus_tokens, es_entries, es_table, stats)
     write_licenses(tags=["es-ES"])
@@ -360,8 +467,9 @@ def build_portuguese(stats):
     pt_pages = (pt_titles, {t: wiktionary_pt.classify_pt(t, s) for t, s in pt_secs.items()})
     en_pages = (en_titles, {t: wiktionary_pt.classify_en(t, s) for t, s in en_secs.items()})
     del pt_secs, en_secs
+    pt_abbr = abbreviations("pt", ["pt", "en"])
     pt = build_pt.PortugueseBuilder(os.path.join(SRC, "fw", "pt_br_full.txt"), os.path.join(SRC, "fw", "pt_br_ignored.txt"),
-                                    pt_pages, en_pages)
+                                    pt_pages, en_pages, pt_abbr)
 
     # §9.7: the Brazilian filter of the sentence sources (pairs and running-text case evidence)
     markers = pt.european_marker_keys()
@@ -392,7 +500,7 @@ def build_portuguese(stats):
     pt_entries = pt.build()
     pt_keys = sorted(pt_entries)
     stock, top30, added = build_es.stock_names(st, pt.counts)
-    counter = pairs.PairCounter("pt", pt_entries, stock)
+    counter = pairs.PairCounter("pt", pt_entries, stock, pt.damped, common.DAMPING)
     for text, weight, tatoeba in kept:
         counter.add(text, weight, tatoeba)
     order = {k: i for i, k in enumerate(pt_keys)}
@@ -417,6 +525,9 @@ def build_portuguese(stats):
         "properNounKeys": sum(1 for v in pt_entries.values() if v[0][0][0].isupper()),
     })
     report["shortKeysNotForms"] = short_nonforms(pt_entries, pt.is_form, pt.count)  # 05b §3.6 (0.6.4)
+    report.update(nonform_report(pt, pt_entries, stock, build_es.stock_names(st, damped_counts(pt.counts, pt))[0]))
+    report.update(abbreviation_report(pt.abbreviation_keys, pt_entries, pt.count, len(set(pt_abbr["pt"]) | set(pt_abbr["en"])), "pt",
+                                      pt.is_form))
     stats["pt-BR-extra"] = report
     write_outputs("pt-BR", pt.scale, pt.max_count, pt.corpus_tokens, pt_entries, pt_table, stats)
     write_licenses(tags=["pt-BR"])
@@ -436,7 +547,8 @@ def build_italian(stats):
     it_pages = (it_titles, {t: wiktionary_it.classify_it(t, s) for t, s in it_secs.items()})
     en_pages = (en_titles, {t: wiktionary_it.classify_en(t, s) for t, s in en_secs.items()})
     del it_secs, en_secs
-    it = build_it.ItalianBuilder(os.path.join(SRC, "fw", "it_full.txt"), it_pages, en_pages)
+    it_abbr = abbreviations("it", ["it", "en"])
+    it = build_it.ItalianBuilder(os.path.join(SRC, "fw", "it_full.txt"), it_pages, en_pages, it_abbr)
     cov_before = it.coverage(it.counts)
 
     def sentences():
@@ -457,6 +569,7 @@ def build_italian(stats):
             if tok[0].isupper():
                 capitalised[tok] = capitalised.get(tok, 0) + 1
     stock, top30, added = build_it.stock_names(capitalised, tatoeba_tokens, it.counts)
+    subtitle = dict(it.counts)
     # sentence counts and running-text evidence (§10.3, §10.4); phrase candidates of §10.5 step 5
     st = build_it.SentenceStats(stock, it.phrase_candidates())
     for text, weight, conversational, tatoeba in sentences():
@@ -468,7 +581,7 @@ def build_italian(stats):
     it.finish_header()
     it_entries = it.build()
     it_keys = sorted(it_entries)
-    counter = pairs.ItalianPairCounter(it_entries, build_it.PREFIXES, stock)
+    counter = pairs.ItalianPairCounter(it_entries, build_it.PREFIXES, stock, damped=it.damped, damping=common.DAMPING)
     for text, weight, _, tatoeba in sentences():
         counter.add(text, weight, tatoeba)
     it_table = counter.table({k: i for i, k in enumerate(it_keys)})
@@ -498,6 +611,10 @@ def build_italian(stats):
         "prefixesAsFollowers": sum(1 for v in it_table.values() for k, _, _ in v if k in build_it.PREFIX_SET),
     })
     report["shortKeysNotForms"] = short_nonforms(it_entries, it.is_form, it.count)  # 05b §3.6 (0.6.4)
+    report.update(nonform_report(it, it_entries, stock,
+                                 build_it.stock_names(capitalised, tatoeba_tokens, damped_counts(subtitle, it))[0]))
+    report.update(abbreviation_report(it.abbreviation_keys, it_entries, it.count, len(set(it_abbr["it"]) | set(it_abbr["en"])), "it",
+                                      it.is_form))
     stats["it-IT-extra"] = report
     write_outputs("it-IT", it.scale, it.max_count, it.corpus_tokens, it_entries, it_table, stats, it.prefix_table)
     write_licenses(tags=["it-IT"])
@@ -521,8 +638,10 @@ def build_french(stats):
             for text in lines:
                 yield text, weight, weight == 3, False
 
+    fr_abbr = abbreviations("fr", ["fr", "en"])
+
     def run(en_pages):
-        fr = build_fr.FrenchBuilder(freq, fr_pages, en_pages)
+        fr = build_fr.FrenchBuilder(freq, fr_pages, en_pages, fr_abbr)
         cov_before = fr.coverage(fr.counts)
         capitalised = {}
         tatoeba_tokens = 0
@@ -548,11 +667,12 @@ def build_french(stats):
             st.add(text, weight, conversational, tatoeba)
         st.finish(fr.forms_by_key)
         fr.stats = st
+        fr.stock_inputs = (capitalised, tatoeba_tokens, subtitle)
         return fr, st, cov_before, stock, top30, added
 
     # §11.2 point 3 (the rule of the Spanish build): the English dump's French sections are added only if the French
     # dump alone recognises less than 95 % of the 20 000 most frequent keys
-    fr_alone = build_fr.FrenchBuilder(freq, fr_pages, None).coverage_raw()
+    fr_alone = build_fr.FrenchBuilder(freq, fr_pages, None, fr_abbr).coverage_raw()
     use_en = fr_alone["fr"] < build_fr.COVERAGE_ENGLISH_DUMP
     en_pages = None
     cov_en = None
@@ -563,7 +683,7 @@ def build_french(stats):
         _, en_secs = wiktionary_fr.load_extract(en_cache)
         en_kinds = {t: wiktionary_fr.classify_en(t, s) for t, s in en_secs.items()}
         del en_secs
-        cov_en = build_fr.FrenchBuilder(freq, fr_pages, en_kinds).coverage_raw()
+        cov_en = build_fr.FrenchBuilder(freq, fr_pages, en_kinds, fr_abbr).coverage_raw()
         if use_en:
             en_pages = en_kinds
     fr, st, cov_before, stock, top30, added = run(en_pages)
@@ -574,7 +694,8 @@ def build_french(stats):
     fr.finish_header()
     fr_entries = fr.build()
     fr_keys = sorted(fr_entries)
-    counter = pairs.FrenchPairCounter(fr_entries, build_fr.PREFIXES, build_fr.UNELIDED, set(fr.apostrophe_words), stock)
+    counter = pairs.FrenchPairCounter(fr_entries, build_fr.PREFIXES, build_fr.UNELIDED, set(fr.apostrophe_words), stock,
+                                      damped=fr.damped, damping=common.DAMPING)
     for text, weight, _, tatoeba in sentences():
         counter.add(text, weight, tatoeba)
     fr_table = counter.table({k: i for i, k in enumerate(fr_keys)})
@@ -607,6 +728,12 @@ def build_french(stats):
         "prefixesAsFollowers": sum(1 for v in fr_table.values() for k, _, _ in v if k in build_fr.PREFIX_SET),
     })
     report["shortKeysNotForms"] = short_nonforms(fr_entries, fr.is_form, fr.count)  # 05b §3.6 (0.6.4)
+    capitalised, tatoeba_tokens, subtitle = fr.stock_inputs
+    report.update(nonform_report(fr, fr_entries, stock,
+                                 build_fr.stock_names(capitalised, tatoeba_tokens, damped_counts(subtitle, fr))[0]))
+    report.update(abbreviation_report(fr.abbreviation_keys, fr_entries, fr.count,
+                                      len(set(fr_abbr["fr"]) | (set(fr_abbr["en"]) if use_en else set())), "fr", fr.is_form,
+                                      ["fr", "en"] if use_en else ["fr"]))
     stats["fr-FR-extra"] = report
     write_outputs("fr-FR", fr.scale, fr.max_count, fr.corpus_tokens, fr_entries, fr_table, stats, fr.prefix_table)
     write_licenses(tags=["fr-FR"])

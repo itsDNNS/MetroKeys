@@ -11,7 +11,7 @@ written from a functional specification (see [How it is made](#how-it-is-made)).
 
 > **Made with AI:** MetroKeys is written and maintained with the help of Claude Opus 5.5 (Anthropic). See [How it is made](#how-it-is-made).
 
-Version 0.6.6 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer.
+Version 0.6.7 (see the [changelog](CHANGELOG.md)). Android 8.0 (API 26) or newer.
 
 <p>
   <img src="docs/screenshots/letters-dark.png" width="240" alt="Letter page, dark theme, with next-word predictions">

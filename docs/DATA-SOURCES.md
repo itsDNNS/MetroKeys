@@ -491,6 +491,202 @@ performant. The German tree has ≈ 1 089 000 nodes. Next-word costs: after "Vie
 of 05 §17.7 again), "Das" at the text start 50 (05 §17.7: 49). Memory on the emulator: de+en 68.1 MB of Dalvik heap at
 the peak (0.6.5: 87.3, 0.6.4: 63.0), de+en+fr 81.5 MB after a swipe (0.6.5: 101.2, 0.6.4: 78.0); APP.md.
 
+### Spanish, Portuguese, Italian and French rebuild (0.6.7): short-key guard and damping
+
+05b §3.6 "Other languages": the Spanish, Portuguese, Italian and French builds apply **step 6a** (a key of at most 3
+letters that is no form of the language is kept only with a count ≥ 20 000) and the **damping** (a key kept only by the
+count rule — §8.5, §9.5, §10.5, §11.6, the rule of German §3.6 step 7 — counts with count / 100 for its classes and for
+the pair table; the pair total c(prev, ·) stays undamped, as in German). The real-word typo rule stays German only, the
+English build is unchanged. Implementation: `_count_rule`, `effective_count` and the `selected` pass in each
+`build_*.py` (S and maxCount are recomputed after the damping, `common.damped_max`), `common.SHORT_KEY_LEN`,
+`SHORT_KEY_MIN`, `DAMPING`, and the `damped` argument of `PairCounter`, `ItalianPairCounter` and `FrenchPairCounter`.
+A key counts for step 6a only if the count rule would have kept it (keys dropped as foreign words or as too rare keep
+their reasons). Step 6a counts letters (Italian keys without the apostrophe of a truncated word, which are forms anyway).
+
+Rebuilding de-DE and en-US with the changed build code gave byte-identical files and identical report entries. Every
+key that disappeared is one of the step-6a keys, every key whose classes changed is a damped key (all lower, forms
+unchanged), and S and maxCount are unchanged in all four languages (their most frequent key is a form). Reports in
+`tools/dictionary-build.json` (`<tag>-extra`: `shortKeysDroppedByStep6a`, `shortKeysDroppedByStep6aList`, `dampedKeys`,
+`dampedKeysClass0`, `dampedTop50`).
+
+| | es-ES | pt-BR | it-IT | fr-FR |
+|---|---:|---:|---:|---:|
+| keys dropped by step 6a | 682 | 860 | 675 | 128 |
+| damped keys (of them class 0: count < 100) | 21 866 (12 955) | 27 130 (15 573) | 14 948 (8 516) | 8 813 (5 831) |
+| S (before = after) | 15.466736 | 15.429650 | 16.294616 | 15.988646 |
+| keys | 247 985 → 247 303 | 173 200 → 172 340 | 185 711 → 185 036 | 174 316 → 174 188 |
+| forms | 250 743 → 250 033 | 174 752 → 173 892 | 188 355 → 187 642 | 179 237 → 179 108 |
+| pair previous words | 38 819 → 38 606 | 21 100 → 21 077 | 37 566 → 37 329 | 41 447 → 41 423 |
+| pairs | 385 432 → 383 339 | 279 747 → 278 624 | 405 570 → 403 156 | 490 266 → 489 933 |
+| elided pairs (prefix as previous word) | – | – | 6 593 → 6 512 | 14 473 → 14 454 |
+| words file, bytes | 817 685 → 807 883 | 593 768 → 581 994 | 618 669 → 610 575 | 610 829 → 607 736 |
+| pairs file, bytes | 1 221 224 → 1 212 027 | 864 062 → 859 472 | 1 285 257 → 1 274 209 | 1 510 396 → 1 509 332 |
+
+Dropped by step 6a, most frequent 30 (count):
+- es-ES: amy 19799, ted 13688, tim 12307, roy 9331, ian 7992, lou 7704, liz 7187, vic 4958, ias 4613, sid 4547, meg 4422,
+  eve 4386, jon 4338, hal 4054, raj 3770, dee 3672, wes 3540, hee 3086, jae 3061, joo 2645, wu 2464, stu 2291, bam 2263,
+  yi 2003, kev 1987, umm 1794, yeo 1794, jed 1738, uld 1657, axl 1637 (also etc 984, xxi 867). Kept (≥ 20 000): joe,
+  tom, jim (damped).
+- pt-BR: huh 17350, ed 14455, ted 14177, mac 10695, pré 10582, ooh 10010, roy 9655, lou 9325, gus 7669, doc 7603, vic
+  5651, ned 5378, sid 4829, bud 4701, aah 4688, jon 4459, eve 4455, jan 3868, woo 3846, wes 3645, ohh 3586, ahh 3545, deb
+  3430, ivy 2915, oz 2906, kay 2875, bam 2647, hop 2610, hoo 2566, ahn 2550. Kept: sam, max, fbi, amy (damped).
+- it-IT: jim 15377, amy 13630, ted 9437, sig 8992, huh 5998, ian 5311, gus 5255, ron 5122, bla 4740, liz 4444, lou 4427,
+  uhm 3852, eun 3508, vic 3155, pat 3112, jen 3030, sid 2688, jan 2412, tae 2304, jae 2282, kay 2255, axl 2198, ivy
+  2180, seo 1973, soo 1970, aah 1949, nsa 1897, hee 1816, oz 1813, stu 1698. Kept: sam, joe (damped).
+- fr-FR: ooh 7428, ohh 2236, déj 2021, jae 1743, iui 1736, axl 1174, hwa 630, atf 584, ème 568, ctu 550, ryu 509, jeb
+  465, uhh 443, unh 421, fda 419, tov 416, rox 376, aww 334, yui 319, irv 292, tzu 284, yul 275, qa 264, arr 252, zhi
+  248, kui 242, hiv 241, qiu 234, miu 216, yeo 215. No short non-form keeps a count ≥ 20 000.
+
+Damped keys, most frequent 50 (count):
+- es-ES: joe 45636, michael 45435, tom 43486, george 42792, peter 36122, harry 30140, mary 28981, jimmy 28157, jim
+  27653, danny 27110, steve 26343, sarah 25543, tommy 24312, billy 23456, johnny 23436, eddie 22208, robert 21895,
+  chris 21747, ryan 21006, jake 20211, bobby 19822, eric 17896, jerry 17189, thomas 17038, andy 16833, rachel 16817,
+  scott 16338, emily 15784, jeff 15706, kelly 15490, annie 14317, clark 14288, carl 14238, claire 14117, kyle 13939,
+  roger 13425, luke 13424, alice 13182, lucy 13177, josh 13079, susan 13030, phil 12965, jenny 12409, taylor 12262,
+  joey 12148, morgan 11909, hank 11844, arthur 11713, julie 11629, maggie 11590.
+- pt-BR: srta 68973, sam 60584, michael 51930, charlie 46394, george 44807, mike 43894, james 37499, peter 37472, max
+  36139, york 33641, mary 32818, steve 31411, sarah 29654, danny 29642, jimmy 29234, alex 29001, jane 28718, fbi 27285,
+  billy 26207, richard 25220, johnny 24665, jake 24000, amy 23627, eddie 23265, chris 23202, robert 22523, bobby 21459,
+  martin 20310, matt 20159, eric 19911, brian 19570, rachel 19215, scott 19137, kelly 19047, simon 18396, larry 18323,
+  jeff 18115, kate 17781, thomas 17762, smith 17270, josh 16602, emily 16550, andy 16475, dave 16238, luke 15902, carter
+  15619, emma 15502, claire 15452, kyle 15261, annie 15097.
+- it-IT: sam 33675, charlie 26128, mike 25758, joe 24476, james 21763, jane 20009, danny 18788, sarah 18618, jake 17148,
+  jimmy 16613, steve 15344, ryan 13986, billy 13615, richard 13478, kevin 12887, johnny 12726, kate 12295, chris 12245,
+  brian 11829, charles 11784, angeles 11783, scott 11679, rachel 11674, bobby 11670, eddie 11213, andy 11212, emily
+  11031, josh 10419, pete 10258, jason 10211, thomas 10156, annie 9818, luke 9544, simon 9468, lucy 9227, dave 8907,
+  hank 8895, jeff 8809, carl 8802, sean 8654, william 8523, larry 8415, kyle 8289, phil 8210, jerry 8114, louis 8080,
+  jenny 7893, clark 7880, alan 7836, gary 7743.
+- fr-FR: angeles 8200, abby 8108, harvey 5546, jess 5222, casey 5063, gibbs 4946, randy 4892, simpson 3663, judy 3646,
+  willie 3464, neal 3205, freddy 3161, mcgee 3115, nicky 3093, benny 3081, doyle 2902, grayson 2755, avery 2752, polly
+  2725, beverly 2624, boyd 2619, scotty 2592, becky 2566, whoo 2518, flynn 2507, dixon 2461, buffy 2443, tess 2413,
+  brennan 2373, brett 2364, dwight 2353, mikey 2345, artie 2336, darrin 2327, spock 2288, peyton 2233, starfleet 2164,
+  shelby 2074, wally 2072, stevie 2046, carlo 2041, sherlock 1996, hyun 1953, bridget 1951, scully 1938, evelyn 1929,
+  phillip 1908, susie 1872, fitz 1858, vicki 1856 (most French first names are forms of the French Wiktionary and are
+  not damped).
+
+The stock-name rules (§5 step 3) are unchanged: computed with the damped subtitle counts they give the same lists in
+all four languages (`stockNamesChangedByDampedCounts` empty). French alias collisions (§11.5) still compare the
+undamped counts; none changed.
+
+| File (0.6.7 after step 6a and the damping; superseded by the abbreviation rule below) | Bytes | SHA-256 |
+|---|---:|---|
+| `es-ES.words.gz` | 807 883 | `770c687889c18d38a714b7cbe4ae04d4f41acd6fb9f1a2a60379d1270e1983ca` |
+| `es-ES.pairs.gz` | 1 212 027 | `3de4037d32cb665a8cc1ec2d4c39c25a75134b8ad791fe80aa7bc976759b7dd0` |
+| `pt-BR.words.gz` | 581 994 | `bc1663bcbb3d443d431f08146607f7e90efeef5f69b75afec0f0ac2fd1f27436` |
+| `pt-BR.pairs.gz` | 859 472 | `430433b57e7e74ddebe893040e8d152f5403233c569ad3a83691fb9aab8b3323` |
+| `it-IT.words.gz` | 610 575 | `82b4dc45a99f0e2ef361da782e996b3b48aa33070094eb9bc13532fc0ad56044` |
+| `it-IT.pairs.gz` | 1 274 209 | `b9c791e6b66fac58f9f780dfe6537b56aa970ee321954a08e03cfa50b75e238e` |
+| `fr-FR.words.gz` | 607 736 | `0791a33351d80bd2d1d8148292bd643b3e40cb24d3570ec86cc3d8f446654cb6` |
+| `fr-FR.pairs.gz` | 1 509 332 | `c1de92d4f1596316ddef535f54ffe5ebd144aedad726c04a00d65be541789706` |
+
+Word-list payload SHA-256 (superseded): es-ES `06685a4b…6a7aa8`, pt-BR `52bf87c4…268e96`, it-IT `a3f8218c…f9b0ce`, fr-FR
+`a5de18a0…b181a7`. Together the four languages shrink by 60 KB; the release APK is 14.99 MB (0.6.6: 15.0 MB). All
+worked examples of 05 §17.8–§17.11 and 06 keep their outcomes; Italian "perch" is no longer autocorrected to the name
+"Percy" (class 124 → 49), so "perché" stands first again as 05 §17.10 example 7 originally expected (spec/QUESTIONS.md).
+
+### Abbreviation titles and prefix compounds (0.6.7, all languages)
+
+05b §3.6 "Abbreviation and affix titles", as decided for 0.6.7 (spec/QUESTIONS.md): a Wiktionary page of the language
+whose title is letters followed by a **period** ("usw.", "etc.", "sig.") makes the key without the period a **form**,
+with the title's case: kept from count ≥ 2, never dropped by step 6a, never damped; in German also a §3.7
+dictionary-only lemma when the title's German section has a lemma part of speech ("Abkürzung" is one). A title ending
+in a **hyphen** ("anti-", "sub-") is a prefix: it is **no form** in any language, but in German it may be the first part
+of a compound (§3.5, count ≥ 20, not a function word). `tools/dictbuild/wiktionary_affix.py` reads each dump once more
+and caches both kinds of titles per language section (`build-data/cache/<dump>wiktionary-20261001-affix.tsv.gz`; de
+1 957, es 313, pt 338, it 262, fr 1 404, en 6 658 titles; the English dump's Spanish, Portuguese, Italian, French and
+English sections). **English guard**: an abbreviation title makes no form when its key is among the 5000 most
+frequent keys of the pinned English FrequencyWords list (`en_full.txt`, line order, lower-cased, each key once;
+`ENGLISH_GUARD_RANK` in `build_dictionaries.py`); such keys stay under their build's count rule (step 6a, damping).
+The forms count only for the dumps a build uses (es, pt, it: own dump and English dump; fr: French
+dump; de: German dump). An abbreviation page is no inflection page. Report (`<tag>-extra`): `abbreviationTitles`,
+`abbreviationKeys`, `abbreviationKeysInWordList`, `abbreviationKeysTop60`, `englishGuardKeys`, `englishGuardKeysList`;
+de also `abbreviationKeysDictionaryOnly`,
+`prefixParts`, `keysByPrefixCompounds`, `keysByPrefixCompoundsTop60`.
+
+**English is not changed** (decided): the English build uses no Wiktionary (§4.1; a form of English is a SCOWL key, and
+SCOWL's abbreviation lists already give "etc", "vs", "approx" … without the period). en-US stays byte-identical.
+
+| | de-DE | es-ES | pt-BR | it-IT | fr-FR |
+|---|---:|---:|---:|---:|---:|
+| abbreviation forms of the used dumps (after the guard) | 1 285 | 161 | 87 | 61 | 164 |
+| keys kept from being forms by the English guard | 18 | 5 | 5 | 7 | 1 |
+| keys that are forms only by this rule | 895 | 100 | 46 | 40 | 76 |
+| of them in the word list | 890 (657 dictionary-only lemmas) | 77 | 40 | 28 | 53 |
+| keys kept by step 5 with a prefix as first part | 306 (of 559 prefix titles) | – | – | – | – |
+| keys dropped by step 6a | 336 → 326 | 682 → 670 | 860 → 847 | 675 → 671 | 128 → 126 |
+| damped keys | 9 228 → 9 176 | 21 866 → 21 863 | 27 130 → 27 124 | 14 948 → 14 947 | 8 813 → 8 812 |
+| keys | 320 804 → 322 189 | 247 303 → 247 380 | 172 340 → 172 374 | 185 036 → 185 063 | 174 188 → 174 238 |
+| forms | 326 931 → 328 429 | 250 033 → 250 115 | 173 892 → 173 935 | 187 642 → 187 677 | 179 108 → 179 163 |
+| pair previous words | 54 840 → 54 866 | 38 606 → 38 618 | 21 077 → 21 078 | 37 329 → 37 330 | 41 423 → 41 429 |
+| pairs | 565 578 → 565 691 | 383 339 → 383 400 | 278 624 → 278 635 | 403 156 → 403 163 | 489 933 → 489 958 |
+| words file, bytes | 1 335 116 → 1 339 994 | 807 883 → 808 139 | 581 994 → 582 110 | 610 575 → 610 682 | 607 736 → 607 867 |
+| pairs file, bytes | 1 889 786 → 1 890 080 | 1 212 027 → 1 212 411 | 859 472 → 859 184 | 1 274 209 → 1 274 931 | 1 509 332 → 1 508 320 |
+
+(Left: German as in 0.6.6, the other languages after step 6a and the damping above.) S and maxCount are unchanged in
+every language; no key is removed.
+
+Keys that became forms by the abbreviation rule, most frequent 60 in the word list (subtitle count):
+- de-DE: geb 5126, finn 1760, oz 1375, ling 1232, ver 765, jr 644, jem 561, mill 445, jt 405, jun 330, sek 317, tel
+  257, wi 254, bret 228, jh 190, ev 185, ie 180, mme 180, frl 178, isl 165, qu 158, osman 156, aug 150, med 148, ew
+  145, hor 135, dim 125, aram 122, engl 108, gt 101, hd 93, christl 87, merc 81, hl 72, fig 69, gef 68, ltd 65, nom
+  64, bj 61, mech 56, argent 51, breton 51, etc 50, stud 50, psych 49, uvm 49, ung 48, rev 46, usw 46, aran 44, bez
+  43, prot 42, anh 41, ehem 41, ged 40, verf 40, frz 39, gesch 38, vert 38, bem 37. The everyday abbreviations **usw**
+  (count 46, class 63), **bzw** (38), **etc** (64), **evtl** (26) and **vgl** (11) are German keys; **ggf** (counted
+  at most once) is a dictionary-only lemma with class 1.
+- es-ES: jr 2428, der 1331, tte 1306, vd 1122, etc 984, ár 856, dra 703, cnel 469, sta 449, mts 384, br 327, dim 294,
+  esp 264, sto 261, fr 214, cp 207, ant 201, prof 166, gto 144, hna 137, ing 125, lat 111, sup 102, mich 93, pte 93,
+  rep 87, arg 79, conf 74, pl 72, frs 71, lda 71, sds 70, int 68, dud 67, cdo 58, tít 55, hno 52, inf 49, ec 48, cda
+  44, atte 37, hnos 32, drs 31, mús 31, clás 27, sma 27, cfr 25, aum 24, pret 24, cdos 23, ext 19, obs 16, pers 14,
+  admón 13, hch 12, malson 12, adj 11, adv 11, irl 11, sust 11. **etc** has class 107.
+- pt-BR: srta 68973, jr 4204, jan 3871, dra 1225, jd 1225, jun 1225, vs 933, séc 461, ltda 279, prof 223, sm 199, sto
+  133, lda 129, srtas 122, obs 114, eng 104, univ 82, bras 81, arq 77, nov 73, ref 72, vd 64, lg 63, jul 57, hb 51,
+  pág 46, corr 42, fev 41, aprox 36, feat 34, enf 29, abr 28, págs 19, inf 15, adv 10, prov 10, enus 7, adj 3, subst
+  3, accel 2. "pré" (a prefix title only) stays dropped by step 6a, "doc" too (no abbreviation page); **srta** is no
+  longer damped.
+- it-IT: sig 9129, oz 1813, dott 210, ecc 188, str 169, arch 164, tr 132, rag 110, cb 93, vc 75, cav 68, fl 64, vn 64,
+  ing 53, vl 51, fam 37, ob 29, geom 28, cfr 27, avv 22, prov 19, arp 15, vla 13, agg 10, timp 8, cpv 6, vlc 5, spett
+  2. **sig** has class 142.
+- fr-FR: jr 1580, mar 512, acc 237, ant 229, litt 213, arbor 158, ven 114, dat 101, cic 98, virg 96, sc 95, colum 83,
+  kr 66, voy 56, oct 51, rr 51, aus 47, tél 44, env 42, nov 41, rrr 39, mde 34, aug 33, rrrr 31, hor 30, resp 26,
+  lucan 19, feat 16, pomp 16, varr 14, vv 14, arat 13, caes 12, bibl 10, éd 10, atil 8, acro 6, janv 6, ov 6, anth 5,
+  ovid 5, abr 4, afran 4, auj 4, amph 3, andr 3, cuil 3, févr 3, abrév 2, avian 2, boet 2, juill 2, lun 0 ("etc" was a
+  French key before).
+
+Keys the English guard keeps from becoming forms (subtitle count; then the count rule decides): de ed 4703, bay 1700,
+pat 1495, got 1429, get 1361, iron 675, part 488, rip 477, chin 463, mind 349, slow 95, mask 38, dial 33, erm 29, lit 26,
+korean 6 (all dropped by step 6a or as too rare), indian 201 and math 56 (kept, damped: Indian class 11, Math class 0);
+es it 15113, dr 4046, art 2363, port 835, part 403; pt st 11708, out 6722, part 829, ago 283, cast 107; it all 6281, on
+6051, art 1756, dr 1404, sec 433, id 344, cost 65; fr african 40 (all dropped). German "Dr", "St" and "Art" stay keys:
+they are German forms through ordinary pages. With them the German compound rule loses 33 keys whose first part was
+such an abbreviation (bayfront, mastermind, flatiron, ripcord …). Prefix titles (ending in "-") made the earlier forms
+of, al, phil, meg, in, em, re, pré, is, sex … (0.6.7 decision, spec/QUESTIONS.md); they are no forms.
+
+German prefix compounds (§3.5 with a prefix as first part), most frequent 30: subcentral 1101, travers 244, monkeys 140, message 123, millicent 121, kinsella 116, retrovirus 105, halbach 103, nanosonden 97, psychospielchen 74, tralala 60, kintaro 59, subunternehmer 58, archangel 52, monsignor 52, andromache 50, trading 46, messire 43, antigone 42, phillippe 39, subatomare 39, triangle 39, hypospray 38, antivirus 36, mesenburg 36, subroutinen 36, antiserum 35, entleerer 32, subatomaren 32, halbachs 31 … Besides real compounds
+("subunternehmer", "antivirus", "retrovirus", "nanosonden") the rule also keeps undamped names and English words whose
+beginning is a prefix ("millicent", "halbach", "monsignor", "message", "triangle"). The real-word typo rule finds 126
+keys instead of 115 (new: apl, dor, fem, hist, hom, iber, ide, ind, jur, unf, zz); the dictionary-only lemmas grow
+from 84 581 to 85 243.
+
+| File (0.6.7, final) | Bytes | SHA-256 |
+|---|---:|---|
+| `de-DE.words.gz` | 1 339 994 | `c11040f083d695160db6a6393aad349fc99303405e89172473f1463fdde247e9` |
+| `de-DE.pairs.gz` | 1 890 080 | `1bea862b76e30f1e1c0355c77704e129f2ebf913b364a88810bcafe8cc3ed6f8` |
+| `es-ES.words.gz` | 808 139 | `6139c4cf3ecedf82d3d3375e7c4e6e5932c9a43d6705985af45344558756c74d` |
+| `es-ES.pairs.gz` | 1 212 411 | `bf82166a0415ae233c2fa4eeb928a813b4ffa258ae319ee6a37a05f9f4415381` |
+| `pt-BR.words.gz` | 582 110 | `2d9aa4a012e526c2a3053fa860022b68313edaf2ef5682b7f7a5f70ad92c11e4` |
+| `pt-BR.pairs.gz` | 859 184 | `8c35ad2bbec8eba24412dde6066159e8125e6bcd9673ebd3de4645d6b7ef7b4b` |
+| `it-IT.words.gz` | 610 682 | `358611e5a3d321e8f92d99969932c77a2f2750adc35b87b45fc60a34699e725e` |
+| `it-IT.pairs.gz` | 1 274 931 | `6788225dcd29ec4657394c6b54be9b613a852bfbede1e85b077ba3aefc215641` |
+| `fr-FR.words.gz` | 607 867 | `367b9bd01a34dea5bf367c55186d07367ead3f3c1a61f850d681e7f1dc3cea64` |
+| `fr-FR.pairs.gz` | 1 508 320 | `290c1b2f6b48bbdbc6ee8737c1a3a8bc9e8db0bd1b70c0e3ecf0c840604de567` |
+
+Word-list payload SHA-256: de-DE `8e2af5f8…b70c20`, es-ES `d8712106…fc3970`, pt-BR `b6920706…4cde6c`, it-IT `4e3750e4…f34ff1`, fr-FR `08794237…db1f7e`; en-US unchanged (byte-identical). Release APK 14 995 690 bytes (0.6.6: 15.0 MB).
+The JVM memory test retains the same within 0.4 MB, except fr+de+it 56.7 MB (+1.1 MB against the state before the
+abbreviation rule, reproducible; not analysed further, within its 68 MB heap). All worked examples are unchanged
+(German "Das" at the text start still 50, after "Vielen " anderen 52, Fällen 54); printed test values that changed:
+"zj" lists "vj" (abbreviation "vj.") as fourth correction instead of "ZK", the Italian elided shape index has 6 506
+entries (6 501).
+
 # App data sources
 
 ## Selawik font

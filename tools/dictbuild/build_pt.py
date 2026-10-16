@@ -10,7 +10,7 @@ import math
 import re
 
 import casing
-from common import freq_class, jlower
+from common import DAMPING, damped_max, freq_class, jlower, short_key_dropped
 from wiktionary_pt import strip_diacritics
 
 EXCLUDED_LETTERS = set("İıŉſĸªº")
@@ -182,7 +182,7 @@ class PhraseCounter:
 
 
 class PortugueseBuilder:
-    def __init__(self, freq_path, ignored_path, pt_pages, en_pages):
+    def __init__(self, freq_path, ignored_path, pt_pages, en_pages, abbreviations=None):
         """[pt_pages], [en_pages]: (titles, {title: kinds}) of the classified Wiktionary passes
         (wiktionary_pt.classify_pt / classify_en); [en_pages] None = Portuguese dump alone."""
         self.report = {}
@@ -196,6 +196,7 @@ class PortugueseBuilder:
         self.en_titles_lower = {t for t in en_pages[0] if t == jlower(t)} if en_pages else set()
         self._read_counts(freq_path, ignored_path)
         self._collect_pages()
+        self._abbreviations(abbreviations or {})
         self._preclitic()
         self._reform()
         self._european()
@@ -291,6 +292,25 @@ class PortugueseBuilder:
         self.report["prereformFormConflictCount"] = len(conflicts)
         for p in CLITIC_PRONOUNS:
             self.forms_by_key.setdefault(p, set()).add(p)
+        self.pointer_keys -= set(self.forms_by_key)
+
+    def _abbreviations(self, abbreviations):
+        """§3.6 abbreviation and affix titles (0.6.7): {dump: forms} ("doc" of "doc.", "pré" of "pré-") are forms of
+        their dump, not inflected; the keys that are forms only by this rule are recorded."""
+        self.abbreviation_keys = set()
+        for dump, forms in sorted(abbreviations.items()):
+            if dump not in dict(self.dumps):
+                continue
+            for form in sorted(forms):
+                key = jlower(form)
+                if not all(c in ALLOWED for c in key):
+                    continue
+                if key not in self.forms_by_key:
+                    self.abbreviation_keys.add(key)
+                self.forms_by_key.setdefault(key, set()).add(form)
+                self.form_dumps.setdefault(key, {}).setdefault(dump, []).append(
+                    {"form": True, "pointer": None, "prereform": None, "euro": False, "euro_target": None,
+                     "inflected": False, "phrase": False, "prereform_variants": [], "old1911": False})
         self.pointer_keys -= set(self.forms_by_key)
 
     def is_form(self, key):
@@ -627,36 +647,55 @@ class PortugueseBuilder:
             dropped["formBelowCount2"] += 1
             return None
         if count >= KEEP_MIN_COUNT:
-            if key in self.en_titles_lower and key not in self.foreign_titles and count < FOREIGN_MAX:
-                dropped["foreignEnglishDumpOnly"] += 1
-                if len(dropped["foreignEnglishDumpOnlyExamples"]) < 40 and count >= 2000:
-                    dropped["foreignEnglishDumpOnlyExamples"].append(key)
-            if key in self.foreign_titles and count < FOREIGN_MAX:
-                dropped["foreign"] += 1
-                if len(dropped["foreignExamples"]) < 40 and count >= 2000:
-                    dropped["foreignExamples"].append(key)
+            sel = self._count_rule(key, count, dropped)
+            if sel and short_key_dropped(len(key), count):
+                # 05b §3.6 step 6a (0.6.7): a non-form of at most 3 letters needs count >= 20 000
+                dropped["shortKeyStep6a"] += 1
+                self.short_dropped.append(key)
                 return None
-            dec = self.case_decision(key)
-            if dec:
-                return dec
-            titles = self.titles_by_key.get(key, set())
-            if key in titles or not titles:
-                return [(key, 1.0)]
-            best = sorted(titles, key=lambda f: (casing.case_kind_rank(f), f))[0]
-            return [(best, 1.0)]
+            if sel:
+                self.damped.add(key)  # 05b §3.6 damping (0.6.7): kept only by the count rule
+            return sel
         dropped["rare"] += 1
         return None
+
+    def _count_rule(self, key, count, dropped):
+        """§9.5 count rule (German §3.6 step 7) for a non-form counted at least KEEP_MIN_COUNT times."""
+        if key in self.en_titles_lower and key not in self.foreign_titles and count < FOREIGN_MAX:
+            dropped["foreignEnglishDumpOnly"] += 1
+            if len(dropped["foreignEnglishDumpOnlyExamples"]) < 40 and count >= 2000:
+                dropped["foreignEnglishDumpOnlyExamples"].append(key)
+        if key in self.foreign_titles and count < FOREIGN_MAX:
+            dropped["foreign"] += 1
+            if len(dropped["foreignExamples"]) < 40 and count >= 2000:
+                dropped["foreignExamples"].append(key)
+            return None
+        dec = self.case_decision(key)
+        if dec:
+            return dec
+        titles = self.titles_by_key.get(key, set())
+        if key in titles or not titles:
+            return [(key, 1.0)]
+        best = sorted(titles, key=lambda f: (casing.case_kind_rank(f), f))[0]
+        return [(best, 1.0)]
+
+    def effective_count(self, key):
+        """The count used for classes and pairs: damped for keys kept only by the count rule (05b §3.6, 0.6.7)."""
+        c = self.counts.get(key, 0)
+        return c * DAMPING if key in self.damped else c
 
     def build(self):
         self.titles_by_key = {}
         for t in self.titles:
             self.titles_by_key.setdefault(jlower(t), set()).add(t)
         dropped = {k: 0 for k in ("implausible", "oneLetter", "nonPortugueseCharacters", "misplacedCedilla", "formBelowCount2",
-                                  "missingSpace", "foreign", "rare")}
+                                  "missingSpace", "foreign", "shortKeyStep6a", "rare")}
         dropped["foreignExamples"] = []
         dropped["foreignEnglishDumpOnly"] = 0  # not dropped: would be foreign with the English dump's titles
         dropped["foreignEnglishDumpOnlyExamples"] = []
-        entries = {}
+        self.damped = set()
+        self.short_dropped = []
+        selected = {}
         kept_unknown = 0
         for key in sorted(self.counts):
             if not (2 <= len(key) <= 27 or len(key) == 1):
@@ -666,7 +705,13 @@ class PortugueseBuilder:
                 continue
             if not self.is_form(key):
                 kept_unknown += 1
-            count = self.counts[key]
+            selected[key] = sel
+        # S and the class formula after the damping (05b §3.6)
+        self.max_count = damped_max(self.counts, self.damped)
+        self.scale = 255.0 / math.log(self.max_count)
+        entries = {}
+        for key, sel in selected.items():
+            count = self.effective_count(key)
             forms = []
             seen = set()
             for f, share in sel:

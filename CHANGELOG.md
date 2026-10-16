@@ -3,6 +3,28 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.6.7 – 2026-10-16
+
+### Spanish, Portuguese, Italian and French dictionaries
+- Short words of up to three letters that are no word of the language (names and interjections of dubbed films such
+  as "ted", "amy", "huh", "ooh") are left out unless they are very frequent: 670 Spanish, 847 Portuguese, 671 Italian
+  and 126 French entries fewer. German has done this since 0.6.4.
+- Names and foreign words that the dictionaries know only from film subtitles count a hundred times less for
+  suggestions and next-word predictions, so they no longer push real words aside: 21 863 Spanish, 27 124 Portuguese,
+  14 947 Italian and 8 812 French entries. Italian "perch" now offers "perché" first instead of autocorrecting to
+  "Percy". Very rare names among them are, in Italian and French, still accepted when typed but no longer suggested.
+- Abbreviations that Wiktionary lists with a period ("etc.", "sig.", "Srta.") count as words of the language without
+  it, so "etc" in Spanish and "sig" in Italian are kept again and "Srta" is no longer treated like a name. Common
+  English words that happen to be abbreviations too ("it", "on", "all", "out") are not affected.
+- The four dictionaries are about 59 KB smaller than in 0.6.6; memory use stays the same. English is unchanged.
+
+### German dictionary
+- Abbreviations from Wiktionary are words: "usw", "bzw", "etc", "evtl", "vgl" and "ggf" are known and stay as typed
+  (the period is typed as usual). 890 such words are in the dictionary (657 of them only from Wiktionary); common
+  English words such as "get", "got" or "mind" are not among them.
+- Compounds starting with a prefix that Wiktionary lists ("anti-", "sub-", "retro-") are recognised: 306 more words
+  such as "Subunternehmer", "Antivirus" and "Retrovirus".
+
 ## 0.6.6 – 2026-10-16
 
 ### Keyboard

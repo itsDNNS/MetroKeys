@@ -45,9 +45,54 @@ class ShortKeysAndNamesTest {
 
     @Test
     fun step6aDropsShortNonGermanKeys() {
-        // dropped (count < 20 000): "joe", "you", "and"; kept (≥ 20 000), but damped: "dad", "the"
+        // dropped (count < 20 000): "joe", "you", "and"; kept (≥ 20 000), but damped: "dad", "the". The prefix title
+        // "of-" does not make "of" a form (05b §3.6, 0.6.7: prefixes are compound parts only).
         for (k in listOf("joe", "you", "and", "of", "ähm")) assertTrue(de.lexicon.forms(k).isEmpty(), k)
         for (k in listOf("dad", "the", "wär")) assertTrue(de.lexicon.forms(k).isNotEmpty(), k)
+    }
+
+    /**
+     * 05b §3.6 "Abbreviation and affix titles" (0.6.7): a Wiktionary title ending in "." is a form of the key without
+     * it (a title ending in "-" is a prefix, a German compound part only). The German abbreviations are kept as forms (not dropped by step 6a, not damped); one counted at most
+     * once in the subtitles is a dictionary-only lemma with class 1 (§3.7). Typed without the period they stay as typed.
+     */
+    @Test
+    fun abbreviationTitlesAreForms() {
+        for ((k, cls) in listOf("usw" to 63, "bzw" to 38, "etc" to 64, "evtl" to 26, "vgl" to 11, "ggf" to 1)) {
+            assertEquals(cls, de.lexicon.exactClass(k), k)
+            assertTrue(de.query(k).validity.valid, k)
+        }
+        assertEquals(null, engine.query(Query("Äpfel, Birnen usw")).autoCorrection)
+        val es = TestDictionaries.spanish()
+        assertEquals(107, es.lexicon.exactClass("etc"))
+        assertTrue(es.query("etc").validity.valid)
+    }
+
+    /**
+     * 05b §3.6 "Other languages" (0.6.7): step 6a and the damping of non-forms in the Spanish, Portuguese, Italian and
+     * French builds. Dropped (no form of the language, at most 3 letters, count < 20 000) and kept (count ≥ 20 000) keys
+     * as listed by the build report (tools/dictionary-build.json); a damped key's class is that of count / 100.
+     */
+    @Test
+    fun step6aAndDampingInOtherLanguages() {
+        val cases = listOf(
+            // engine, dropped by step 6a, kept short non-forms, (damped key, class of count / 100)
+            Triple(TestDictionaries.spanish(), listOf("amy", "ted", "tim", "roy"), listOf("joe", "tom", "jim")) to
+                listOf("Michael" to 95, "Joe" to 95),
+            Triple(TestDictionaries.portuguese(), listOf("huh", "ed", "ted", "ooh"), listOf("sam", "max", "fbi")) to
+                listOf("Sam" to 99, "Michael" to 96),
+            Triple(TestDictionaries.italian(), listOf("jim", "amy", "ted", "huh"), listOf("sam", "joe")) to
+                listOf("Sam" to 94, "Percy" to 49),
+            Triple(TestDictionaries.french(), listOf("ooh", "ohh", "jae", "axl"), listOf<String>()) to
+                listOf("Tess" to 51),
+        )
+        for ((t, damped) in cases) {
+            val (e, dropped, kept) = t
+            val tag = e.params.languageTag
+            for (k in dropped) assertTrue(e.lexicon.forms(k).isEmpty(), "$tag $k")
+            for (k in kept) assertTrue(e.lexicon.forms(k).isNotEmpty(), "$tag $k")
+            for ((k, cls) in damped) assertEquals(cls, e.lexicon.exactClass(k), "$tag $k")
+        }
     }
 
     /** 05 §17.7a (0.6.5): a dictionary-only German form (05b §3.7) is offered. */

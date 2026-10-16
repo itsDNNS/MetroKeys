@@ -104,6 +104,14 @@ de+en+fr 98.7 / 74.2 → 101.2 / 76.6 MB (0.6.4: 75.6 / 51.1 → 78.0 / 53.4). B
 With the dictionary-only German lemmas of 0.6.6 (320 804 German keys; same measurement, release build, multilingual,
 highest of 15 samples while loading, then after a swipe of "vielleicht"; MiB of `dumpsys meminfo`): de+en 68.1 / 44.1 →
 68.0 / 44.0 MB, de+en+fr 79.2 / 55.2 → 81.5 / 57.5 MB.
+With the short-key guard and damping of 0.6.7 in the es, pt, it, fr dictionaries (release build, multilingual, third
+language selected with the language key after a restart; highest of 15 samples while loading, then after typing a
+sentence in the third language and a swipe; MiB of `dumpsys meminfo`, heap size / allocated): de+en+es 83.9 / 59.4 →
+84.0 / 59.4 MB, de+en+pt 79.9 / 55.3 → 80.2 / 55.7 MB, de+en+it 81.3 / 56.8 → 82.9 / 58.3 MB, de+en+fr 81.1 / 56.5 →
+83.8 / 59.3 MB. The dictionaries are 60 KB smaller; the differences to 0.6.6 (de+en+fr) are within the run-to-run spread
+of the garbage collector's heap sizing (the JVM test retains at most 0.15 MB less). Measured before the abbreviation titles and prefix compounds of 05b §3.6 were added (0.6.7, German files +5.2 KB);
+with them the JVM memory test retains the same within 0.4 MB except fr+de+it (+1.1 MB, 56.7 MB), so the emulator
+values were not repeated.
 
 ### Performance (0.6.5)
 
