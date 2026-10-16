@@ -10,7 +10,8 @@ The word lists and word-pair tables in `engine/src/main/resources/app/metrokeys/
 The derived data files (`*.words.gz`, `*.pairs.gz`) are licensed under **CC BY-SA 4.0**
 (https://creativecommons.org/licenses/by-sa/4.0/) because the frequency source is CC BY-SA. This licence applies to
 the data files only, not to the MetroKeys code. A licence/attribution text accompanies each data file
-(`LICENSE-de-DE.txt`, `LICENSE-en-US.txt`, `LICENSE-es-ES.txt`, `LICENSE-pt-BR.txt`, `SCOWL-Copyright.txt`); the engine exposes it through
+(`LICENSE-de-DE.txt`, `LICENSE-en-US.txt`, `LICENSE-es-ES.txt`, `LICENSE-it-IT.txt`, `LICENSE-pt-BR.txt`,
+`SCOWL-Copyright.txt`); the engine exposes it through
 `Dictionary.bundledLicenseText(tag)` for the app's licences screen.
 
 ## Sources
@@ -37,11 +38,16 @@ the data files only, not to the MetroKeys code. A licence/attribution text accom
 | English Wiktionary, Portuguese sections | dump `20261001` (the file of the Spanish row) | `enwiktionary-20261001-pages-articles.xml.bz2` | `37e414002bdf72ccf6518b83116ec36df36af4aabbf4477d49871849b737de42` | CC BY-SA 4.0 (also GFDL) | inflected forms, pre-reform and regional labels (required, 05b §9.2) |
 | Tatoeba | export of 2026-10-10 (Last-Modified `Sat, 10 Oct 2026 06:30:50 GMT`, downloaded 2026-10-16) | `per_language/por/por_sentences.tsv.bz2` | `396a9416796b494c889e845075a5e2fa49a34f58831fd6e73d8bf38b7d926845` | CC BY 2.0 FR | Portuguese pairs (weight 3) and running-text case evidence, after the Brazilian filter |
 | Mozilla Common Voice | same commit, `server/data/pt/` | `sentence-collector.txt` weight 3 (1 670 250 bytes); `singleword-benchmark.txt` not used | `bdabc8258ab0955aada07f75f31fae9fad8b1ca5d40899b92074610bb5aed13d` | CC0 1.0 | Portuguese pairs and running-text case evidence, after the Brazilian filter |
+| hermitdave/FrequencyWords | same commit as de/en/es/pt | `content/2018/it/it_full.txt` (798 017 lines, 247 073 874 tokens) | `b23b0c6a3f59c1da1c7caa667b9df5699e95323fee20a05f343c7d7dae73c4be` | content CC BY-SA 4.0 | Italian words and counts, counts of the elision prefixes and apostrophe tokens (§10.1); `it_ignored.txt` is not used |
+| Italian Wiktionary (https://it.wiktionary.org/) | dump `20261001` | `itwiktionary-20261001-pages-articles.xml.bz2` (71 493 528 bytes, sha1 `b34c28860741cf2e71eceac61dd9f27ad3385c62`) | `a7a334de675ab98eef6948cd029248f20ebc185773a8984f392f2bb2d793237e` | CC BY-SA 4.0 (also GFDL) | Italian spelling, validity, proper-noun case, titles for the foreign-word rule (no frequencies) |
+| English Wiktionary, Italian sections | dump `20261001` (the file of the Spanish row) | `enwiktionary-20261001-pages-articles.xml.bz2` | `37e414002bdf72ccf6518b83116ec36df36af4aabbf4477d49871849b737de42` | CC BY-SA 4.0 (also GFDL) | inflected, clitic and apocopic forms, misspelling and obsolete-spelling pages (required, 05b §10.2) |
+| Tatoeba | export of 2026-10-10 (Last-Modified `Sat, 10 Oct 2026 06:30:50 GMT`, downloaded 2026-10-16) | `per_language/ita/ita_sentences.tsv.bz2` (988 826 sentences) | `9456a860f6528d21429b6b58ee92aa144b4cd7e698532648aeb8a72d006f9fa8` | CC BY 2.0 FR | Italian pairs (weight 3), running-text case evidence, sentence counts of §10.4/§10.5 |
+| Mozilla Common Voice | same commit, `server/data/it/` (exactly four files) | `frasi.txt` weight 3 (`5655a5eb1d8245d6db25bd430d7e11a8673e064cb0f03c8a08f3f0cb896a4be2`), `sentence-collector.txt` weight 3 (`5917d71dc7e6e245becc1b50df04a650aea6877737bca3a9b60541b3f230c86e`), `wiki.it.txt` weight 1 (`007b50b609b01788ee380e7087584681a6945cd8844a3408c0ed2e03fa093e88`), `wiki.it.rerun-2021-10.txt` weight 1 (`499cfa27a09ee41e405ae818100a951f2960cb87aaa1e62f90f37c03ba4b5d44`) | see left | CC0 1.0 | Italian pairs, running-text case evidence, sentence counts |
 
 All hashes equal the ones listed in the specification (for the Wiktionary dumps the specification gives the sha1 of
 the dump status; the sha256 values above were recorded at download). The directory `server/data/es/` of Common Voice
-holds exactly the three files listed, `server/data/pt/` exactly the two named above (checked with the GitHub contents
-API at that commit). The Tatoeba exports downloaded on 2026-10-15 still carried
+holds exactly the three files listed, `server/data/pt/` exactly the two named above, `server/data/it/` exactly the four
+named above (checked with the GitHub contents API at that commit). The Tatoeba exports downloaded on 2026-10-15 still carried
 the reference export date (2026-10-10) and the reference hashes. The Wiktionary dump and the Tatoeba exports will
 disappear from their servers; keep archived copies (with the hashes above) to rebuild byte-identical data.
 
@@ -67,6 +73,11 @@ disappear from their servers; keep archived copies (with the hashes above) to re
   (filtered, hyphen tokens split, accents, spelling reform, case, frequency classes), CC BY-SA 4.0
   (`LICENSE-pt-BR.txt`).
 - Portuguese word pairs: as German word pairs.
+- Italian word list: FrequencyWords © Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; spellings from Wiktionary
+  (it.wiktionary.org and en.wiktionary.org), authors see page histories, CC BY-SA 4.0; sentence statistics from Tatoeba
+  (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, accents restored, elisions separated, case,
+  frequency classes), CC BY-SA 4.0 (`LICENSE-it-IT.txt`).
+- Italian word pairs: as German word pairs.
 
 ## Build result
 
@@ -226,6 +237,86 @@ Rules of the Portuguese build that the specification leaves to the implementatio
 - **Brazilian filter** (§9.7): marker keys are the European forms and spellings dropped by §9.4 plus the keys with only
   European-only pages and fewer than 2 counts (4 299 keys); the European progressive is a form of "estar" + "a" + a
   word ending in -ar/-er/-ir/-or, all separated by spaces only.
+
+### Italian (it-IT, first build, 0.6.2)
+
+Rebuilding German, English, Spanish and Portuguese after adding Italian left all eight files byte-identical (SHA-256
+compared before and after); two Italian runs gave identical bytes. The Italian files use version 2 of both formats
+(ENGINE.md): the word list ends with the elision prefix table, the pair table holds the prefixes as previous words
+(up to 4000 followers) and as followers. The other languages stay at version 1.
+
+| | it-IT |
+|---|---:|
+| keys | 185 711 |
+| cased forms | 188 355 (2 638 keys with two case forms, 16 169 keys whose best form is capitalised) |
+| S | 16.294616 (spec: expected ≈ 16.2947) |
+| maxCount | 6 257 813 ("non"; after the accent-loss transfer "e" has about 4.97 million and "è" about 5.09 million) |
+| corpusTokens | 247 073 874 (every count of the list, including the apostrophe tokens) |
+| A / Bc | −8.39 / 0.02665 |
+| pair previous words | 37 566 (of them 41 elision prefixes) |
+| pairs | 405 570 (6 593 elided pairs with a prefix as previous word: l' 2 255, dell' 957, all' 643, un' 608, nell' 475, dall' 425, d' 379, sull' 234, quell' 185 …; 12 912 pairs with a prefix as follower) |
+| elided pairs dropped (§10.6) | 19: un'altro, un'uomo, un'errore, un'albero, un'ottimo, un'orologio, qualcun'altro, un'esame, un'albergo, un'aumento, nessun'altro, un'incontro, un'agente, un'ex, un'ingegnere, un'accento, un'impegno, un'eventuale, un'enigma |
+| prefix table | 41 prefixes: l' 1 819 882 → class 235, c' 219, un' 209, d' 206, dell' 202, all' 201 … cinquant' 579 → 104 |
+| prefixes without an elided/apocopic page in either dump (§10.2 item 4) | brav', vent', trent', quarant' |
+| truncated words (§10.1 rule 2) | po' 290 082 (276 177 of "po" moved; "Po" keeps 2.35 %, its share in running text), da' 640, fa' 249, di' 164, va' 132, sta' 102, be' 61, mo' 50, to' 11 |
+| accent written as an apostrophe (§10.1 rule 3) | 4 347 tokens, 289 080 counts (e' → è 77 610, piu' → più, perche' → perché, cosi' → così …) |
+| other apostrophe tokens dropped (§10.1 rule 4) | 16 651 tokens, 183 030 counts (i', o', qual', ch', English contractions, leading apostrophes) |
+| clitic forms accepted (§10.4 step 1) | 2 219 (potercela, scopriamolo, ignoralo, lasciartelo, usalo, parlane, vedila, goditela, dimmelo-type forms …) |
+| apocopic forms accepted (§10.4 step 2) | 72 (affar, negar, tentar, commendator, ragionier, valor, ebben, alfin, fedel, nobil, lontan …) |
+| accent merges (§10.4 step 4) | 20 613 keys, 1 677 306 counts (piu → più 394 239, puo → può, cio → ciò, perchè → perché 71 521, é → è 31 392 …), 54 of them pointer pages |
+| merges skipped by the guards | 91 spellings used in the sentence sources (mae, abel, ultra, raja, wurstel …), 156 foreign titles with a rare target (souffle, sofa, tiramisu, poke …) |
+| class-0 spellings (§10.4 step 5) | 51: abilita, andro, caffe, capacita, causo, cavita, cerano, citta, conquisto, cosi, cè, dazione, destate, difficolta, diro, disabilita, disputo, doro, emigro, eredito, eta, finche, gia, giu, influenzo, labbia, laria, latto, lauto, liberta, lora, niccolo, paghera, parlera, perche, pero, portera, puli, questora, santagostino, santantonio, saro, sposero, staro, suscito, trovero, umidita, usci, utilita, velocita, verro |
+| kept as ordinary words by the subtitle guard (below) | 15: acconsenti, aggiudico, annoto, arruolo, catturo, classifico, collaboro, consegui, funziono, opero, provoco, risposo, rivelo, specializzo, tento |
+| accent-loss rate f (§10.4 step 6) | 0.4760 (1 314 456 plain and 1 447 276 accented occurrences in 264 classes; spec, Italian dump only: 0.487); 3 448 244 counts moved in 2 365 classes (e → è 2 421 106, si → sì 513 694, sara → sarà, li → lì, papa → papà, la → là …) |
+| missing-space artefacts dropped (§10.5 step 5) | 85 (perfavore, perte, peril, perme, avolte, afare, latua, pertutti, perquesto, hola, hale …) |
+| fused elisions dropped (§10.5 step 6) | 366 (lex, daccordo, mezzora, questuomo, nientaltro, dacqua, lha, lho, lhai, damore, questanno, quandè, anchio …) |
+| elision fragments dropped (own rule, below) | 21 (dov, quest, anch, nell, dell, sull …) |
+| dropped as foreign words | 4 508 |
+| kept without being an Italian form (count ≥ 40) | 15 623 |
+| coverage of the top 20 000 keys (Italian forms) | 77.01 % Italian dump alone, 85.12 % English dump alone, 86.56 % both |
+| Tatoeba stock names | Tom, Mary, John, Sami, Layla, Mennad, Fadil, Ziri, Yanni, Skura, Rima + over-represented Argentina, Australia, Boston, Cina, Germania, Giappone, Irlanda, Italia, Russia, Spagna, Ucraina |
+
+| File | Bytes | SHA-256 |
+|---|---:|---|
+| `it-IT.words.gz` | 618 669 | `c4a58067f682167d6a6419b3f3949cd2bdb8ae954f656ba74018999b3f6a2e52` |
+| `it-IT.pairs.gz` | 1 285 257 | `fe6e4b15d8c78e39d3266b16016f60c539bfca64c19c6ae4643b5581dcd694ae` |
+
+Word-list payload SHA-256 `1f45d1db…e4d603`. Size in the APK: 1.90 MB (word list + pairs). All lists of accepted and
+dropped keys are in `tools/dictionary-build.json` (`it-IT-extra`).
+
+Rules of the Italian build that the specification leaves to the implementation (05b §10, open point 13; all in
+`tools/dictbuild/wiktionary_it.py` and `build_it.py`, questions in spec/QUESTIONS.md):
+
+- **Two-stage Wiktionary passes** as for Portuguese: raw Italian sections cached in
+  `build-data/cache/itwiktionary-20261001-it.tsv.gz` and `enwiktionary-20261001-it.tsv.gz`, classified on every build.
+  Page kinds: pointer pages are definitions that only point to another spelling (it.wiktionary "variante grafica /
+  ricercata / errata …" with an obsolete or rare label, a misspelling wording or a target that differs only by
+  diacritics, case or apostrophes; en.wiktionary misspelling, obsolete, archaic, nonstandard and superseded spellings
+  and alternative spellings that differ only by diacritics, case or apostrophes, so "daccordo" points to
+  "d'accordo"); apocopic pages ("forma tronca", "troncamento", `apocopic form of`); letter pages (a Letter section
+  only); a form in one dump wins over a pointer or letter page in the other.
+- **Titles with a final apostrophe** count only as the truncated words of §10.1; the prefix titles ("l'", "dell'")
+  are no keys.
+- **Clitic hosts** (§10.4 step 1): V is a lower-case page with an imperative or gerund sense in a dump (or "ecco"), and
+  the infinitive branch needs a verb lemma page (so "marla" is not "mare" + "la"); names and foreign titles are
+  skipped ("caroline", "diane").
+- **Apocopic forms** (§10.4 step 2): only keys whose last two letters are a vowel and one of l, n, r, m (an apocope
+  leaves a single consonant: "quel", not "quell"), the full word a lower-case form; names (mostly capitalised in
+  running text) and foreign titles are skipped.
+- **Accent merge guards** of the Portuguese build (sentence-source use, foreign titles); for a target with an
+  apostrophe ("pò" → "po'") the sentence count is used instead of the letter-run count.
+- **Dominated plain spellings** (§10.4 step 5): the elided counterparts also apply to forms with a diacritic ("cè" →
+  "c'è"); truncated words ("da'", "di'") are not plain spellings. Own guard: an accented counterpart counts only if
+  the plain spelling's subtitle count is at most 1.5 · f/(1 − f) times the accented forms' subtitle count (an
+  accent-less spelling occurs about f/(1 − f) times as often as its accented word); far more means a word of its own
+  that Wikipedia's past tenses outvote ("tento" 520 against "tentò" 235, "opero" 189 against 20) — 15 keys stay
+  ordinary words.
+- **Elision fragments**: a key that is the letters of an elision prefix without its apostrophe and not a form
+  ("dov", "quest", "nell") is dropped.
+- **Case** of a class-0 spelling is its dictionary form; the bare letters of a truncated word ("po") keep only their
+  capitalised form ("Po"), since their lower-case running text belongs to the truncated word.
+- **Pair count** (§5 step 2): totals c(prev, ·) include the dropped elided pairs; a prefix as follower takes one of
+  the 48 places of a word's followers.
 
 # App data sources
 

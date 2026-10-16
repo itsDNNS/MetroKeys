@@ -50,6 +50,13 @@ public class Candidate internal constructor(
     public var ed: Int = INF
         internal set
 
+    /**
+     * True for a prefix candidate (05 §8.2.1 item 3): the display is an elision prefix ("l'"), picked without a trailing
+     * space (04 §4.3).
+     */
+    public var isElisionPrefix: Boolean = false
+        internal set
+
     public val cost: Int get() = minOf(correctionCost, completionCost)
 
     public val isCorrection: Boolean get() = correctionCost <= completionCost
@@ -172,7 +179,7 @@ public class LanguageEngine @JvmOverloads constructor(
 
     /** log10 p_uni of [word] for the language vote (05 §14.1): unknown → −9. */
     public fun languageLog10(word: String): Double {
-        val k = lexicon.frequency(word)
+        val k = lexicon.frequency(stripElision(word))
         return if (k < 0) Params.LANG_UNKNOWN else unigramLog10(k)
     }
 
@@ -341,30 +348,31 @@ public class LanguageEngine @JvmOverloads constructor(
     // ------------------------------------------------------------------ elided prefix (§2.2, extension)
 
     /**
-     * Length of the language's elided prefix (`ELISION_PREFIXES`, e.g. "d'") at the start of [word], or 0 when the rule
-     * does not apply: the prefix matches case-insensitively with `’` counted as `'`, and either [word] is the prefix
-     * alone (the length of [word] is returned) or it continues with a letter and is not itself an exact dictionary form.
+     * Length of the language's elision prefix (`ELISION_PREFIXES`, e.g. "d'", "l'", "dell'") at the start of [word], or
+     * 0 when the rule does not apply. The prefix is the part up to and including the word's first apostrophe (letters
+     * compared case-insensitively, `’` counted as `'`); either [word] is the prefix alone (the length of [word] is
+     * returned) or it continues with a letter and is not itself an exact dictionary form.
      */
     public fun elisionPrefixLength(word: String): Int {
-        for (p in params.elisionPrefixes) {
-            if (word.length < p.length) continue
-            var match = true
-            for (i in p.indices) {
-                var c = Character.toLowerCase(word[i])
-                if (c == '’') c = '\''
-                if (c != p[i]) {
-                    match = false
-                    break
-                }
-            }
-            if (!match) continue
-            if (word.length == p.length) return p.length
-            if (!Character.isLetter(word[p.length])) return 0
-            if (lexicon.exact(word) || (startsUpper(word) && lexicon.exact(decapitalize(word)))) return 0
-            return p.length
+        if (params.elisionPrefixes.isEmpty()) return 0
+        var a = -1
+        for (i in word.indices) if (word[i] == '\'' || word[i] == '’') {
+            a = i
+            break
         }
-        return 0
+        if (a < 1) return 0
+        val n = a + 1
+        if (Lexicon.normalizePrefix(word.substring(0, n)) !in elisionSet) return 0
+        if (word.length == n) return n
+        if (!Character.isLetter(word[n])) return 0
+        if (lexicon.exact(word) || (startsUpper(word) && lexicon.exact(decapitalize(word)))) return 0
+        return n
     }
+
+    private val elisionSet: Set<String> = params.elisionPrefixes.toHashSet()
+
+    /** True if [word] is exactly one of the language's elision prefixes ("l'", "DELL'", "d’"). */
+    public fun isElisionPrefix(word: String): Boolean = word.isNotEmpty() && elisionPrefixLength(word) == word.length
 
     /** [word] without its elided prefix (the remainder the engine works on, 05 §2.2), else [word] itself. */
     public fun stripElision(word: String): String {
@@ -372,31 +380,136 @@ public class LanguageEngine @JvmOverloads constructor(
         return if (n in 1 until word.length) word.substring(n) else word
     }
 
+    /**
+     * Previous word for pairs of a word that follows an elided word ("dell'anno" → "anno"), as the pair build counts
+     * it (05b §5 step 2, Italian); only in languages whose dictionary stores elision prefixes. Other contexts unchanged.
+     */
+    internal fun pairPrev(prev: PrevContext): PrevContext {
+        if (prev !is PrevContext.Word || !lexicon.hasPrefixTable) return prev
+        val n = elisionPrefixLength(prev.word)
+        return if (n in 1 until prev.word.length) PrevContext.Word(prev.word.substring(n)) else prev
+    }
+
+    /** Context words for learned n-grams: an elided word counts as its prefix and its remainder (prefix-table languages). */
+    internal fun contextWords(words: List<String>): List<String> {
+        if (!lexicon.hasPrefixTable) return words
+        val out = ArrayList<String>(words.size + 2)
+        for (w in words) {
+            val n = elisionPrefixLength(w)
+            if (n in 1 until w.length) {
+                out.add(Lexicon.normalizePrefix(w.substring(0, n)))
+                out.add(w.substring(n))
+            } else {
+                out.add(w)
+            }
+        }
+        return out
+    }
+
+    /**
+     * Followers of an elision prefix (05 §8.2.1): the static pair followers (all stored, at most `PREFIX_FOLLOWERS_MAX`)
+     * and the learned followers of the context [prefix] with count ≥ `LEARN_MIN_COUNT`, only those that start with a
+     * vowel or "h". Each with its conditional log10 probability P(F | prefix).
+     */
+    internal class PrefixFollower(val text: String, val log10p: Double)
+
+    private val staticPrefixFollowers = java.util.concurrent.ConcurrentHashMap<String, List<PrefixFollower>>()
+
+    internal fun staticFollowers(prefix: String): List<PrefixFollower> = staticPrefixFollowers.getOrPut(prefix) {
+        val pairs = dictionary.pairs ?: return@getOrPut emptyList()
+        pairs.followers(prefix, Params.PREFIX_FOLLOWERS_MAX).filter { startsVowelOrH(it.text) }
+            .map { PrefixFollower(it.text, LmCost.pairLog10(it.pairClass)) }
+    }
+
+    internal fun prefixFollowers(prefix: String): List<PrefixFollower> {
+        val stat = staticFollowers(prefix)
+        val learned = user.followers(prefix) ?: return stat
+        val sum = learned.values.sum().toDouble()
+        val seen = stat.mapTo(HashSet()) { toKey(it.text) }
+        val out = ArrayList(stat)
+        for ((f, c) in learned) {
+            if (c < Params.LEARN_MIN_COUNT || !startsVowelOrH(f) || !seen.add(toKey(f))) continue
+            out.add(PrefixFollower(f, kotlin.math.log10(c / sum)))
+        }
+        return out
+    }
+
+    /** True if [prefix] has followers at all (static or learned, 05 §2.2 one-letter remainder). */
+    private fun prefixHasFollowers(prefix: String): Boolean {
+        if ((dictionary.pairs?.followerCount(prefix) ?: 0) > 0) return true
+        return user.followers(prefix)?.values?.any { it >= Params.LEARN_MIN_COUNT } == true
+    }
+
+    /** log10 p_pre(P′): the probability of the prefix's class with the pair context [prev] (05 §8.2.1, §3.3). */
+    internal fun prefixLog10(prefix: String, prev: PrevContext): Double {
+        val k = lexicon.prefixClass(prefix)
+        if (k < 0) return Double.NEGATIVE_INFINITY
+        val pUni = 10.0.pow(unigramLog10(k))
+        val key = prev.pairKey ?: return kotlin.math.log10(pUni)
+        val b = dictionary.pairs?.bigram(key, prefix) ?: -1
+        if (b < 0) return kotlin.math.log10(pUni)
+        return kotlin.math.log10(maxOf(pUni, Params.PAIR_LAMBDA * LmCost.pairProbability(b) + (1 - Params.PAIR_LAMBDA) * pUni))
+    }
+
+    /**
+     * Learns a committed word (05 §12.1): a part with an elided prefix is learned as its remainder with the prefix as
+     * context (§2.2); in prefix-table languages elided previous words count as prefix and remainder.
+     */
+    @JvmOverloads
+    public fun learn(word: String, previousWords: List<String>, accepted: Boolean = false) {
+        user.learn(word, previousWords, accepted, if (params.elisionPrefixes.isEmpty()) null else ::elisionPrefixLength,
+            lexicon.hasPrefixTable)
+    }
+
     /** Validity of the current word of [ctx] (05 §7), of the remainder after an elided prefix (§2.2). */
     public fun typedValidity(ctx: QueryContext): Validity {
         val n = elisionPrefixLength(ctx.word)
         if (n > 0 && n == ctx.word.length) return Validity.INVALID
         val w = if (n > 0) ctx.word.substring(n) else ctx.word
-        val prev = if (n > 0) PrevContext.None else ctx.prev
-        return validity(w, caseMode(w, ctx.preceding), prev, ctx.nameField)
+        val prev = if (n > 0) PrevContext.Word(Lexicon.normalizePrefix(ctx.word.substring(0, n))) else pairPrev(ctx.prev)
+        val v = validity(w, caseMode(w, ctx.preceding), prev, ctx.nameField)
+        return if (n > 0) remainderValidity(ctx.word.substring(0, n), w, v) else v
+    }
+
+    /**
+     * The one-letter remainder rule of 05 §2.2: after a prefix that has followers at all, a one-letter remainder is valid
+     * only if it is one of them ("c'è" valid, "c'e" invalid).
+     */
+    private fun remainderValidity(prefix: String, remainder: String, v: Validity): Validity {
+        if (!v.valid || remainder.length != 1) return v
+        val p = Lexicon.normalizePrefix(prefix)
+        if (!prefixHasFollowers(p)) return v
+        val key = toKey(remainder)
+        val known = (dictionary.pairs?.bigram(p, remainder) ?: -1) >= 0 ||
+            (user.followers(p)?.any { (f, c) -> c >= Params.LEARN_MIN_COUNT && toKey(f) == key } == true)
+        return if (known) v else Validity.INVALID
     }
 
     /**
      * Runs the candidate generation of §8 and the autocorrection decision of §10.1 for the current word. A current word
-     * with an elided prefix (§2.2) is predicted as its remainder without pair context; every candidate is the prefix as
-     * typed followed by the remainder's candidate. The prefix alone gives no candidates.
+     * with an elided prefix (§2.2) is predicted as its remainder with the prefix as previous word; every candidate is the
+     * prefix as typed followed by the remainder's candidate. The prefix alone gives the elided words of §2.2 "bare
+     * prefix" as completions.
      */
     @JvmOverloads
     public fun suggest(ctx: QueryContext, correctionsOnly: Boolean = false): LanguageSuggestions {
         val n = elisionPrefixLength(ctx.word)
-        if (n == 0) return suggestWord(ctx, correctionsOnly)
-        if (n == ctx.word.length) return LanguageSuggestions(languageTag, ctx.word, Validity.INVALID, emptyList(), emptyList(), null)
+        if (n == 0) {
+            val prev = pairPrev(ctx.prev)
+            val c = if (prev === ctx.prev) ctx else QueryContext(ctx.before, ctx.word, ctx.wordStart, ctx.charBefore, prev,
+                ctx.preceding, ctx.taps, ctx.nameField)
+            return suggestWord(c, correctionsOnly, null)
+        }
+        if (n == ctx.word.length) {
+            val ranked = if (correctionsOnly) emptyList() else barePrefixCompletions(ctx)
+            return LanguageSuggestions(languageTag, ctx.word, Validity.INVALID, ranked, emptyList(), null)
+        }
         val prefix = ctx.word.substring(0, n)
         val sub = QueryContext(
-            ctx.before, ctx.word.substring(n), ctx.wordStart + n, ctx.charBefore, PrevContext.None, ctx.preceding,
-            ctx.taps.drop(n), ctx.nameField,
+            ctx.before, ctx.word.substring(n), ctx.wordStart + n, ctx.charBefore,
+            PrevContext.Word(Lexicon.normalizePrefix(prefix)), ctx.preceding, ctx.taps.drop(n), ctx.nameField,
         )
-        val r = suggestWord(sub, correctionsOnly)
+        val r = suggestWord(sub, correctionsOnly, prefix)
         val mapped = HashMap<Candidate, Candidate>()
         fun map(c: Candidate): Candidate = mapped.getOrPut(c) {
             Candidate(c.word, prefix + c.display, c.lm).also {
@@ -410,12 +523,56 @@ public class LanguageEngine @JvmOverloads constructor(
         )
     }
 
-    private fun suggestWord(ctx: QueryContext, correctionsOnly: Boolean): LanguageSuggestions {
+    /**
+     * 05 §2.2 "bare prefix": the current word is exactly an elision prefix ("dell'"); the next-word predictions of §11
+     * items 1 and 2 with the prefix as previous word and context (no contact names, no filler) as completions
+     * "prefix as typed + follower", the follower upper-cased if the prefix is all caps.
+     */
+    private fun barePrefixCompletions(ctx: QueryContext): List<Candidate> {
+        val typed = ctx.word
+        val prefix = Lexicon.normalizePrefix(typed)
+        val costs = LinkedHashMap<String, Int>()
+        fun put(word: String, cost: Int) {
+            if (!startsVowelOrH(word)) return
+            val old = costs[word]
+            if (old == null || cost < old) costs[word] = cost
+        }
+        val pw = contextWords(ctx.preceding).takeLast(Params.LEARN_CONTEXT - 1).map { toKey(it) } + prefix
+        val longest = pw.size
+        for (k in longest downTo 1) {
+            val followers = user.followers(pw.takeLast(k).joinToString(" ")) ?: continue
+            val sum = followers.values.sum().toDouble()
+            val weight = if (k == longest) 1.0 else Params.NEXT_BACKOFF
+            for ((f, c) in followers) {
+                if (c >= Params.LEARN_MIN_COUNT && (user.dictionaryKnows(f) || user.isKnownLearned(f))) put(f, LmCost.cost(weight * c / sum))
+            }
+        }
+        dictionary.pairs?.let { pairs ->
+            for (f in pairs.followers(prefix, Params.NEXT_PAIR_FETCH)) {
+                put(f.text, LmCost.cost(LmCost.pairProbability(f.pairClass)) + Params.COMP_SURCHARGE)
+            }
+        }
+        val allCaps = typed.any { Character.isLetter(it) } && typed.filter { Character.isLetter(it) }.all { Character.isUpperCase(it) }
+        val merged = LinkedHashMap<String, Candidate>()
+        for ((w, c) in costs) {
+            val d = typed + if (allCaps) upperDisplay(w) else w
+            val old = merged[d]
+            if (old == null || c < old.completionCost) {
+                merged[d] = Candidate(typed + w, d, c - Params.COMP_SURCHARGE).also { it.completionCost = c }
+            }
+        }
+        return merged.values.sortedWith(compareBy<Candidate>({ it.cost }, { it.display })).take(Params.BAR_MAX)
+    }
+
+    /** [elidedPrefix]: the prefix as typed when [ctx] is the remainder of an elided word (05 §2.2), else null. */
+    private fun suggestWord(ctx: QueryContext, correctionsOnly: Boolean, elidedPrefix: String?): LanguageSuggestions {
         val w = ctx.word
         val len = w.length
         val mode = caseMode(w, ctx.preceding)
         val b = Builder(this, ctx, mode)
-        val validity = validity(w, mode, ctx.prev, ctx.nameField)
+        val validity = validity(w, mode, ctx.prev, ctx.nameField).let { v ->
+            if (elidedPrefix != null) remainderValidity(elidedPrefix, w, v) else v
+        }
         if (len == 0 || len > Params.WORD_MAX_LEN) {
             return LanguageSuggestions(languageTag, w, validity, emptyList(), emptyList(), null)
         }
@@ -438,6 +595,7 @@ public class LanguageEngine @JvmOverloads constructor(
             if (kotlin.math.abs(cw.length - len) <= maxEdits && EditDistance.units(low, toKey(cw)) <= maxEdits) pool.add(cw)
         }
         for (word in pool) {
+            if (hidden(word)) continue
             val d = display(word, mode)
             if (EditDistance.units(w, d) > maxUnits) continue
             val e = ed.weighted(w, d, taps)
@@ -479,6 +637,11 @@ public class LanguageEngine @JvmOverloads constructor(
             }
         }
 
+        // 8.2.1 elision: apostrophe split, elided completions, prefix candidates
+        if (elidedPrefix == null && lexicon.hasPrefixTable && w.all { Character.isLetter(it) }) {
+            elisionCandidates(w, mode, validity, ctx, b, correctionsOnly)
+        }
+
         // 8.3 completions
         if (!correctionsOnly) {
             val words = LinkedHashSet<String>()
@@ -489,6 +652,7 @@ public class LanguageEngine @JvmOverloads constructor(
             for ((lw, _) in user.knownLearnedWords()) if (lw.startsWith(w, ignoreCase = true)) words.add(lw)
             for (cw in contacts.words) if (cw.startsWith(w, ignoreCase = true)) words.add(cw)
             for (word in words) {
+                if (hidden(word)) continue
                 val d = display(word, mode)
                 if (d.length < len) continue
                 val prefix = d.substring(0, len)
@@ -515,8 +679,65 @@ public class LanguageEngine @JvmOverloads constructor(
         }
         val corrections = byCorrection.take(Params.CORR_KEEP)
         val ranked = all.filter { it.cost < Candidate.INF }.sortedWith(compareBy<Candidate>({ it.cost }, { it.display }))
-        val ac = if (correctionsOnly) null else decideAutocorrection(ctx, w, validity, corrections, b)
+        val ac = if (correctionsOnly) null else decideAutocorrection(ctx, w, validity, corrections, b, elidedPrefix != null)
         return LanguageSuggestions(languageTag, w, validity, ranked, corrections, ac)
+    }
+
+    /**
+     * 05 §8.2.1 for the typed letters [w]: (1) elision splits as corrections, also for a valid [w]; (2) elided
+     * completions for an invalid [w]; (3) the prefix candidate when [w] is the letters of a prefix. Elided words are
+     * costed as one word: log10 p = log10 p_pre(P′) + log10 P(F | P′).
+     */
+    private fun elisionCandidates(w: String, mode: CaseMode, validity: Validity, ctx: QueryContext, b: Builder, correctionsOnly: Boolean) {
+        val low = toKey(w)
+        val stripped = stripAll(low)
+        val ed = editDistance
+        for (prefix in params.elisionPrefixes) {
+            val letters = prefix.dropLast(1)
+            if (!low.startsWith(letters)) continue
+            val preLog = prefixLog10(prefix, ctx.prev)
+            if (preLog == Double.NEGATIVE_INFINITY) continue
+            if (low.length == letters.length) {
+                // 3 prefix candidate
+                if (correctionsOnly) continue
+                val d = display(prefix, mode)
+                val l = LmCost.cost(10.0.pow(preLog))
+                val c = b.byDisplay[d] ?: Candidate(prefix, d, l).also { b.byDisplay[d] = it }
+                c.isElisionPrefix = true
+                if (l < c.lm) c.lm = l
+                val cost = l + Params.COMP_SURCHARGE
+                if (cost < c.completionCost) c.completionCost = cost
+                continue
+            }
+            val rest = stripped.substring(letters.length)
+            for (f in prefixFollowers(prefix)) {
+                val fs = stripAll(toKey(f.text))
+                val split = fs == rest
+                val completion = !split && !correctionsOnly && !validity.valid && rest.length >= 2 && fs.length > rest.length &&
+                    fs.startsWith(rest)
+                if (!split && !completion) continue
+                val word = prefix + f.text
+                val d = display(word, mode)
+                val l = LmCost.cost(10.0.pow(preLog + f.log10p))
+                val c = b.byDisplay[d] ?: Candidate(word, d, l).also { b.byDisplay[d] = it }
+                if (l < c.lm) {
+                    c.lm = l
+                    c.word = word
+                }
+                if (split) {
+                    // 1 elision split: a correction candidate
+                    val e = ed.weighted(w, d, ctx.taps)
+                    if (l + e < c.correctionCost) {
+                        c.correctionCost = l + e
+                        c.ed = e
+                    }
+                } else if (d.length > w.length) {
+                    // 2 elided completion
+                    val cost = l + Params.COMP_SURCHARGE + ed.weighted(w, d.substring(0, w.length + 1), ctx.taps)
+                    if (cost < c.completionCost) c.completionCost = cost
+                }
+            }
+        }
     }
 
     /**
@@ -584,6 +805,10 @@ public class LanguageEngine @JvmOverloads constructor(
         return out.toList()
     }
 
+    /** A class-0 dictionary form of a language with `hideClassZero` that is not also a known learned word. */
+    internal fun hidden(word: String): Boolean =
+        params.hideClassZero && lexicon.exactClass(word) == 0 && !user.isKnownLearned(word)
+
     /** The prefix list of §8.4. */
     internal fun prefixList(w: String, taps: TapSequence): List<String> {
         val out = ArrayList<String>()
@@ -636,10 +861,12 @@ public class LanguageEngine @JvmOverloads constructor(
         validity: Validity,
         corrections: List<Candidate>,
         b: Builder,
+        elidedRemainder: Boolean,
     ): Candidate? {
         if (TextRules.blocksAutocorrect(ctx.charBefore)) return null
         val len = w.length
-        if (len == 1) {
+        // step 2 does not apply to a one-letter remainder after an elided prefix (05 §2.2)
+        if (len == 1 && !elidedRemainder) {
             if (user.isRejected(w)) return null
             val fix = params.singleLetterFix[w] ?: return null
             val c = b.byDisplay[fix] ?: b.candidate(fix, fix)
@@ -673,7 +900,7 @@ public class LanguageEngine @JvmOverloads constructor(
             if (old == null || cost < old) costs[word] = cost
         }
         // 1 learned n-grams
-        val pw = preceding.takeLast(Params.LEARN_CONTEXT).map { toKey(it) }
+        val pw = contextWords(preceding).takeLast(Params.LEARN_CONTEXT).map { toKey(it) }
         val longest = minOf(pw.size, Params.LEARN_CONTEXT)
         for (k in longest downTo 1) {
             val followers = user.followers(pw.takeLast(k).joinToString(" ")) ?: continue
@@ -684,7 +911,7 @@ public class LanguageEngine @JvmOverloads constructor(
             }
         }
         // 2 static pairs
-        val prev = TextModel.previousWordForPairs(before, end)
+        val prev = pairPrev(TextModel.previousWordForPairs(before, end))
         val key = prev.pairKey
         val pairs = dictionary.pairs
         if (key != null && pairs != null) {
@@ -748,14 +975,33 @@ public class LanguageEngine @JvmOverloads constructor(
     }
 
     /** Emoji for a word (Appendix A), or null. */
-    public fun emojiFor(word: String): String? = params.emoji[toKey(word)]
+    public fun emojiFor(word: String): String? = params.emoji[toKey(stripElision(word))]
 
     /**
      * True if [word] alone is valid (proofing, 05 §16): no context, case mode from the word itself; a word with an
      * elided prefix is known if its remainder is (§2.2).
      */
     public fun isKnown(word: String): Boolean {
-        val w = stripElision(word)
-        return validity(w, caseMode(w, emptyList())).valid
+        val n = elisionPrefixLength(word)
+        if (n > 0 && n == word.length) return false
+        val w = if (n > 0) word.substring(n) else word
+        val v = validity(w, caseMode(w, emptyList()))
+        return if (n > 0) remainderValidity(word.substring(0, n), w, v).valid else v.valid
+    }
+
+    private companion object {
+        /** Lower-case text with every diacritic removed (05 §8.2.1 follower matching). */
+        fun stripAll(s: String): String {
+            val sb = StringBuilder(s.length)
+            for (c in s) sb.append(EditDistance.stripDiacritic(c))
+            return sb.toString()
+        }
+
+        /** True if [w] starts with a vowel (with or without diacritic) or "h" (05 §8.2.1). */
+        fun startsVowelOrH(w: String): Boolean {
+            if (w.isEmpty()) return false
+            val c = Character.toLowerCase(EditDistance.stripDiacritic(Character.toLowerCase(w[0])))
+            return c in "aeiouh"
+        }
     }
 }

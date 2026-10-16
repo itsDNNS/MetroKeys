@@ -113,6 +113,34 @@ public class ShapeWriter @JvmOverloads constructor(
         contactIndex = null
     }
 
+    /**
+     * Index of the elided words (06 §4.1, extension; languages whose dictionary stores elision prefixes): every prefix +
+     * static pair follower starting with a vowel or h, with the class whose probability is p_pre(prefix) · P(F | prefix).
+     */
+    private val elidedIndex: Lexicon? by lazy {
+        val lex = engine.lexicon
+        val pairs = engine.dictionary.pairs
+        if (!lex.hasPrefixTable || pairs == null) return@lazy null
+        val entries = HashMap<String, MutableList<WordForm>>()
+        for (prefix in engine.params.elisionPrefixes) {
+            val k = lex.prefixClass(prefix)
+            if (k < 0) continue
+            val pre = engine.unigramLog10(k)
+            for (f in engine.staticFollowers(prefix)) {
+                val text = prefix + f.text
+                val cls = LmCost.roundHalfAway((pre + f.log10p - engine.a) / engine.bc).coerceIn(0, 255)
+                entries.getOrPut(toKey(text)) { ArrayList() }.add(WordForm(text, cls))
+            }
+        }
+        if (entries.isEmpty()) null else Lexicon.fromEntries(
+            engine.languageTag, lex.scale, lex.maxCount, lex.corpusTokens,
+            entries.mapValues { (_, v) -> v.sortedByDescending { it.frequencyClass } },
+        )
+    }
+
+    /** Number of elided entries in the index (06 §4.1). */
+    internal val elidedEntryCount: Int get() = elidedIndex?.formCount ?: 0
+
     /** Key sequence with entry points and turn angles (06 §3.2–§3.3). */
     public class KeySequence(public val keys: IntArray, public val entryX: FloatArray, public val entryY: FloatArray, public val angles: FloatArray) {
         public val size: Int get() = keys.size
@@ -138,7 +166,11 @@ public class ShapeWriter @JvmOverloads constructor(
         val sy = 336.0 / (4 * g.keyHeight)
         val search = Search(g, seq)
         val found = LinkedHashMap<String, Pair<Double, Int>>()
-        for (index in listOfNotNull(engine.lexicon, contacts())) {
+        val rawPrev = TextModel.previousWordForPairs(before, before.length)
+        // directly after an elision prefix ("l'" + swipe) the previous word is that prefix (06 §4.5); no elided entries then
+        val afterPrefix = rawPrev is PrevContext.Word && engine.isElisionPrefix(rawPrev.word)
+        val prev = if (afterPrefix) PrevContext.Word(Lexicon.normalizePrefix((rawPrev as PrevContext.Word).word)) else engine.pairPrev(rawPrev)
+        for (index in listOfNotNull(engine.lexicon, contacts(), if (afterPrefix) null else elidedIndex)) {
             for ((form, cost) in search.run(index)) {
                 val old = found[form.text]
                 if (old == null || cost < old.first) found[form.text] = cost to form.frequencyClass
@@ -146,7 +178,6 @@ public class ShapeWriter @JvmOverloads constructor(
         }
         if (found.isEmpty()) return emptyList()
         val traceRu = trimmedTrace(trace, sx, sy)
-        val prev = TextModel.previousWordForPairs(before, before.length)
         val out = ArrayList<ShapeCandidate>()
         for ((text, pair) in found) {
             val (searchCost, cls) = pair
@@ -182,13 +213,26 @@ public class ShapeWriter @JvmOverloads constructor(
         }
     }
 
-    /** Context bonus of 06 §4.5 (in class units = cost). */
+    /**
+     * Context bonus of 06 §4.5 (in class units = cost). An elided entry ("l'acqua") uses the pair (previous word,
+     * prefix): its prefix probability is mixed with that pair's probability.
+     */
     internal fun contextBonus(word: String, cls: Int, prev: PrevContext): Int {
         val key = prev.pairKey ?: return 0
-        val b = engine.dictionary.pairs?.bigram(key, word) ?: -1
-        if (b < 0) return 0
+        val n = if (engine.lexicon.hasPrefixTable) engine.elisionPrefixLength(word) else 0
         val pUni = 10.0.pow(engine.unigramLog10(cls))
-        val p = maxOf(pUni, CONTEXT_MIX * LmCost.pairProbability(b) + (1 - CONTEXT_MIX) * pUni)
+        val p = if (n in 1 until word.length) {
+            val prefix = Lexicon.normalizePrefix(word.substring(0, n))
+            val b = engine.dictionary.pairs?.bigram(key, prefix) ?: -1
+            if (b < 0) return 0
+            val pre = 10.0.pow(engine.unigramLog10(engine.lexicon.prefixClass(prefix)))
+            val preCtx = maxOf(pre, CONTEXT_MIX * LmCost.pairProbability(b) + (1 - CONTEXT_MIX) * pre)
+            pUni * preCtx / pre
+        } else {
+            val b = engine.dictionary.pairs?.bigram(key, word) ?: -1
+            if (b < 0) return 0
+            maxOf(pUni, CONTEXT_MIX * LmCost.pairProbability(b) + (1 - CONTEXT_MIX) * pUni)
+        }
         val ctxClass = LmCost.roundHalfAway((log10(p) - engine.a) / engine.bc).coerceIn(cls, 255)
         return ctxClass - cls
     }
@@ -280,6 +324,7 @@ public class ShapeWriter @JvmOverloads constructor(
             if (key >= 0 && p == n - 1) {
                 for (form in lex.formsOf(key)) {
                     if (form.text.length < 2 || !form.text.all { Character.isLetter(it) || it in JOINERS }) continue
+                    if (form.frequencyClass == 0 && engine.params.hideClassZero && lex === engine.lexicon) continue
                     offer(form, cost + unusedKeyCost * maxOf(0, n - letters) + LM_PER_CLASS * (255 - form.frequencyClass))
                 }
             }

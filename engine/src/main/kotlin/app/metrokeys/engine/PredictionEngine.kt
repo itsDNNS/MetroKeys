@@ -45,6 +45,8 @@ public data class Suggestion(
     val languageTag: String? = null,
     /** True for the entry that is applied as autocorrection (shown marked). */
     val isAutoCorrection: Boolean = false,
+    /** True for an elision prefix ("l'", 05 §8.2.1 item 3): picked without a trailing space (04 §4.3). */
+    val isElisionPrefix: Boolean = false,
 )
 
 /** Result of a query (05 §2.1). */
@@ -262,7 +264,8 @@ public class PredictionEngine(
     }
 
     private fun Candidate.toSuggestion(tag: String, score: Int): Suggestion =
-        Suggestion(display, if (isCorrection) SuggestionKind.CORRECTION else SuggestionKind.COMPLETION, score, tag)
+        Suggestion(display, if (isCorrection) SuggestionKind.CORRECTION else SuggestionKind.COMPLETION, score, tag,
+            isElisionPrefix = isElisionPrefix)
 
     private fun appendEmoji(bar: MutableList<Suggestion>, engine: LanguageEngine, word: String) {
         val emoji = engine.emojiFor(word) ?: return
@@ -341,6 +344,12 @@ public class PredictionEngine(
 
     // ------------------------------------------------------------------ validity / proofing
 
+    /**
+     * True if [word] (the word before the caret) is exactly an elision prefix of a loaded language ("l'", "dell'", "d'"):
+     * a word swiped after it gets no leading space (06 §5.1 item 1).
+     */
+    public fun isElisionPrefix(word: String): Boolean = languages.any { it.isElisionPrefix(word) }
+
     /** True if [word] alone is known in any running language (05 §16, §14.3). */
     public fun isKnown(word: String): Boolean = runningEngines().any { it.isKnown(word) }
 
@@ -384,8 +393,8 @@ public class PredictionEngine(
     ) {
         if (!settings.learning || !field.policy.learning) return
         val target = learningLanguage(word, previousWords)
-        // a word with an elided prefix ("d'água") is learned as its remainder (05 §2.2)
-        target.user.learn(target.stripElision(word), previousWords, accepted)
+        // a word with an elided prefix ("d'água", "dell'anno") is learned as its remainder after the prefix (05 §2.2, §12.1)
+        target.learn(word, previousWords, accepted)
     }
 
     /** "Add to dictionary" (05 §12.4). Returns true if the word was added. */

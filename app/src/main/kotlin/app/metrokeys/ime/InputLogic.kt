@@ -739,13 +739,17 @@ class InputLogic(
             }
         }
         swiped = null
-        val spaced = if (s?.effectiveSpaceAfterSuggestion == true) trailingSpace(SpaceOrigin.AUTOCORRECTION_OR_PICK) else false
+        // a picked elision prefix ("l'") gets no trailing space and no auto space (04 §4.3); the strip then offers the
+        // elided words (05 §2.2)
+        val prefixPick = item.elisionPrefix && content.kind in setOf(StripKind.TYPING, StripKind.RESUMED)
+        val spaced = if (!prefixPick && s?.effectiveSpaceAfterSuggestion == true) trailingSpace(SpaceOrigin.AUTOCORRECTION_OR_PICK) else false
+        if (prefixPick) autoSpace = false
         editor.endBatch()
         // learning (not for emoji); the typed word of a resumed autocorrection rejects it. Picking the typed word
         // itself accepts it (05 §12.5).
         if (r?.autoTyped != null && text == r.autoTyped) {
             reject(r, accepted = true)
-        } else if (!item.emoji) {
+        } else if (!item.emoji && !prefixPick) {
             val b = editor.textBefore(BEFORE).toString()
             val typedWord = content.kind in setOf(StripKind.TYPING, StripKind.RESUMED, StripKind.SELECTION) && text == content.word
             learn(text, TextModel.precedingWords(b, maxOf(0, b.length - text.length - (if (spaced) 1 else 0)), 2), typedWord)
@@ -763,7 +767,7 @@ class InputLogic(
         resumed = null
         listener.onReleaseShift()
         showStrip(StripContent.EMPTY)
-        if (spaced && !item.emoji) requestPredictions()
+        if (prefixPick) requestTyping(0) else if (spaced && !item.emoji) requestPredictions()
         scheduleSpellRun()
         listener.onTextChanged()
     }
@@ -782,8 +786,10 @@ class InputLogic(
         finishComposing()
         swiped = null
         autoSpace = false
-        // 06 §5.1 item 1; never a space directly after an opening mark ¿ ¡ (04 §1.6 item 4) or after "<letter>-"
-        if (TextRules.spaceBeforeSwipe(editor.textBefore(2))) commit(" ")
+        // 06 §5.1 item 1; never a space directly after an opening mark ¿ ¡ (04 §1.6 item 4), after "<letter>-" or
+        // after an elision prefix of a loaded language ("l'" + "acqua")
+        val elided = engine?.isElisionPrefix(TextModel.currentWord(editor.textBefore(BEFORE))) == true
+        if (!elided && TextRules.spaceBeforeSwipe(editor.textBefore(2))) commit(" ")
         val start = selStart
         setComposing(texts[0])
         editor.endBatch()
@@ -1024,7 +1030,8 @@ class InputLogic(
     }
 
     private fun toItems(p: Prediction): List<StripItem> = p.suggestions.map {
-        StripItem(it.text, bold = it.isAutoCorrection, emoji = it.kind == SuggestionKind.EMOJI, autocorrection = it.isAutoCorrection)
+        StripItem(it.text, bold = it.isAutoCorrection, emoji = it.kind == SuggestionKind.EMOJI, autocorrection = it.isAutoCorrection,
+            elisionPrefix = it.isElisionPrefix)
     }
 
     private fun showStrip(c: StripContent) {

@@ -13,6 +13,8 @@ Word list format (gzip of the payload below; all integers big-endian or unsigned
             u8 class
             u8 kind: 0 = the key itself, 1 = key with the first char upper-cased,
                      2 = key with every char upper-cased (per char), 3 = explicit: varint byte length + UTF-8
+    version 2 only (languages with an elision prefix table, 05b §1.1, §10.6), after the keys:
+        varint prefixCount, per prefix: varint byte length + UTF-8 text (lower case, ASCII apostrophe), u8 class
 
 Pair table format (gzip):
 
@@ -24,6 +26,11 @@ Pair table format (gzip):
         varint delta of the encoded index to the previous one
         u8 number of followers, then per follower (best class first):
             varint key index, u8 pair class, u8 form index (into the follower key's forms)
+
+    Version 2 (bound to a version-2 word list with an elision prefix table): the same, except
+        encoded previous-word index keyCount + 1 + p = elision prefix p of the word list's prefix table;
+        the number of followers is a varint (an elision prefix keeps up to 4000);
+        follower index keyCount + p = elision prefix p (form index 0).
 """
 
 import gzip
@@ -112,12 +119,13 @@ def deterministic_gzip(payload):
     return buf.getvalue()
 
 
-def write_word_list(path, lang, scale, max_count, corpus_tokens, entries):
-    """entries: dict key -> list of (form, class), best first. Returns (payload sha256 bytes, keys list)."""
+def write_word_list(path, lang, scale, max_count, corpus_tokens, entries, prefixes=None):
+    """entries: dict key -> list of (form, class), best first; prefixes: None, or a list of (elision prefix, class)
+    written as a version-2 prefix table. Returns (payload sha256 bytes, keys list)."""
     keys = sorted(entries)
     out = io.BytesIO()
     out.write(b"MKWL")
-    out.write(bytes([1]))
+    out.write(bytes([1 if prefixes is None else 2]))
     tag = lang.encode("ascii")
     out.write(bytes([len(tag)]))
     out.write(tag)
@@ -148,33 +156,57 @@ def write_word_list(path, lang, scale, max_count, corpus_tokens, entries):
             if kind == 3:
                 _utf8(out, form)
         prev = key
+    if prefixes is not None:
+        _varint(out, len(prefixes))
+        for text, cls in prefixes:
+            if text in entries or not text.endswith("'") or jlower(text) != text:
+                raise ValueError(f"bad elision prefix {text!r}")
+            _utf8(out, text)
+            out.write(bytes([cls]))
     payload = out.getvalue()
     with open(path, "wb") as f:
         f.write(deterministic_gzip(payload))
     return hashlib.sha256(payload).digest(), keys
 
 
-def write_pair_table(path, lang, word_hash, keys, entries, pairs):
-    """pairs: dict prev_key ('' = sentence start) -> list of (follower key, class, form) best first."""
+def write_pair_table(path, lang, word_hash, keys, entries, pairs, prefixes=None):
+    """pairs: dict prev_key ('' = sentence start) -> list of (follower key, class, form) best first.
+    With [prefixes] (the elision prefixes of the version-2 word list, in its order) a previous word or a follower may
+    also be an elision prefix (its form is the prefix itself); the table is written as version 2."""
     index = {k: i for i, k in enumerate(keys)}
+    pindex = {p: i for i, p in enumerate(prefixes or ())}
     out = io.BytesIO()
     out.write(b"MKPT")
-    out.write(bytes([1]))
+    out.write(bytes([1 if prefixes is None else 2]))
     tag = lang.encode("ascii")
     out.write(bytes([len(tag)]))
     out.write(tag)
     _varint(out, len(keys))
     _varint(out, sum(len(entries[k]) for k in keys))
     out.write(word_hash)
-    encoded = sorted((0 if p == "" else index[p] + 1, p) for p in pairs)
+    def prev_index(p):
+        if p == "":
+            return 0
+        if p in pindex:
+            return len(keys) + 1 + pindex[p]
+        return index[p] + 1
+
+    encoded = sorted((prev_index(p), p) for p in pairs)
     _varint(out, len(encoded))
     last = 0
     for enc, prev in encoded:
         _varint(out, enc - last)
         last = enc
         followers = pairs[prev]
-        out.write(bytes([len(followers)]))
+        if prefixes is None:
+            out.write(bytes([len(followers)]))
+        else:
+            _varint(out, len(followers))
         for key, cls, form in followers:
+            if key in pindex:
+                _varint(out, len(keys) + pindex[key])
+                out.write(bytes([cls, 0]))
+                continue
             forms = [f for f, _ in entries[key]]
             _varint(out, index[key])
             out.write(bytes([cls, forms.index(form)]))

@@ -6,6 +6,7 @@ import app.metrokeys.ime.EmojiHistory
 import app.metrokeys.ime.FieldState
 import app.metrokeys.keyboard.layout.KeyRole
 import app.metrokeys.keyboard.layout.LayoutSet
+import app.metrokeys.keyboard.layout.Page
 import app.metrokeys.keyboard.layout.hitTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -124,12 +125,56 @@ class LayoutDataTest {
     }
 
     @Test
+    fun italianPages() {
+        val it = layout("layouts-it.json")
+        assertEquals("it-IT", it.language)
+        assertEquals("ITA", it.languageInfo.label)
+        assertEquals(null, it.languageInfo.subLabel)
+        assertEquals("keyboard", it.languageInfo.subIcon)
+        assertEquals("IT", it.domainRegion)
+        assertEquals(listOf(".com", ".it", ".org", ".net"), it.domains)
+        val en = layout("layouts-en.json").page("text.letters")
+        val p = it.page("text.letters")
+        // the English letter rows and alternates, key for key (01 §3.6)
+        fun letters(page: Page) = page.keys.filter { it.isLetter }.map { Triple(it.output, it.rect, it.alternates.map { a -> a.output }) }
+        assertEquals(letters(en), letters(p))
+        val row2 = p.keys.filter { it.rect.top == 0.25f && it.isLetter }.sortedBy { it.rect.left }
+        assertEquals("asdfghjkl", row2.joinToString("") { it.output!! })
+        assertEquals(0.05f, row2.first().rect.left)
+        // the Italian accents by long press, in the common order: à 4th, é 2nd / è 4th, ì 4th, ó 2nd / ò 4th, ù 4th
+        assertEquals("à", p.keys.first { it.output == "a" }.alternates[2].output)
+        assertEquals(listOf("é", "ê", "è", "ë"), p.keys.first { it.output == "e" }.alternates.map { it.output })
+        assertEquals("ì", p.keys.first { it.output == "i" }.alternates[2].output)
+        assertEquals("ò", p.keys.first { it.output == "o" }.alternates[2].output)
+        assertEquals("ù", p.keys.first { it.output == "u" }.alternates[2].output)
+        // no apostrophe on the letter page, neither as key nor as alternate (01 §3.6)
+        assertTrue(p.keys.none { k -> k.output == "'" || k.alternates.any { it.output == "'" || it.output == "’" } })
+        val dot = p.keys.first { it.output == "." && it.rect.top == 0.75f }
+        assertEquals(listOf(",", "?", "!", "-"), dot.alternates.map { it.output })
+        assertEquals("spazio", p.keys.first { it.role == KeyRole.SPACE }.label)
+        val urlDot = it.page("url.letters").keys.first { it.output == "." && it.rect.top == 0.75f }
+        assertEquals(listOf(",", "/", ":", "\"", "&", "+", "-"), urlDot.alternates.map { it.output })
+        // symbols-1: the apostrophe key (with ` ‘ ’) and € with $ £ ¥ ¢ ¤ (01 §4.1, §4.3)
+        val sym = it.page("text.symbols-1")
+        val apostrophe = sym.keys.first { it.output == "'" }
+        assertEquals(listOf("`", "‘", "’"), apostrophe.alternates.map { it.output })
+        assertEquals(listOf("$", "£", "¥", "¢", "¤"), sym.keys.first { it.output == "€" }.alternates.map { it.output })
+        // number pad: decimal comma (alternates . -)
+        val decimal = it.page("number.numpad").keys.first { it.rect.top == 0.75f && it.rect.left == 0f }
+        assertEquals(",", decimal.output)
+        assertEquals(listOf(".", "-"), decimal.alternates.map { it.output })
+        val multi = layout("layouts-it-multi.json").page("text.letters")
+        assertEquals(0.15f, multi.keys.first { it.role == KeyRole.LANGUAGE }.rect.left)
+        assertEquals("spazio", multi.keys.first { it.role == KeyRole.SPACE }.label)
+    }
+
+    @Test
     fun languageKeyOrderByLabel() {
-        val labels = listOf("layouts-pt.json", "layouts-es.json", "layouts-de.json", "layouts-en.json").associate { n ->
+        val labels = listOf("layouts-pt.json", "layouts-it.json", "layouts-es.json", "layouts-de.json", "layouts-en.json").associate { n ->
             layout(n).let { it.language to it.languageInfo.label }
         }
-        assertEquals(listOf("de-DE", "en-US", "es-ES", "pt-BR"), labels.keys.sortedWith(compareBy({ labels.getValue(it) }, { it })))
-        assertEquals(listOf("DEU", "ENG", "ESP", "POR"), labels.values.sorted())
+        assertEquals(listOf("de-DE", "en-US", "es-ES", "it-IT", "pt-BR"), labels.keys.sortedWith(compareBy({ labels.getValue(it) }, { it })))
+        assertEquals(listOf("DEU", "ENG", "ESP", "ITA", "POR"), labels.values.sorted())
     }
 
     @Test

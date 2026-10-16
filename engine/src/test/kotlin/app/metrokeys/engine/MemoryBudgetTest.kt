@@ -33,6 +33,11 @@ class MemoryBudgetTest {
         probe(HEAP_TWO_MB, "de-DE", "pt-BR")
         probe(HEAP_TWO_MB, "en-US", "pt-BR")
         probe(HEAP_TWO_MB, "es-ES", "pt-BR")
+        // Italian (0.6.2)
+        probe(HEAP_TWO_MB, "it-IT", "de-DE")
+        probe(HEAP_TWO_MB, "it-IT", "en-US")
+        probe(HEAP_TWO_MB, "it-IT", "es-ES")
+        probe(HEAP_TWO_MB, "it-IT", "pt-BR")
     }
 
     @Test
@@ -42,6 +47,13 @@ class MemoryBudgetTest {
         probe(HEAP_THREE_MB, "de-DE", "en-US", "pt-BR")
         probe(HEAP_THREE_MB, "de-DE", "es-ES", "pt-BR")
         probe(HEAP_THREE_MB, "en-US", "es-ES", "pt-BR")
+        // three languages including Italian (0.6.2); with five enabled languages the active set holds three (05 §14.5)
+        probe(HEAP_THREE_MB, "it-IT", "de-DE", "en-US")
+        probe(HEAP_THREE_MB, "it-IT", "de-DE", "es-ES")
+        probe(HEAP_THREE_MB, "it-IT", "de-DE", "pt-BR")
+        probe(HEAP_THREE_MB, "it-IT", "en-US", "es-ES")
+        probe(HEAP_THREE_MB, "it-IT", "en-US", "pt-BR")
+        probe(HEAP_THREE_MB, "it-IT", "es-ES", "pt-BR")
     }
 
     companion object {
@@ -65,6 +77,8 @@ object MemoryProbe {
         engine.query(Query("Ich habe heute leider kei"))
         engine.query(Query("Muchas gracias por to"))
         engine.query(Query("Muito obrigado pela aten"))
+        engine.query(Query("Grazie per lacqu"))
+        engine.query(Query("dell'"))
         val keys = "vielleicht".map { g.shapeKey(it)!! }
         val xs = FloatArray(keys.size * 8) { i -> keys[i / 8].centerX + (if (i / 8 + 1 < keys.size) (keys[i / 8 + 1].centerX - keys[i / 8].centerX) * (i % 8) / 8f else 0f) }
         val ys = FloatArray(keys.size * 8) { i -> keys[i / 8].centerY + (if (i / 8 + 1 < keys.size) (keys[i / 8 + 1].centerY - keys[i / 8].centerY) * (i % 8) / 8f else 0f) }

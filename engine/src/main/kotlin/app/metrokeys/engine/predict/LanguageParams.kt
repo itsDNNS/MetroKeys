@@ -63,6 +63,16 @@ public data class LanguageParams(
      * ASCII apostrophe ("d'" for pt-BR). Empty for no elision.
      */
     val elisionPrefixes: List<String>,
+    /**
+     * `ACCENT_SWAP` (extension, §5): a typed accented letter for a differently accented candidate letter with the same
+     * base letter ("è" for "é") costs `ED_DIACRITIC` instead of a substitution.
+     */
+    val accentSwap: Boolean,
+    /**
+     * Dictionary forms with class 0 are valid but never offered as candidates (05 §1.1 notes on it-IT: the dominated
+     * accent-less spellings of 05b §10.4 step 5).
+     */
+    val hideClassZero: Boolean = false,
     /** Letter rows of the fallback grid (§4), top to bottom. */
     val fallbackRows: List<String>,
     /** Start of fallback row 2 as a fraction of the width (§4: 0.05, Spanish 0). */
@@ -86,6 +96,7 @@ public data class LanguageParams(
             missingSpaceSplit = false,
             ingRule = false,
             elisionPrefixes = emptyList(),
+            accentSwap = false,
             fallbackRows = listOf("qwertzuiop", "asdfghjkl", "yxcvbnm"),
             fallbackRow2Start = 0.05f,
             shape = ShapeParams(unusedKeyCost = 10.0, neighbourFactor = 0.096, doubleLetterCost = 14.0, accentFactor = 0.24, cornerAngle = 45f),
@@ -105,6 +116,7 @@ public data class LanguageParams(
             missingSpaceSplit = true,
             ingRule = true,
             elisionPrefixes = emptyList(),
+            accentSwap = false,
             fallbackRows = listOf("qwertyuiop", "asdfghjkl", "zxcvbnm"),
             fallbackRow2Start = 0.05f,
             shape = ShapeParams(unusedKeyCost = 8.0, neighbourFactor = 0.083, doubleLetterCost = 14.0, accentFactor = 0.01, cornerAngle = 45f),
@@ -127,6 +139,7 @@ public data class LanguageParams(
             missingSpaceSplit = true,
             ingRule = false,
             elisionPrefixes = emptyList(),
+            accentSwap = false,
             fallbackRows = listOf("qwertyuiop", "asdfghjklñ", "zxcvbnm"),
             fallbackRow2Start = 0f,
             shape = ShapeParams(unusedKeyCost = 8.0, neighbourFactor = 0.092, doubleLetterCost = 19.0, accentFactor = 0.24, cornerAngle = 45f),
@@ -149,17 +162,52 @@ public data class LanguageParams(
             missingSpaceSplit = true,
             ingRule = false,
             elisionPrefixes = listOf("d'"),
+            accentSwap = false,
             fallbackRows = listOf("qwertyuiop", "asdfghjklç", "zxcvbnm"),
             fallbackRow2Start = 0f,
             shape = ShapeParams(unusedKeyCost = 12.0, neighbourFactor = 0.092, doubleLetterCost = 14.0, accentFactor = 0.16, cornerAngle = 45f),
             emoji = EmojiTables.PORTUGUESE,
         )
 
+        /** The 41 Italian elision prefixes of 05 §1.1 (notes on it-IT), in order of their frequency. */
+        @JvmField
+        public val ITALIAN_ELISION_PREFIXES: List<String> = (
+            "l' c' un' d' dell' all' cos' dov' nell' dall' quell' com' anch' quest' sull' n' dev' gliel' m' qualcos' " +
+                "quand' nient' s' bell' t' mezz' quant' brav' vent' neanch' tutt' senz' nessun' qualcun' trent' sott' v' " +
+                "sant' grand' quarant' cinquant'"
+            ).split(' ')
+
+        @JvmField
+        public val ITALIAN: LanguageParams = LanguageParams(
+            languageTag = "it-IT",
+            edInsert = 200, edDelete = 240, edSubstitute = 160, edSwap = 65, edSpace = 225, edCase = 44,
+            edDiacritic = 2, edFiller = 0, edNearDiv = 11, edNearBase = 16,
+            acLimit = 247, acEditFactor = 5, acMargin = 28, acValidRare = 157, acValidTarget = 130,
+            prefixAccents = mapOf(
+                'e' to listOf('é', 'è'), 'i' to listOf('ì'), 'o' to listOf('ò', 'ó'), 'u' to listOf('ù'), 'a' to listOf('à'),
+            ),
+            oneLetterWords = setOf("a", "e", "è", "i", "o"),
+            singleLetterFix = emptyMap(),
+            compoundLinks = null,
+            missingSpaceSplit = true,
+            ingRule = false,
+            elisionPrefixes = ITALIAN_ELISION_PREFIXES,
+            accentSwap = true,
+            hideClassZero = true,
+            fallbackRows = listOf("qwertyuiop", "asdfghjkl", "zxcvbnm"),
+            fallbackRow2Start = 0.05f,
+            shape = ShapeParams(unusedKeyCost = 8.0, neighbourFactor = 0.083, doubleLetterCost = 14.0, accentFactor = 0.16, cornerAngle = 45f),
+            emoji = EmojiTables.ITALIAN,
+        )
+
         /** Every supported keyboard language, in the fixed language order (alphabetical by tag, 07 §9.5). */
         @JvmField
-        public val ALL: List<LanguageParams> = listOf(GERMAN, ENGLISH, SPANISH, PORTUGUESE)
+        public val ALL: List<LanguageParams> = listOf(GERMAN, ENGLISH, SPANISH, ITALIAN, PORTUGUESE)
 
-        /** Parameters of a supported language tag ("de-DE", "en-US", "es-ES", "pt-BR"; a bare "de" also matches). */
+        /**
+         * Parameters of a supported language tag ("de-DE", "en-US", "es-ES", "it-IT", "pt-BR"; a bare "de" also
+         * matches).
+         */
         @JvmStatic
         public fun forLanguage(tag: String): LanguageParams =
             ALL.firstOrNull { it.languageTag == tag } ?: ALL.firstOrNull { it.languageTag.substringBefore('-') == tag.substringBefore('-') }
@@ -219,6 +267,9 @@ public object Params {
     public const val NEXT_BACKOFF: Double = 0.4
     public const val NEXT_PAIR_FETCH: Int = 22
     public const val NEXT_FILLER: Int = 8
+
+    /** Followers stored per elision prefix (05b §1.1) and examined by 05 §2.2 and §8.2.1. */
+    public const val PREFIX_FOLLOWERS_MAX: Int = 4000
     public const val NAME_SURCHARGE: Int = 69
     public const val NAME_RUN_MAX: Int = 5
     public const val NAME_MAX: Int = 10000

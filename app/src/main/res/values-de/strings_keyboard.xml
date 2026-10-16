@@ -94,6 +94,7 @@
     <string name="lang_de">Deutsch</string>
     <string name="lang_en">Englisch (USA)</string>
     <string name="lang_es">Spanisch (Spanien)</string>
+    <string name="lang_it">Italienisch</string>
     <string name="lang_pt">Portugiesisch (Brasilien)</string>
     <plurals name="a11y_clip_opened">
         <item quantity="one">Zwischenablage-Verlauf, %d Eintrag</item>

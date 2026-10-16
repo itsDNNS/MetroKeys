@@ -36,6 +36,7 @@ public class EditDistance(private val params: LanguageParams, private val touch:
                 } else {
                     val base = when {
                         isDiacriticOf(ti, cj) -> p.edDiacritic
+                        p.accentSwap && isAccentSwap(ti, cj) -> p.edDiacritic
                         cj == ' ' -> p.edSpace
                         else -> touch.substitutionCost(ti, tx, ty, cj)
                     }
@@ -72,6 +73,14 @@ public class EditDistance(private val params: LanguageParams, private val touch:
         internal fun isDiacriticOf(typed: Char, cand: Char): Boolean {
             val s = stripDiacritic(cand)
             return s != cand && s == typed
+        }
+
+        /** `ACCENT_SWAP` pair (05 §5): both letters carry a diacritic and have the same base letter ("è" for "é"). */
+        internal fun isAccentSwap(typed: Char, cand: Char): Boolean {
+            if (typed == cand) return false
+            val a = stripDiacritic(typed)
+            val b = stripDiacritic(cand)
+            return a != typed && b != cand && a == b
         }
 
         /** UNITS(typed, cand): the same recursion with unit costs, case 0 and filler 0 (05 §5). */

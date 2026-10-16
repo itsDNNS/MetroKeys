@@ -45,8 +45,36 @@ public class Lexicon private constructor(
     /** Form indices (ascending) whose text is stored explicitly, and those texts. */
     private val explicitIndex: IntArray,
     private val explicitText: Array<String>,
+    /** Elision prefix table (05b §1.1, version-2 word lists): prefixes (lower case, `'`) in file order and their classes. */
+    private val prefixTexts: Array<String> = emptyArray(),
+    private val prefixClasses: ByteArray = ByteArray(0),
 ) {
     public val nodeCount: Int get() = nodeChar.size
+
+    // ---- elision prefix table (05b §1.1, §6 `prefixClass`) ----
+
+    /** Number of elision prefixes with a frequency class (0 without a prefix table). */
+    public val prefixCount: Int get() = prefixTexts.size
+
+    /** True if the word list stores frequency classes for elision prefixes (05 §8.2.1). */
+    public val hasPrefixTable: Boolean get() = prefixTexts.isNotEmpty()
+
+    /** Elision prefix number [index] of the prefix table (lower case, ASCII apostrophe). */
+    public fun prefixText(index: Int): String = prefixTexts[index]
+
+    /** Index of the elision prefix [prefix] (matched case-insensitively, `’` = `'`), or −1. */
+    public fun prefixIndex(prefix: String): Int {
+        if (prefixTexts.isEmpty() || prefix.isEmpty()) return -1
+        val p = normalizePrefix(prefix)
+        for (i in prefixTexts.indices) if (prefixTexts[i] == p) return i
+        return -1
+    }
+
+    /** Frequency class of an elision prefix ("l'"), or −1 (no table, or not a prefix of the language). */
+    public fun prefixClass(prefix: String): Int {
+        val i = prefixIndex(prefix)
+        return if (i < 0) -1 else prefixClasses[i].toInt() and 0xFF
+    }
 
     // ---- trie access (also used by shape writing) ----
 
@@ -276,7 +304,7 @@ public class Lexicon private constructor(
             val r = ByteReader(DigestInputStream(GZIPInputStream(input, 1 shl 16), digest))
             r.expectMagic("MKWL")
             val version = r.u8()
-            if (version != 1) throw IOException("unsupported word list version $version")
+            if (version != 1 && version != 2) throw IOException("unsupported word list version $version")
             val tag = r.ascii()
             val scale = r.f32()
             val maxCount = r.varint()
@@ -309,10 +337,26 @@ public class Lexicon private constructor(
             }
             formStart[keyCount] = f
             if (f != formCount) throw IOException("form count mismatch")
+            var prefixTexts = emptyArray<String>()
+            var prefixClasses = ByteArray(0)
+            if (version == 2) {
+                val n = r.varintInt()
+                if (n > 255) throw IOException("too many elision prefixes")
+                prefixTexts = Array(n) { "" }
+                prefixClasses = ByteArray(n)
+                for (i in 0 until n) {
+                    prefixTexts[i] = r.utf8()
+                    prefixClasses[i] = r.u8().toByte()
+                }
+            }
             r.drain()
             return build(tag, scale, maxCount, corpus, digest.digest(), keys, formStart, formClass, formKind,
-                explicitIndex.toArray(), explicitText.toTypedArray())
+                explicitIndex.toArray(), explicitText.toTypedArray(), prefixTexts, prefixClasses)
         }
+
+        /** An elision prefix as stored: lower case with the ASCII apostrophe (`L’` → `l'`). */
+        @JvmStatic
+        public fun normalizePrefix(prefix: String): String = toKey(prefix).replace('’', '\'')
 
         /**
          * Builds a lexicon from entries (key → forms with classes, best first); used by tests and tools.
@@ -324,6 +368,7 @@ public class Lexicon private constructor(
             maxCount: Long,
             corpusTokens: Long,
             entries: Map<String, List<WordForm>>,
+            prefixes: List<Pair<String, Int>> = emptyList(),
         ): Lexicon {
             val sorted = entries.keys.sorted()
             val keys = KeyBuffer(sorted.size)
@@ -351,7 +396,8 @@ public class Lexicon private constructor(
             }
             formStart[sorted.size] = f
             return build(tag, scale, maxCount, corpusTokens, ByteArray(32), keys, formStart, formClass, formKind,
-                IntArray(total) { it }, explicitText.toTypedArray())
+                IntArray(total) { it }, explicitText.toTypedArray(),
+                prefixes.map { it.first }.toTypedArray(), ByteArray(prefixes.size) { prefixes[it].second.toByte() })
         }
 
         /**
@@ -371,6 +417,8 @@ public class Lexicon private constructor(
             formKind: ByteArray,
             explicitIndex: IntArray,
             explicitText: Array<String>,
+            prefixTexts: Array<String>,
+            prefixClasses: ByteArray,
         ): Lexicon {
             val keyCount = keys.size
             val n = keys.nodeCount
@@ -431,7 +479,7 @@ public class Lexicon private constructor(
             return Lexicon(
                 tag, scale, maxCount, corpus, keyCount, formStart[keyCount], digest,
                 ch, firstChild, childCount, parent, nodeKey, maxClass,
-                keyNode, formStart, formClass, formKind, explicitIndex, explicitText,
+                keyNode, formStart, formClass, formKind, explicitIndex, explicitText, prefixTexts, prefixClasses,
             )
         }
 
@@ -445,7 +493,7 @@ public class Lexicon private constructor(
             if (keys.isEmpty()) return emptySet()
             val r = ByteReader(GZIPInputStream(input, 1 shl 16))
             r.expectMagic("MKWL")
-            if (r.u8() != 1) throw IOException("unsupported word list version")
+            if (r.u8() !in 1..2) throw IOException("unsupported word list version")
             r.ascii()
             r.f32()
             r.varint()

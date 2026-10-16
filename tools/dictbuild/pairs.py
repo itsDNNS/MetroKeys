@@ -113,3 +113,94 @@ class PairCounter:
                 out.append((key, cls, form))
             result[prev] = out
         return result
+
+
+class ItalianPairCounter(PairCounter):
+    """Pair count of 05b §5 step 2 for Italian: elision prefixes are previous words (and followers of the word before
+    them), truncated words with a final apostrophe are tokens of their own, any other apostrophe clears the context.
+    The table keeps up to [prefix_limit] followers per prefix after the elided-pair filter of §10.6."""
+
+    def __init__(self, entries, prefixes, stock, prefix_limit=4000, elided_ratio=10):
+        super().__init__("es", entries, stock)  # es profile: openers « “ " ‘ ( [, no ¿ ¡ (see below)
+        self.sentence_end = set(".!?:")
+        self.prefixes = list(prefixes)
+        self.prefix_set = set(prefixes)
+        self.prefix_limit = prefix_limit
+        self.elided_ratio = elided_ratio
+        self.truncated = {k for k in entries if k.endswith("'")}
+        self.dropped_elided = []
+
+    def add(self, text, weight, tatoeba):
+        from build_it import tokens
+        prev = SENTENCE_START
+        for kind, tok in tokens(text, self.truncated):
+            if kind == "c":
+                if tok in self.sentence_end:
+                    prev = SENTENCE_START
+                elif tok in self.openers and prev == SENTENCE_START:
+                    pass
+                else:
+                    prev = None
+                continue
+            if kind == "p":
+                if prev is not None:
+                    self._count(prev, tok, tok, weight)
+                prev = tok
+                continue
+            key = jlower(tok)
+            if (tatoeba and self.is_stock(tok)) or key not in self.entries:
+                prev = None
+                continue
+            if prev is not None:
+                self._count(prev, key, tok, weight)
+            prev = key
+
+    def _count(self, prev, key, tok, weight):
+        pk = (prev, key)
+        self.pairs[pk] = self.pairs.get(pk, 0) + weight
+        self.totals[prev] = self.totals.get(prev, 0) + weight
+        if key in self.prefix_set:
+            return
+        forms = self.entries[key]
+        if prev != SENTENCE_START and len(forms) > 1 and any(f == tok for f, _ in forms):
+            d = self.forms.setdefault(pk, {})
+            d[tok] = d.get(tok, 0) + weight
+
+    def table(self, key_order):
+        order = dict(key_order)
+        base = len(order)
+        for i, p in enumerate(self.prefixes):
+            order[p] = base + i
+        by_prev = {}
+        for (prev, key), c in self.pairs.items():
+            total = self.totals[prev]
+            if c < 3 or total < 12:
+                continue
+            if prev in self.prefix_set:
+                # §10.6: the unelided phrase ("un altro" for (un', altro)) at least 10 times as frequent drops the pair
+                unelided = self.pairs.get((prev[:-1], key), 0)
+                if unelided >= self.elided_ratio * c:
+                    self.dropped_elided.append([prev + key, c, unelided])
+                    continue
+            cls = pair_class(c / total)
+            if cls is None:
+                continue
+            by_prev.setdefault(prev, []).append((key, cls))
+        result = {}
+        for prev in sorted(by_prev):
+            limit = self.prefix_limit if prev in self.prefix_set else 48
+            followers = sorted(by_prev[prev], key=lambda kc: (-kc[1], order[kc[0]]))[:limit]
+            out = []
+            for key, cls in followers:
+                if key in self.prefix_set:
+                    out.append((key, cls, key))
+                    continue
+                forms = [f for f, _ in self.entries[key]]
+                seen = self.forms.get((prev, key))
+                form = forms[0]
+                if seen:
+                    form = sorted(seen.items(), key=lambda fc: (-fc[1], forms.index(fc[0])))[0][0]
+                out.append((key, cls, form))
+            result[prev] = out
+        self.dropped_elided.sort(key=lambda r: -r[2])
+        return result

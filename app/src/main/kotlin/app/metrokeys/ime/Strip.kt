@@ -33,6 +33,8 @@ data class StripItem(
     /** The "+ word" add-to-dictionary item (03 §6.5). */
     val addWord: Boolean = false,
     val autocorrection: Boolean = false,
+    /** An elision prefix ("l'", 05 §8.2.1 item 3): picked without a trailing space (04 §4.3). */
+    val elisionPrefix: Boolean = false,
 )
 
 /** The candidate list of the strip with what it refers to. */

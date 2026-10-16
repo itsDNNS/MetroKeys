@@ -1,0 +1,11043 @@
+{
+ "schema": "metrokeys.layouts/1",
+ "language": "it-IT",
+ "variant": "multi",
+ "languageInfo": {
+  "label": "ITA",
+  "subLabel": null,
+  "subIcon": "keyboard"
+ },
+ "domains": {
+  "region": "IT",
+  "list": [
+   ".com",
+   ".it",
+   ".org",
+   ".net"
+  ]
+ },
+ "defaults": {
+  "longPressMs": 450
+ },
+ "inputTypes": {
+  "text": [
+   "text.letters",
+   "text.symbols-1",
+   "text.symbols-2",
+   "text.emoji"
+  ],
+  "default": [
+   "default.letters",
+   "default.symbols-1",
+   "default.symbols-2"
+  ],
+  "url": [
+   "url.letters",
+   "url.symbols-1",
+   "url.symbols-2"
+  ],
+  "email": [
+   "email.letters",
+   "email.symbols-1",
+   "email.symbols-2"
+  ],
+  "number": [
+   "number.numpad"
+  ],
+  "phone": [
+   "phone.dialpad"
+  ],
+  "search": [
+   "search.letters",
+   "search.symbols-1",
+   "search.symbols-2"
+  ],
+  "password": [
+   "default.letters",
+   "default.symbols-1",
+   "default.symbols-2"
+  ],
+  "pin": [
+   "pin.numpad"
+  ]
+ },
+ "pages": {
+  "text.letters": {
+   "kind": "letters",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "q",
+     "labelShifted": "Q",
+     "output": "q",
+     "outputShifted": "Q",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "w",
+     "labelShifted": "W",
+     "output": "w",
+     "outputShifted": "W",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "e",
+     "labelShifted": "E",
+     "output": "e",
+     "outputShifted": "E",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "é",
+       "outputShifted": "É"
+      },
+      {
+       "output": "ê",
+       "outputShifted": "Ê"
+      },
+      {
+       "output": "è",
+       "outputShifted": "È"
+      },
+      {
+       "output": "ë",
+       "outputShifted": "Ë"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "r",
+     "labelShifted": "R",
+     "output": "r",
+     "outputShifted": "R",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "t",
+     "labelShifted": "T",
+     "output": "t",
+     "outputShifted": "T",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "þ",
+       "outputShifted": "Þ"
+      },
+      {
+       "output": "ť",
+       "outputShifted": "Ť"
+      },
+      {
+       "output": "ţ",
+       "outputShifted": "Ţ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "y",
+     "labelShifted": "Y",
+     "output": "y",
+     "outputShifted": "Y",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ý",
+       "outputShifted": "Ý"
+      },
+      {
+       "output": "ÿ",
+       "outputShifted": "Ÿ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "u",
+     "labelShifted": "U",
+     "output": "u",
+     "outputShifted": "U",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ú",
+       "outputShifted": "Ú"
+      },
+      {
+       "output": "û",
+       "outputShifted": "Û"
+      },
+      {
+       "output": "ù",
+       "outputShifted": "Ù"
+      },
+      {
+       "output": "ü",
+       "outputShifted": "Ü"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "i",
+     "labelShifted": "I",
+     "output": "i",
+     "outputShifted": "I",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "í",
+       "outputShifted": "Í"
+      },
+      {
+       "output": "î",
+       "outputShifted": "Î"
+      },
+      {
+       "output": "ì",
+       "outputShifted": "Ì"
+      },
+      {
+       "output": "ï",
+       "outputShifted": "Ï"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "o",
+     "labelShifted": "O",
+     "output": "o",
+     "outputShifted": "O",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ó",
+       "outputShifted": "Ó"
+      },
+      {
+       "output": "ô",
+       "outputShifted": "Ô"
+      },
+      {
+       "output": "ò",
+       "outputShifted": "Ò"
+      },
+      {
+       "output": "ö",
+       "outputShifted": "Ö"
+      },
+      {
+       "output": "œ",
+       "outputShifted": "Œ"
+      },
+      {
+       "output": "ø",
+       "outputShifted": "Ø"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "p",
+     "labelShifted": "P",
+     "output": "p",
+     "outputShifted": "P",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.05,
+      0.25,
+      0.15,
+      0.5
+     ],
+     "label": "a",
+     "labelShifted": "A",
+     "output": "a",
+     "outputShifted": "A",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "á",
+       "outputShifted": "Á"
+      },
+      {
+       "output": "â",
+       "outputShifted": "Â"
+      },
+      {
+       "output": "à",
+       "outputShifted": "À"
+      },
+      {
+       "output": "ä",
+       "outputShifted": "Ä"
+      },
+      {
+       "output": "æ",
+       "outputShifted": "Æ"
+      },
+      {
+       "output": "å",
+       "outputShifted": "Å"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.25,
+      0.25,
+      0.5
+     ],
+     "label": "s",
+     "labelShifted": "S",
+     "output": "s",
+     "outputShifted": "S",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ß",
+       "hideWhenShifted": true
+      },
+      {
+       "output": "§"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.25,
+      0.35,
+      0.5
+     ],
+     "label": "d",
+     "labelShifted": "D",
+     "output": "d",
+     "outputShifted": "D",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ð",
+       "outputShifted": "Ð"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.25,
+      0.45,
+      0.5
+     ],
+     "label": "f",
+     "labelShifted": "F",
+     "output": "f",
+     "outputShifted": "F",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.25,
+      0.55,
+      0.5
+     ],
+     "label": "g",
+     "labelShifted": "G",
+     "output": "g",
+     "outputShifted": "G",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.25,
+      0.65,
+      0.5
+     ],
+     "label": "h",
+     "labelShifted": "H",
+     "output": "h",
+     "outputShifted": "H",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.25,
+      0.75,
+      0.5
+     ],
+     "label": "j",
+     "labelShifted": "J",
+     "output": "j",
+     "outputShifted": "J",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.25,
+      0.85,
+      0.5
+     ],
+     "label": "k",
+     "labelShifted": "K",
+     "output": "k",
+     "outputShifted": "K",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.85,
+      0.25,
+      0.95,
+      0.5
+     ],
+     "label": "l",
+     "labelShifted": "L",
+     "output": "l",
+     "outputShifted": "L",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "shift",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "shift",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "z",
+     "labelShifted": "Z",
+     "output": "z",
+     "outputShifted": "Z",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": "x",
+     "labelShifted": "X",
+     "output": "x",
+     "outputShifted": "X",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": "c",
+     "labelShifted": "C",
+     "output": "c",
+     "outputShifted": "C",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ç",
+       "outputShifted": "Ç"
+      },
+      {
+       "output": "©"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "v",
+     "labelShifted": "V",
+     "output": "v",
+     "outputShifted": "V",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "b",
+     "labelShifted": "B",
+     "output": "b",
+     "outputShifted": "B",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "n",
+     "labelShifted": "N",
+     "output": "n",
+     "outputShifted": "N",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ñ",
+       "outputShifted": "Ñ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "m",
+     "labelShifted": "M",
+     "output": "m",
+     "outputShifted": "M",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "µ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "&123",
+     "target": "text.symbols-1",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "emoji",
+     "rect": [
+      0.25,
+      0.75,
+      0.35,
+      1.0
+     ],
+     "icon": "emoji",
+     "target": "text.emoji",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.35,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": ","
+      },
+      {
+       "output": "?"
+      },
+      {
+       "output": "!"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "enter",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ],
+   "optionalComma": {
+    "insertAt": 32,
+    "key": {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": ",",
+     "output": ",",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      9,
+      -34,
+      0,
+      0
+     ]
+    },
+    "spaceRectWithComma": [
+     0.35,
+     0.75,
+     0.65,
+     1.0
+    ]
+   }
+  },
+  "text.symbols-1": {
+   "kind": "symbols",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "alternates": [
+      {
+       "output": "½"
+      },
+      {
+       "output": "⅓"
+      },
+      {
+       "output": "¼"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "alternates": [
+      {
+       "output": "⅔"
+      },
+      {
+       "output": "²"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "alternates": [
+      {
+       "output": "¾"
+      },
+      {
+       "output": "³"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "0",
+     "output": "0",
+     "alternates": [
+      {
+       "output": "°"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.1,
+      0.5
+     ],
+     "label": "@",
+     "output": "@",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.25,
+      0.2,
+      0.5
+     ],
+     "label": "#",
+     "output": "#",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.25,
+      0.3,
+      0.5
+     ],
+     "label": "€",
+     "output": "€",
+     "alternates": [
+      {
+       "output": "$"
+      },
+      {
+       "output": "£"
+      },
+      {
+       "output": "¥"
+      },
+      {
+       "output": "¢"
+      },
+      {
+       "output": "¤"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.25,
+      0.4,
+      0.5
+     ],
+     "label": "%",
+     "output": "%",
+     "alternates": [
+      {
+       "output": "‰"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.25,
+      0.5,
+      0.5
+     ],
+     "label": "&",
+     "output": "&",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.25,
+      0.6,
+      0.5
+     ],
+     "label": "*",
+     "output": "*",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.25,
+      0.7,
+      0.5
+     ],
+     "label": "(",
+     "output": "(",
+     "alternates": [
+      {
+       "output": "["
+      },
+      {
+       "output": "{"
+      },
+      {
+       "output": "<"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.25,
+      0.8,
+      0.5
+     ],
+     "label": ")",
+     "output": ")",
+     "alternates": [
+      {
+       "output": "]"
+      },
+      {
+       "output": "}"
+      },
+      {
+       "output": ">"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.25,
+      0.9,
+      0.5
+     ],
+     "label": "-",
+     "output": "-",
+     "alternates": [
+      {
+       "output": "_"
+      },
+      {
+       "output": "~"
+      },
+      {
+       "output": "¬"
+      },
+      {
+       "output": "·"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "\\",
+     "output": "\\",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "arrow-right",
+     "target": "text.symbols-2",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "!",
+     "output": "!",
+     "alternates": [
+      {
+       "output": "¡"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": ";",
+     "output": ";",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": ":",
+     "output": ":",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "'",
+     "output": "'",
+     "alternates": [
+      {
+       "output": "`"
+      },
+      {
+       "output": "‘"
+      },
+      {
+       "output": "’"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "\"",
+     "output": "\"",
+     "alternates": [
+      {
+       "output": "”"
+      },
+      {
+       "output": "“"
+      },
+      {
+       "output": "»"
+      },
+      {
+       "output": "«"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "?",
+     "output": "?",
+     "alternates": [
+      {
+       "output": "¿"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "/",
+     "output": "/",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "abcd",
+     "target": "text.letters",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "emoji",
+     "rect": [
+      0.25,
+      0.75,
+      0.35,
+      1.0
+     ],
+     "icon": "emoji",
+     "target": "text.emoji",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.35,
+      0.75,
+      0.65,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": ",",
+     "output": ",",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      9,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": "?"
+      },
+      {
+       "output": ":"
+      },
+      {
+       "output": "!"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "enter",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "text.symbols-2": {
+   "kind": "symbols",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "alternates": [
+      {
+       "output": "½"
+      },
+      {
+       "output": "⅓"
+      },
+      {
+       "output": "¼"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "alternates": [
+      {
+       "output": "⅔"
+      },
+      {
+       "output": "²"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "alternates": [
+      {
+       "output": "¾"
+      },
+      {
+       "output": "³"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "0",
+     "output": "0",
+     "alternates": [
+      {
+       "output": "°"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.1,
+      0.5
+     ],
+     "label": "^",
+     "output": "^",
+     "alternates": [
+      {
+       "output": "√"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.25,
+      0.2,
+      0.5
+     ],
+     "label": "[",
+     "output": "[",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.25,
+      0.3,
+      0.5
+     ],
+     "label": "]",
+     "output": "]",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.25,
+      0.4,
+      0.5
+     ],
+     "label": "{",
+     "output": "{",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.25,
+      0.5,
+      0.5
+     ],
+     "label": "}",
+     "output": "}",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.25,
+      0.6,
+      0.5
+     ],
+     "label": "<",
+     "output": "<",
+     "alternates": [
+      {
+       "output": "≤"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.25,
+      0.7,
+      0.5
+     ],
+     "label": ">",
+     "output": ">",
+     "alternates": [
+      {
+       "output": "≥"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.25,
+      0.8,
+      0.5
+     ],
+     "label": "$",
+     "output": "$",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.25,
+      0.9,
+      0.5
+     ],
+     "label": "£",
+     "output": "£",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "¥",
+     "output": "¥",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "arrow-left",
+     "target": "text.symbols-1",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "•",
+     "output": "•",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": "-",
+     "output": "-",
+     "alternates": [
+      {
+       "output": "_"
+      },
+      {
+       "output": "~"
+      },
+      {
+       "output": "¬"
+      },
+      {
+       "output": "·"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": "+",
+     "output": "+",
+     "alternates": [
+      {
+       "output": "±"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "=",
+     "output": "=",
+     "alternates": [
+      {
+       "output": "≠"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "_",
+     "output": "_",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "~",
+     "output": "~",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "|",
+     "output": "|",
+     "alternates": [
+      {
+       "output": "¦"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "abcd",
+     "target": "text.letters",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "emoji",
+     "rect": [
+      0.25,
+      0.75,
+      0.35,
+      1.0
+     ],
+     "icon": "emoji",
+     "target": "text.emoji",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.35,
+      0.75,
+      0.65,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": ",",
+     "output": ",",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      9,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": "?"
+      },
+      {
+       "output": ":"
+      },
+      {
+       "output": "!"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "enter",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "text.emoji": {
+   "kind": "emoji",
+   "rows": 1,
+   "keys": [
+    {
+     "role": "emoji-grid",
+     "rect": [
+      0.0,
+      0.0,
+      1.0,
+      0.75
+     ],
+     "label": "",
+     "popup": false,
+     "enabled": false,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.1,
+      1.0
+     ],
+     "label": "abc",
+     "target": "text.letters",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "emoji-category",
+     "rect": [
+      0.1,
+      0.75,
+      0.2,
+      1.0
+     ],
+     "label": "♥",
+     "category": "recent",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "emoji-category"
+    },
+    {
+     "role": "emoji-category",
+     "rect": [
+      0.2,
+      0.75,
+      0.3,
+      1.0
+     ],
+     "label": ":)",
+     "category": "emoticons",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "emoji-category",
+     "rect": [
+      0.3,
+      0.75,
+      0.4,
+      1.0
+     ],
+     "label": "😃",
+     "category": "people",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "emoji-category"
+    },
+    {
+     "role": "emoji-category",
+     "rect": [
+      0.4,
+      0.75,
+      0.5,
+      1.0
+     ],
+     "label": "🎈",
+     "category": "activities",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "emoji-category"
+    },
+    {
+     "role": "emoji-category",
+     "rect": [
+      0.5,
+      0.75,
+      0.6,
+      1.0
+     ],
+     "label": "🍕",
+     "category": "food-objects",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "emoji-category"
+    },
+    {
+     "role": "emoji-category",
+     "rect": [
+      0.6,
+      0.75,
+      0.7,
+      1.0
+     ],
+     "label": "✈",
+     "category": "travel",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "emoji-category"
+    },
+    {
+     "role": "emoji-category",
+     "rect": [
+      0.7,
+      0.75,
+      0.8,
+      1.0
+     ],
+     "label": "⛅",
+     "category": "nature-weather",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "emoji-category"
+    },
+    {
+     "role": "emoji-category",
+     "rect": [
+      0.8,
+      0.75,
+      0.9,
+      1.0
+     ],
+     "label": "⁉",
+     "category": "symbols",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "emoji-category"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.9,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "default.letters": {
+   "kind": "letters",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "q",
+     "labelShifted": "Q",
+     "output": "q",
+     "outputShifted": "Q",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "w",
+     "labelShifted": "W",
+     "output": "w",
+     "outputShifted": "W",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "e",
+     "labelShifted": "E",
+     "output": "e",
+     "outputShifted": "E",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "é",
+       "outputShifted": "É"
+      },
+      {
+       "output": "ê",
+       "outputShifted": "Ê"
+      },
+      {
+       "output": "è",
+       "outputShifted": "È"
+      },
+      {
+       "output": "ë",
+       "outputShifted": "Ë"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "r",
+     "labelShifted": "R",
+     "output": "r",
+     "outputShifted": "R",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "t",
+     "labelShifted": "T",
+     "output": "t",
+     "outputShifted": "T",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "þ",
+       "outputShifted": "Þ"
+      },
+      {
+       "output": "ť",
+       "outputShifted": "Ť"
+      },
+      {
+       "output": "ţ",
+       "outputShifted": "Ţ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "y",
+     "labelShifted": "Y",
+     "output": "y",
+     "outputShifted": "Y",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ý",
+       "outputShifted": "Ý"
+      },
+      {
+       "output": "ÿ",
+       "outputShifted": "Ÿ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "u",
+     "labelShifted": "U",
+     "output": "u",
+     "outputShifted": "U",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ú",
+       "outputShifted": "Ú"
+      },
+      {
+       "output": "û",
+       "outputShifted": "Û"
+      },
+      {
+       "output": "ù",
+       "outputShifted": "Ù"
+      },
+      {
+       "output": "ü",
+       "outputShifted": "Ü"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "i",
+     "labelShifted": "I",
+     "output": "i",
+     "outputShifted": "I",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "í",
+       "outputShifted": "Í"
+      },
+      {
+       "output": "î",
+       "outputShifted": "Î"
+      },
+      {
+       "output": "ì",
+       "outputShifted": "Ì"
+      },
+      {
+       "output": "ï",
+       "outputShifted": "Ï"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "o",
+     "labelShifted": "O",
+     "output": "o",
+     "outputShifted": "O",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ó",
+       "outputShifted": "Ó"
+      },
+      {
+       "output": "ô",
+       "outputShifted": "Ô"
+      },
+      {
+       "output": "ò",
+       "outputShifted": "Ò"
+      },
+      {
+       "output": "ö",
+       "outputShifted": "Ö"
+      },
+      {
+       "output": "œ",
+       "outputShifted": "Œ"
+      },
+      {
+       "output": "ø",
+       "outputShifted": "Ø"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "p",
+     "labelShifted": "P",
+     "output": "p",
+     "outputShifted": "P",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.05,
+      0.25,
+      0.15,
+      0.5
+     ],
+     "label": "a",
+     "labelShifted": "A",
+     "output": "a",
+     "outputShifted": "A",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "á",
+       "outputShifted": "Á"
+      },
+      {
+       "output": "â",
+       "outputShifted": "Â"
+      },
+      {
+       "output": "à",
+       "outputShifted": "À"
+      },
+      {
+       "output": "ä",
+       "outputShifted": "Ä"
+      },
+      {
+       "output": "æ",
+       "outputShifted": "Æ"
+      },
+      {
+       "output": "å",
+       "outputShifted": "Å"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.25,
+      0.25,
+      0.5
+     ],
+     "label": "s",
+     "labelShifted": "S",
+     "output": "s",
+     "outputShifted": "S",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ß",
+       "hideWhenShifted": true
+      },
+      {
+       "output": "§"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.25,
+      0.35,
+      0.5
+     ],
+     "label": "d",
+     "labelShifted": "D",
+     "output": "d",
+     "outputShifted": "D",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ð",
+       "outputShifted": "Ð"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.25,
+      0.45,
+      0.5
+     ],
+     "label": "f",
+     "labelShifted": "F",
+     "output": "f",
+     "outputShifted": "F",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.25,
+      0.55,
+      0.5
+     ],
+     "label": "g",
+     "labelShifted": "G",
+     "output": "g",
+     "outputShifted": "G",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.25,
+      0.65,
+      0.5
+     ],
+     "label": "h",
+     "labelShifted": "H",
+     "output": "h",
+     "outputShifted": "H",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.25,
+      0.75,
+      0.5
+     ],
+     "label": "j",
+     "labelShifted": "J",
+     "output": "j",
+     "outputShifted": "J",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.25,
+      0.85,
+      0.5
+     ],
+     "label": "k",
+     "labelShifted": "K",
+     "output": "k",
+     "outputShifted": "K",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.85,
+      0.25,
+      0.95,
+      0.5
+     ],
+     "label": "l",
+     "labelShifted": "L",
+     "output": "l",
+     "outputShifted": "L",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "shift",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "shift",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "z",
+     "labelShifted": "Z",
+     "output": "z",
+     "outputShifted": "Z",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": "x",
+     "labelShifted": "X",
+     "output": "x",
+     "outputShifted": "X",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": "c",
+     "labelShifted": "C",
+     "output": "c",
+     "outputShifted": "C",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ç",
+       "outputShifted": "Ç"
+      },
+      {
+       "output": "©"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "v",
+     "labelShifted": "V",
+     "output": "v",
+     "outputShifted": "V",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "b",
+     "labelShifted": "B",
+     "output": "b",
+     "outputShifted": "B",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "n",
+     "labelShifted": "N",
+     "output": "n",
+     "outputShifted": "N",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ñ",
+       "outputShifted": "Ñ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "m",
+     "labelShifted": "M",
+     "output": "m",
+     "outputShifted": "M",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "µ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "&123",
+     "target": "default.symbols-1",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.25,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": ","
+      },
+      {
+       "output": "?"
+      },
+      {
+       "output": "!"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "enter",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ],
+   "optionalComma": {
+    "insertAt": 31,
+    "key": {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": ",",
+     "output": ",",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      9,
+      -34,
+      0,
+      0
+     ]
+    },
+    "spaceRectWithComma": [
+     0.25,
+     0.75,
+     0.65,
+     1.0
+    ]
+   }
+  },
+  "default.symbols-1": {
+   "kind": "symbols",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "alternates": [
+      {
+       "output": "½"
+      },
+      {
+       "output": "⅓"
+      },
+      {
+       "output": "¼"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "alternates": [
+      {
+       "output": "⅔"
+      },
+      {
+       "output": "²"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "alternates": [
+      {
+       "output": "¾"
+      },
+      {
+       "output": "³"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "0",
+     "output": "0",
+     "alternates": [
+      {
+       "output": "°"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.1,
+      0.5
+     ],
+     "label": "@",
+     "output": "@",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.25,
+      0.2,
+      0.5
+     ],
+     "label": "#",
+     "output": "#",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.25,
+      0.3,
+      0.5
+     ],
+     "label": "€",
+     "output": "€",
+     "alternates": [
+      {
+       "output": "$"
+      },
+      {
+       "output": "£"
+      },
+      {
+       "output": "¥"
+      },
+      {
+       "output": "¢"
+      },
+      {
+       "output": "¤"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.25,
+      0.4,
+      0.5
+     ],
+     "label": "%",
+     "output": "%",
+     "alternates": [
+      {
+       "output": "‰"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.25,
+      0.5,
+      0.5
+     ],
+     "label": "&",
+     "output": "&",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.25,
+      0.6,
+      0.5
+     ],
+     "label": "*",
+     "output": "*",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.25,
+      0.7,
+      0.5
+     ],
+     "label": "(",
+     "output": "(",
+     "alternates": [
+      {
+       "output": "["
+      },
+      {
+       "output": "{"
+      },
+      {
+       "output": "<"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.25,
+      0.8,
+      0.5
+     ],
+     "label": ")",
+     "output": ")",
+     "alternates": [
+      {
+       "output": "]"
+      },
+      {
+       "output": "}"
+      },
+      {
+       "output": ">"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.25,
+      0.9,
+      0.5
+     ],
+     "label": "-",
+     "output": "-",
+     "alternates": [
+      {
+       "output": "_"
+      },
+      {
+       "output": "~"
+      },
+      {
+       "output": "¬"
+      },
+      {
+       "output": "·"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "\\",
+     "output": "\\",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "arrow-right",
+     "target": "default.symbols-2",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "!",
+     "output": "!",
+     "alternates": [
+      {
+       "output": "¡"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": ";",
+     "output": ";",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": ":",
+     "output": ":",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "'",
+     "output": "'",
+     "alternates": [
+      {
+       "output": "`"
+      },
+      {
+       "output": "‘"
+      },
+      {
+       "output": "’"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "\"",
+     "output": "\"",
+     "alternates": [
+      {
+       "output": "”"
+      },
+      {
+       "output": "“"
+      },
+      {
+       "output": "»"
+      },
+      {
+       "output": "«"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "?",
+     "output": "?",
+     "alternates": [
+      {
+       "output": "¿"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "/",
+     "output": "/",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "abcd",
+     "target": "default.letters",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.25,
+      0.75,
+      0.65,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": ",",
+     "output": ",",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      9,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": "?"
+      },
+      {
+       "output": ":"
+      },
+      {
+       "output": "!"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "enter",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "default.symbols-2": {
+   "kind": "symbols",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "alternates": [
+      {
+       "output": "½"
+      },
+      {
+       "output": "⅓"
+      },
+      {
+       "output": "¼"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "alternates": [
+      {
+       "output": "⅔"
+      },
+      {
+       "output": "²"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "alternates": [
+      {
+       "output": "¾"
+      },
+      {
+       "output": "³"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "0",
+     "output": "0",
+     "alternates": [
+      {
+       "output": "°"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.1,
+      0.5
+     ],
+     "label": "^",
+     "output": "^",
+     "alternates": [
+      {
+       "output": "√"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.25,
+      0.2,
+      0.5
+     ],
+     "label": "[",
+     "output": "[",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.25,
+      0.3,
+      0.5
+     ],
+     "label": "]",
+     "output": "]",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.25,
+      0.4,
+      0.5
+     ],
+     "label": "{",
+     "output": "{",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.25,
+      0.5,
+      0.5
+     ],
+     "label": "}",
+     "output": "}",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.25,
+      0.6,
+      0.5
+     ],
+     "label": "<",
+     "output": "<",
+     "alternates": [
+      {
+       "output": "≤"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.25,
+      0.7,
+      0.5
+     ],
+     "label": ">",
+     "output": ">",
+     "alternates": [
+      {
+       "output": "≥"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.25,
+      0.8,
+      0.5
+     ],
+     "label": "$",
+     "output": "$",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.25,
+      0.9,
+      0.5
+     ],
+     "label": "£",
+     "output": "£",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "¥",
+     "output": "¥",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "arrow-left",
+     "target": "default.symbols-1",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "•",
+     "output": "•",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": "-",
+     "output": "-",
+     "alternates": [
+      {
+       "output": "_"
+      },
+      {
+       "output": "~"
+      },
+      {
+       "output": "¬"
+      },
+      {
+       "output": "·"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": "+",
+     "output": "+",
+     "alternates": [
+      {
+       "output": "±"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "=",
+     "output": "=",
+     "alternates": [
+      {
+       "output": "≠"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "_",
+     "output": "_",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "~",
+     "output": "~",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "|",
+     "output": "|",
+     "alternates": [
+      {
+       "output": "¦"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "abcd",
+     "target": "default.letters",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.25,
+      0.75,
+      0.65,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": ",",
+     "output": ",",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      9,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": "?"
+      },
+      {
+       "output": ":"
+      },
+      {
+       "output": "!"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "enter",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "url.letters": {
+   "kind": "letters",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "q",
+     "labelShifted": "Q",
+     "output": "q",
+     "outputShifted": "Q",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "w",
+     "labelShifted": "W",
+     "output": "w",
+     "outputShifted": "W",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "e",
+     "labelShifted": "E",
+     "output": "e",
+     "outputShifted": "E",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "é",
+       "outputShifted": "É"
+      },
+      {
+       "output": "ê",
+       "outputShifted": "Ê"
+      },
+      {
+       "output": "è",
+       "outputShifted": "È"
+      },
+      {
+       "output": "ë",
+       "outputShifted": "Ë"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "r",
+     "labelShifted": "R",
+     "output": "r",
+     "outputShifted": "R",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "t",
+     "labelShifted": "T",
+     "output": "t",
+     "outputShifted": "T",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "þ",
+       "outputShifted": "Þ"
+      },
+      {
+       "output": "ť",
+       "outputShifted": "Ť"
+      },
+      {
+       "output": "ţ",
+       "outputShifted": "Ţ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "y",
+     "labelShifted": "Y",
+     "output": "y",
+     "outputShifted": "Y",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ý",
+       "outputShifted": "Ý"
+      },
+      {
+       "output": "ÿ",
+       "outputShifted": "Ÿ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "u",
+     "labelShifted": "U",
+     "output": "u",
+     "outputShifted": "U",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ú",
+       "outputShifted": "Ú"
+      },
+      {
+       "output": "û",
+       "outputShifted": "Û"
+      },
+      {
+       "output": "ù",
+       "outputShifted": "Ù"
+      },
+      {
+       "output": "ü",
+       "outputShifted": "Ü"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "i",
+     "labelShifted": "I",
+     "output": "i",
+     "outputShifted": "I",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "í",
+       "outputShifted": "Í"
+      },
+      {
+       "output": "î",
+       "outputShifted": "Î"
+      },
+      {
+       "output": "ì",
+       "outputShifted": "Ì"
+      },
+      {
+       "output": "ï",
+       "outputShifted": "Ï"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "o",
+     "labelShifted": "O",
+     "output": "o",
+     "outputShifted": "O",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ó",
+       "outputShifted": "Ó"
+      },
+      {
+       "output": "ô",
+       "outputShifted": "Ô"
+      },
+      {
+       "output": "ò",
+       "outputShifted": "Ò"
+      },
+      {
+       "output": "ö",
+       "outputShifted": "Ö"
+      },
+      {
+       "output": "œ",
+       "outputShifted": "Œ"
+      },
+      {
+       "output": "ø",
+       "outputShifted": "Ø"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "p",
+     "labelShifted": "P",
+     "output": "p",
+     "outputShifted": "P",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.05,
+      0.25,
+      0.15,
+      0.5
+     ],
+     "label": "a",
+     "labelShifted": "A",
+     "output": "a",
+     "outputShifted": "A",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "á",
+       "outputShifted": "Á"
+      },
+      {
+       "output": "â",
+       "outputShifted": "Â"
+      },
+      {
+       "output": "à",
+       "outputShifted": "À"
+      },
+      {
+       "output": "ä",
+       "outputShifted": "Ä"
+      },
+      {
+       "output": "æ",
+       "outputShifted": "Æ"
+      },
+      {
+       "output": "å",
+       "outputShifted": "Å"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.25,
+      0.25,
+      0.5
+     ],
+     "label": "s",
+     "labelShifted": "S",
+     "output": "s",
+     "outputShifted": "S",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ß",
+       "hideWhenShifted": true
+      },
+      {
+       "output": "§"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.25,
+      0.35,
+      0.5
+     ],
+     "label": "d",
+     "labelShifted": "D",
+     "output": "d",
+     "outputShifted": "D",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ð",
+       "outputShifted": "Ð"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.25,
+      0.45,
+      0.5
+     ],
+     "label": "f",
+     "labelShifted": "F",
+     "output": "f",
+     "outputShifted": "F",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.25,
+      0.55,
+      0.5
+     ],
+     "label": "g",
+     "labelShifted": "G",
+     "output": "g",
+     "outputShifted": "G",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.25,
+      0.65,
+      0.5
+     ],
+     "label": "h",
+     "labelShifted": "H",
+     "output": "h",
+     "outputShifted": "H",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.25,
+      0.75,
+      0.5
+     ],
+     "label": "j",
+     "labelShifted": "J",
+     "output": "j",
+     "outputShifted": "J",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.25,
+      0.85,
+      0.5
+     ],
+     "label": "k",
+     "labelShifted": "K",
+     "output": "k",
+     "outputShifted": "K",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.85,
+      0.25,
+      0.95,
+      0.5
+     ],
+     "label": "l",
+     "labelShifted": "L",
+     "output": "l",
+     "outputShifted": "L",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "shift",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "shift",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "z",
+     "labelShifted": "Z",
+     "output": "z",
+     "outputShifted": "Z",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": "x",
+     "labelShifted": "X",
+     "output": "x",
+     "outputShifted": "X",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": "c",
+     "labelShifted": "C",
+     "output": "c",
+     "outputShifted": "C",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ç",
+       "outputShifted": "Ç"
+      },
+      {
+       "output": "©"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "v",
+     "labelShifted": "V",
+     "output": "v",
+     "outputShifted": "V",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "b",
+     "labelShifted": "B",
+     "output": "b",
+     "outputShifted": "B",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "n",
+     "labelShifted": "N",
+     "output": "n",
+     "outputShifted": "N",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ñ",
+       "outputShifted": "Ñ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "m",
+     "labelShifted": "M",
+     "output": "m",
+     "outputShifted": "M",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "µ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "&123",
+     "target": "url.symbols-1",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "domain",
+     "rect": [
+      0.25,
+      0.75,
+      0.4,
+      1.0
+     ],
+     "label": ".com",
+     "output": ".com",
+     "alternates": [
+      {
+       "output": ".it"
+      },
+      {
+       "output": ".org"
+      },
+      {
+       "output": ".net"
+      }
+     ],
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.4,
+      0.75,
+      0.7,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": ","
+      },
+      {
+       "output": "/"
+      },
+      {
+       "output": ":"
+      },
+      {
+       "output": "\""
+      },
+      {
+       "output": "&"
+      },
+      {
+       "output": "+"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "go",
+     "popup": false,
+     "appearance": "emphasized",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "url.symbols-1": {
+   "kind": "symbols",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "alternates": [
+      {
+       "output": "½"
+      },
+      {
+       "output": "⅓"
+      },
+      {
+       "output": "¼"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "alternates": [
+      {
+       "output": "⅔"
+      },
+      {
+       "output": "²"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "alternates": [
+      {
+       "output": "¾"
+      },
+      {
+       "output": "³"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "0",
+     "output": "0",
+     "alternates": [
+      {
+       "output": "°"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.1,
+      0.5
+     ],
+     "label": "@",
+     "output": "@",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.25,
+      0.2,
+      0.5
+     ],
+     "label": "#",
+     "output": "#",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.25,
+      0.3,
+      0.5
+     ],
+     "label": "€",
+     "output": "€",
+     "alternates": [
+      {
+       "output": "$"
+      },
+      {
+       "output": "£"
+      },
+      {
+       "output": "¥"
+      },
+      {
+       "output": "¢"
+      },
+      {
+       "output": "¤"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.25,
+      0.4,
+      0.5
+     ],
+     "label": "%",
+     "output": "%",
+     "alternates": [
+      {
+       "output": "‰"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.25,
+      0.5,
+      0.5
+     ],
+     "label": "&",
+     "output": "&",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.25,
+      0.6,
+      0.5
+     ],
+     "label": "*",
+     "output": "*",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.25,
+      0.7,
+      0.5
+     ],
+     "label": "(",
+     "output": "(",
+     "alternates": [
+      {
+       "output": "["
+      },
+      {
+       "output": "{"
+      },
+      {
+       "output": "<"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.25,
+      0.8,
+      0.5
+     ],
+     "label": ")",
+     "output": ")",
+     "alternates": [
+      {
+       "output": "]"
+      },
+      {
+       "output": "}"
+      },
+      {
+       "output": ">"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.25,
+      0.9,
+      0.5
+     ],
+     "label": "-",
+     "output": "-",
+     "alternates": [
+      {
+       "output": "_"
+      },
+      {
+       "output": "~"
+      },
+      {
+       "output": "¬"
+      },
+      {
+       "output": "·"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "\\",
+     "output": "\\",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "arrow-right",
+     "target": "url.symbols-2",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "!",
+     "output": "!",
+     "alternates": [
+      {
+       "output": "¡"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": ";",
+     "output": ";",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": ":",
+     "output": ":",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "'",
+     "output": "'",
+     "alternates": [
+      {
+       "output": "`"
+      },
+      {
+       "output": "‘"
+      },
+      {
+       "output": "’"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "\"",
+     "output": "\"",
+     "alternates": [
+      {
+       "output": "”"
+      },
+      {
+       "output": "“"
+      },
+      {
+       "output": "»"
+      },
+      {
+       "output": "«"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "?",
+     "output": "?",
+     "alternates": [
+      {
+       "output": "¿"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "/",
+     "output": "/",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "abcd",
+     "target": "url.letters",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "domain",
+     "rect": [
+      0.25,
+      0.75,
+      0.4,
+      1.0
+     ],
+     "label": ".com",
+     "output": ".com",
+     "alternates": [
+      {
+       "output": ".it"
+      },
+      {
+       "output": ".org"
+      },
+      {
+       "output": ".net"
+      }
+     ],
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.4,
+      0.75,
+      0.7,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": "/"
+      },
+      {
+       "output": ":"
+      },
+      {
+       "output": "\""
+      },
+      {
+       "output": "&"
+      },
+      {
+       "output": "+"
+      },
+      {
+       "output": "-"
+      },
+      {
+       "output": ","
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "go",
+     "popup": false,
+     "appearance": "emphasized",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "url.symbols-2": {
+   "kind": "symbols",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "alternates": [
+      {
+       "output": "½"
+      },
+      {
+       "output": "⅓"
+      },
+      {
+       "output": "¼"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "alternates": [
+      {
+       "output": "⅔"
+      },
+      {
+       "output": "²"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "alternates": [
+      {
+       "output": "¾"
+      },
+      {
+       "output": "³"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "0",
+     "output": "0",
+     "alternates": [
+      {
+       "output": "°"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.1,
+      0.5
+     ],
+     "label": "^",
+     "output": "^",
+     "alternates": [
+      {
+       "output": "√"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.25,
+      0.2,
+      0.5
+     ],
+     "label": "[",
+     "output": "[",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.25,
+      0.3,
+      0.5
+     ],
+     "label": "]",
+     "output": "]",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.25,
+      0.4,
+      0.5
+     ],
+     "label": "{",
+     "output": "{",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.25,
+      0.5,
+      0.5
+     ],
+     "label": "}",
+     "output": "}",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.25,
+      0.6,
+      0.5
+     ],
+     "label": "<",
+     "output": "<",
+     "alternates": [
+      {
+       "output": "≤"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.25,
+      0.7,
+      0.5
+     ],
+     "label": ">",
+     "output": ">",
+     "alternates": [
+      {
+       "output": "≥"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.25,
+      0.8,
+      0.5
+     ],
+     "label": "$",
+     "output": "$",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.25,
+      0.9,
+      0.5
+     ],
+     "label": "£",
+     "output": "£",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "¥",
+     "output": "¥",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "arrow-left",
+     "target": "url.symbols-1",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "•",
+     "output": "•",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": "-",
+     "output": "-",
+     "alternates": [
+      {
+       "output": "_"
+      },
+      {
+       "output": "~"
+      },
+      {
+       "output": "¬"
+      },
+      {
+       "output": "·"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": "+",
+     "output": "+",
+     "alternates": [
+      {
+       "output": "±"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "=",
+     "output": "=",
+     "alternates": [
+      {
+       "output": "≠"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "_",
+     "output": "_",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "~",
+     "output": "~",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "|",
+     "output": "|",
+     "alternates": [
+      {
+       "output": "¦"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "abcd",
+     "target": "url.letters",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "domain",
+     "rect": [
+      0.25,
+      0.75,
+      0.4,
+      1.0
+     ],
+     "label": ".com",
+     "output": ".com",
+     "alternates": [
+      {
+       "output": ".it"
+      },
+      {
+       "output": ".org"
+      },
+      {
+       "output": ".net"
+      }
+     ],
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.4,
+      0.75,
+      0.7,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": "/"
+      },
+      {
+       "output": ":"
+      },
+      {
+       "output": "\""
+      },
+      {
+       "output": "&"
+      },
+      {
+       "output": "+"
+      },
+      {
+       "output": "-"
+      },
+      {
+       "output": ","
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "go",
+     "popup": false,
+     "appearance": "emphasized",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "email.letters": {
+   "kind": "letters",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "q",
+     "labelShifted": "Q",
+     "output": "q",
+     "outputShifted": "Q",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "w",
+     "labelShifted": "W",
+     "output": "w",
+     "outputShifted": "W",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "e",
+     "labelShifted": "E",
+     "output": "e",
+     "outputShifted": "E",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "é",
+       "outputShifted": "É"
+      },
+      {
+       "output": "ê",
+       "outputShifted": "Ê"
+      },
+      {
+       "output": "è",
+       "outputShifted": "È"
+      },
+      {
+       "output": "ë",
+       "outputShifted": "Ë"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "r",
+     "labelShifted": "R",
+     "output": "r",
+     "outputShifted": "R",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "t",
+     "labelShifted": "T",
+     "output": "t",
+     "outputShifted": "T",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "þ",
+       "outputShifted": "Þ"
+      },
+      {
+       "output": "ť",
+       "outputShifted": "Ť"
+      },
+      {
+       "output": "ţ",
+       "outputShifted": "Ţ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "y",
+     "labelShifted": "Y",
+     "output": "y",
+     "outputShifted": "Y",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ý",
+       "outputShifted": "Ý"
+      },
+      {
+       "output": "ÿ",
+       "outputShifted": "Ÿ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "u",
+     "labelShifted": "U",
+     "output": "u",
+     "outputShifted": "U",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ú",
+       "outputShifted": "Ú"
+      },
+      {
+       "output": "û",
+       "outputShifted": "Û"
+      },
+      {
+       "output": "ù",
+       "outputShifted": "Ù"
+      },
+      {
+       "output": "ü",
+       "outputShifted": "Ü"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "i",
+     "labelShifted": "I",
+     "output": "i",
+     "outputShifted": "I",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "í",
+       "outputShifted": "Í"
+      },
+      {
+       "output": "î",
+       "outputShifted": "Î"
+      },
+      {
+       "output": "ì",
+       "outputShifted": "Ì"
+      },
+      {
+       "output": "ï",
+       "outputShifted": "Ï"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "o",
+     "labelShifted": "O",
+     "output": "o",
+     "outputShifted": "O",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ó",
+       "outputShifted": "Ó"
+      },
+      {
+       "output": "ô",
+       "outputShifted": "Ô"
+      },
+      {
+       "output": "ò",
+       "outputShifted": "Ò"
+      },
+      {
+       "output": "ö",
+       "outputShifted": "Ö"
+      },
+      {
+       "output": "œ",
+       "outputShifted": "Œ"
+      },
+      {
+       "output": "ø",
+       "outputShifted": "Ø"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "p",
+     "labelShifted": "P",
+     "output": "p",
+     "outputShifted": "P",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.05,
+      0.25,
+      0.15,
+      0.5
+     ],
+     "label": "a",
+     "labelShifted": "A",
+     "output": "a",
+     "outputShifted": "A",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "á",
+       "outputShifted": "Á"
+      },
+      {
+       "output": "â",
+       "outputShifted": "Â"
+      },
+      {
+       "output": "à",
+       "outputShifted": "À"
+      },
+      {
+       "output": "ä",
+       "outputShifted": "Ä"
+      },
+      {
+       "output": "æ",
+       "outputShifted": "Æ"
+      },
+      {
+       "output": "å",
+       "outputShifted": "Å"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.25,
+      0.25,
+      0.5
+     ],
+     "label": "s",
+     "labelShifted": "S",
+     "output": "s",
+     "outputShifted": "S",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ß",
+       "hideWhenShifted": true
+      },
+      {
+       "output": "§"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.25,
+      0.35,
+      0.5
+     ],
+     "label": "d",
+     "labelShifted": "D",
+     "output": "d",
+     "outputShifted": "D",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ð",
+       "outputShifted": "Ð"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.25,
+      0.45,
+      0.5
+     ],
+     "label": "f",
+     "labelShifted": "F",
+     "output": "f",
+     "outputShifted": "F",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.25,
+      0.55,
+      0.5
+     ],
+     "label": "g",
+     "labelShifted": "G",
+     "output": "g",
+     "outputShifted": "G",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.25,
+      0.65,
+      0.5
+     ],
+     "label": "h",
+     "labelShifted": "H",
+     "output": "h",
+     "outputShifted": "H",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.25,
+      0.75,
+      0.5
+     ],
+     "label": "j",
+     "labelShifted": "J",
+     "output": "j",
+     "outputShifted": "J",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.25,
+      0.85,
+      0.5
+     ],
+     "label": "k",
+     "labelShifted": "K",
+     "output": "k",
+     "outputShifted": "K",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.85,
+      0.25,
+      0.95,
+      0.5
+     ],
+     "label": "l",
+     "labelShifted": "L",
+     "output": "l",
+     "outputShifted": "L",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "shift",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "shift",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "z",
+     "labelShifted": "Z",
+     "output": "z",
+     "outputShifted": "Z",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": "x",
+     "labelShifted": "X",
+     "output": "x",
+     "outputShifted": "X",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": "c",
+     "labelShifted": "C",
+     "output": "c",
+     "outputShifted": "C",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ç",
+       "outputShifted": "Ç"
+      },
+      {
+       "output": "©"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "v",
+     "labelShifted": "V",
+     "output": "v",
+     "outputShifted": "V",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "b",
+     "labelShifted": "B",
+     "output": "b",
+     "outputShifted": "B",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "n",
+     "labelShifted": "N",
+     "output": "n",
+     "outputShifted": "N",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ñ",
+       "outputShifted": "Ñ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "m",
+     "labelShifted": "M",
+     "output": "m",
+     "outputShifted": "M",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "µ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "&123",
+     "target": "email.symbols-1",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "domain",
+     "rect": [
+      0.25,
+      0.75,
+      0.4,
+      1.0
+     ],
+     "label": ".com",
+     "output": ".com",
+     "alternates": [
+      {
+       "output": ".it"
+      },
+      {
+       "output": ".org"
+      },
+      {
+       "output": ".net"
+      }
+     ],
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.4,
+      0.75,
+      0.65,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": "@",
+     "output": "@",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "at",
+     "labelInset": [
+      0,
+      14,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": ";"
+      },
+      {
+       "output": ","
+      },
+      {
+       "output": "_"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "enter",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "email.symbols-1": {
+   "kind": "symbols",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "alternates": [
+      {
+       "output": "½"
+      },
+      {
+       "output": "⅓"
+      },
+      {
+       "output": "¼"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "alternates": [
+      {
+       "output": "⅔"
+      },
+      {
+       "output": "²"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "alternates": [
+      {
+       "output": "¾"
+      },
+      {
+       "output": "³"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "0",
+     "output": "0",
+     "alternates": [
+      {
+       "output": "°"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.1,
+      0.5
+     ],
+     "label": "@",
+     "output": "@",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.25,
+      0.2,
+      0.5
+     ],
+     "label": "#",
+     "output": "#",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.25,
+      0.3,
+      0.5
+     ],
+     "label": "€",
+     "output": "€",
+     "alternates": [
+      {
+       "output": "$"
+      },
+      {
+       "output": "£"
+      },
+      {
+       "output": "¥"
+      },
+      {
+       "output": "¢"
+      },
+      {
+       "output": "¤"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.25,
+      0.4,
+      0.5
+     ],
+     "label": "%",
+     "output": "%",
+     "alternates": [
+      {
+       "output": "‰"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.25,
+      0.5,
+      0.5
+     ],
+     "label": "&",
+     "output": "&",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.25,
+      0.6,
+      0.5
+     ],
+     "label": "*",
+     "output": "*",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.25,
+      0.7,
+      0.5
+     ],
+     "label": "(",
+     "output": "(",
+     "alternates": [
+      {
+       "output": "["
+      },
+      {
+       "output": "{"
+      },
+      {
+       "output": "<"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.25,
+      0.8,
+      0.5
+     ],
+     "label": ")",
+     "output": ")",
+     "alternates": [
+      {
+       "output": "]"
+      },
+      {
+       "output": "}"
+      },
+      {
+       "output": ">"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.25,
+      0.9,
+      0.5
+     ],
+     "label": "-",
+     "output": "-",
+     "alternates": [
+      {
+       "output": "_"
+      },
+      {
+       "output": "~"
+      },
+      {
+       "output": "¬"
+      },
+      {
+       "output": "·"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "\\",
+     "output": "\\",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "arrow-right",
+     "target": "email.symbols-2",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "!",
+     "output": "!",
+     "alternates": [
+      {
+       "output": "¡"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": ";",
+     "output": ";",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": ":",
+     "output": ":",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "'",
+     "output": "'",
+     "alternates": [
+      {
+       "output": "`"
+      },
+      {
+       "output": "‘"
+      },
+      {
+       "output": "’"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "\"",
+     "output": "\"",
+     "alternates": [
+      {
+       "output": "”"
+      },
+      {
+       "output": "“"
+      },
+      {
+       "output": "»"
+      },
+      {
+       "output": "«"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "?",
+     "output": "?",
+     "alternates": [
+      {
+       "output": "¿"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "/",
+     "output": "/",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "abcd",
+     "target": "email.letters",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "domain",
+     "rect": [
+      0.25,
+      0.75,
+      0.4,
+      1.0
+     ],
+     "label": ".com",
+     "output": ".com",
+     "alternates": [
+      {
+       "output": ".it"
+      },
+      {
+       "output": ".org"
+      },
+      {
+       "output": ".net"
+      }
+     ],
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.4,
+      0.75,
+      0.65,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": "@",
+     "output": "@",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "at",
+     "labelInset": [
+      0,
+      14,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": ";"
+      },
+      {
+       "output": ","
+      },
+      {
+       "output": "_"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "enter",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "email.symbols-2": {
+   "kind": "symbols",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "alternates": [
+      {
+       "output": "½"
+      },
+      {
+       "output": "⅓"
+      },
+      {
+       "output": "¼"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "alternates": [
+      {
+       "output": "⅔"
+      },
+      {
+       "output": "²"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "alternates": [
+      {
+       "output": "¾"
+      },
+      {
+       "output": "³"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "0",
+     "output": "0",
+     "alternates": [
+      {
+       "output": "°"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.1,
+      0.5
+     ],
+     "label": "^",
+     "output": "^",
+     "alternates": [
+      {
+       "output": "√"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.25,
+      0.2,
+      0.5
+     ],
+     "label": "[",
+     "output": "[",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.25,
+      0.3,
+      0.5
+     ],
+     "label": "]",
+     "output": "]",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.25,
+      0.4,
+      0.5
+     ],
+     "label": "{",
+     "output": "{",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.25,
+      0.5,
+      0.5
+     ],
+     "label": "}",
+     "output": "}",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.25,
+      0.6,
+      0.5
+     ],
+     "label": "<",
+     "output": "<",
+     "alternates": [
+      {
+       "output": "≤"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.25,
+      0.7,
+      0.5
+     ],
+     "label": ">",
+     "output": ">",
+     "alternates": [
+      {
+       "output": "≥"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.25,
+      0.8,
+      0.5
+     ],
+     "label": "$",
+     "output": "$",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.25,
+      0.9,
+      0.5
+     ],
+     "label": "£",
+     "output": "£",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "¥",
+     "output": "¥",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "arrow-left",
+     "target": "email.symbols-1",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "•",
+     "output": "•",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": "-",
+     "output": "-",
+     "alternates": [
+      {
+       "output": "_"
+      },
+      {
+       "output": "~"
+      },
+      {
+       "output": "¬"
+      },
+      {
+       "output": "·"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": "+",
+     "output": "+",
+     "alternates": [
+      {
+       "output": "±"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "=",
+     "output": "=",
+     "alternates": [
+      {
+       "output": "≠"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "_",
+     "output": "_",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "~",
+     "output": "~",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "|",
+     "output": "|",
+     "alternates": [
+      {
+       "output": "¦"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "abcd",
+     "target": "email.letters",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "domain",
+     "rect": [
+      0.25,
+      0.75,
+      0.4,
+      1.0
+     ],
+     "label": ".com",
+     "output": ".com",
+     "alternates": [
+      {
+       "output": ".it"
+      },
+      {
+       "output": ".org"
+      },
+      {
+       "output": ".net"
+      }
+     ],
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.4,
+      0.75,
+      0.65,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": "@",
+     "output": "@",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "at",
+     "labelInset": [
+      0,
+      14,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": ";"
+      },
+      {
+       "output": ","
+      },
+      {
+       "output": "_"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "enter",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "number.numpad": {
+   "kind": "numpad",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.33,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.33,
+      0.0,
+      0.67,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.67,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.33,
+      0.5
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.33,
+      0.25,
+      0.67,
+      0.5
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.67,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.5,
+      0.33,
+      0.75
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.33,
+      0.5,
+      0.67,
+      0.75
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.67,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.75,
+      0.33,
+      1.0
+     ],
+     "label": ",",
+     "output": ",",
+     "alternates": [
+      {
+       "output": "."
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "dialpad-punctuation",
+     "labelInset": [
+      0,
+      -63,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.33,
+      0.75,
+      0.67,
+      1.0
+     ],
+     "label": "0",
+     "output": "0",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.67,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "phone.dialpad": {
+   "kind": "dialpad",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.25,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "hint": "ABC",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.75,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "hint": "DEF",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.75,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.25,
+      0.5
+     ],
+     "label": "4",
+     "output": "4",
+     "hint": "GHI",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.25,
+      0.5,
+      0.5
+     ],
+     "label": "5",
+     "output": "5",
+     "hint": "JKL",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.25,
+      0.75,
+      0.5
+     ],
+     "label": "6",
+     "output": "6",
+     "hint": "MNO",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.75,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "icon": "space",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "7",
+     "output": "7",
+     "hint": "PQRS",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.5,
+      0.75
+     ],
+     "label": "8",
+     "output": "8",
+     "hint": "TUV",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "9",
+     "output": "9",
+     "hint": "WXYZ",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "label": "-",
+     "output": "-",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "dialpad-punctuation"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "*",
+     "output": "*",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "dialpad-star",
+     "labelInset": [
+      0,
+      0,
+      0,
+      -72
+     ]
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.75,
+      0.5,
+      1.0
+     ],
+     "label": "0",
+     "output": "0",
+     "hint": "+",
+     "holdOutput": "+",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric-zero"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": "#",
+     "output": "#",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "dialpad-hash"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": "X"
+      },
+      {
+       "output": ")"
+      },
+      {
+       "output": "("
+      },
+      {
+       "output": ","
+      },
+      {
+       "output": ";"
+      }
+     ],
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "dialpad-punctuation",
+     "labelInset": [
+      0,
+      -63,
+      0,
+      0
+     ]
+    }
+   ]
+  },
+  "search.letters": {
+   "kind": "letters",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "q",
+     "labelShifted": "Q",
+     "output": "q",
+     "outputShifted": "Q",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "w",
+     "labelShifted": "W",
+     "output": "w",
+     "outputShifted": "W",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "e",
+     "labelShifted": "E",
+     "output": "e",
+     "outputShifted": "E",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "é",
+       "outputShifted": "É"
+      },
+      {
+       "output": "ê",
+       "outputShifted": "Ê"
+      },
+      {
+       "output": "è",
+       "outputShifted": "È"
+      },
+      {
+       "output": "ë",
+       "outputShifted": "Ë"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "r",
+     "labelShifted": "R",
+     "output": "r",
+     "outputShifted": "R",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "t",
+     "labelShifted": "T",
+     "output": "t",
+     "outputShifted": "T",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "þ",
+       "outputShifted": "Þ"
+      },
+      {
+       "output": "ť",
+       "outputShifted": "Ť"
+      },
+      {
+       "output": "ţ",
+       "outputShifted": "Ţ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "y",
+     "labelShifted": "Y",
+     "output": "y",
+     "outputShifted": "Y",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ý",
+       "outputShifted": "Ý"
+      },
+      {
+       "output": "ÿ",
+       "outputShifted": "Ÿ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "u",
+     "labelShifted": "U",
+     "output": "u",
+     "outputShifted": "U",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ú",
+       "outputShifted": "Ú"
+      },
+      {
+       "output": "û",
+       "outputShifted": "Û"
+      },
+      {
+       "output": "ù",
+       "outputShifted": "Ù"
+      },
+      {
+       "output": "ü",
+       "outputShifted": "Ü"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "i",
+     "labelShifted": "I",
+     "output": "i",
+     "outputShifted": "I",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "í",
+       "outputShifted": "Í"
+      },
+      {
+       "output": "î",
+       "outputShifted": "Î"
+      },
+      {
+       "output": "ì",
+       "outputShifted": "Ì"
+      },
+      {
+       "output": "ï",
+       "outputShifted": "Ï"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "o",
+     "labelShifted": "O",
+     "output": "o",
+     "outputShifted": "O",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ó",
+       "outputShifted": "Ó"
+      },
+      {
+       "output": "ô",
+       "outputShifted": "Ô"
+      },
+      {
+       "output": "ò",
+       "outputShifted": "Ò"
+      },
+      {
+       "output": "ö",
+       "outputShifted": "Ö"
+      },
+      {
+       "output": "œ",
+       "outputShifted": "Œ"
+      },
+      {
+       "output": "ø",
+       "outputShifted": "Ø"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "p",
+     "labelShifted": "P",
+     "output": "p",
+     "outputShifted": "P",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.05,
+      0.25,
+      0.15,
+      0.5
+     ],
+     "label": "a",
+     "labelShifted": "A",
+     "output": "a",
+     "outputShifted": "A",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "á",
+       "outputShifted": "Á"
+      },
+      {
+       "output": "â",
+       "outputShifted": "Â"
+      },
+      {
+       "output": "à",
+       "outputShifted": "À"
+      },
+      {
+       "output": "ä",
+       "outputShifted": "Ä"
+      },
+      {
+       "output": "æ",
+       "outputShifted": "Æ"
+      },
+      {
+       "output": "å",
+       "outputShifted": "Å"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.25,
+      0.25,
+      0.5
+     ],
+     "label": "s",
+     "labelShifted": "S",
+     "output": "s",
+     "outputShifted": "S",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ß",
+       "hideWhenShifted": true
+      },
+      {
+       "output": "§"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.25,
+      0.35,
+      0.5
+     ],
+     "label": "d",
+     "labelShifted": "D",
+     "output": "d",
+     "outputShifted": "D",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ð",
+       "outputShifted": "Ð"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.25,
+      0.45,
+      0.5
+     ],
+     "label": "f",
+     "labelShifted": "F",
+     "output": "f",
+     "outputShifted": "F",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.25,
+      0.55,
+      0.5
+     ],
+     "label": "g",
+     "labelShifted": "G",
+     "output": "g",
+     "outputShifted": "G",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.25,
+      0.65,
+      0.5
+     ],
+     "label": "h",
+     "labelShifted": "H",
+     "output": "h",
+     "outputShifted": "H",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.25,
+      0.75,
+      0.5
+     ],
+     "label": "j",
+     "labelShifted": "J",
+     "output": "j",
+     "outputShifted": "J",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.25,
+      0.85,
+      0.5
+     ],
+     "label": "k",
+     "labelShifted": "K",
+     "output": "k",
+     "outputShifted": "K",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.85,
+      0.25,
+      0.95,
+      0.5
+     ],
+     "label": "l",
+     "labelShifted": "L",
+     "output": "l",
+     "outputShifted": "L",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "shift",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "shift",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "z",
+     "labelShifted": "Z",
+     "output": "z",
+     "outputShifted": "Z",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": "x",
+     "labelShifted": "X",
+     "output": "x",
+     "outputShifted": "X",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": "c",
+     "labelShifted": "C",
+     "output": "c",
+     "outputShifted": "C",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ç",
+       "outputShifted": "Ç"
+      },
+      {
+       "output": "©"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "v",
+     "labelShifted": "V",
+     "output": "v",
+     "outputShifted": "V",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "b",
+     "labelShifted": "B",
+     "output": "b",
+     "outputShifted": "B",
+     "caseFollowsShift": true,
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "n",
+     "labelShifted": "N",
+     "output": "n",
+     "outputShifted": "N",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "ñ",
+       "outputShifted": "Ñ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "m",
+     "labelShifted": "M",
+     "output": "m",
+     "outputShifted": "M",
+     "caseFollowsShift": true,
+     "alternates": [
+      {
+       "output": "µ"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "&123",
+     "target": "search.symbols-1",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.25,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": ","
+      },
+      {
+       "output": "?"
+      },
+      {
+       "output": "!"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "go",
+     "popup": false,
+     "appearance": "emphasized",
+     "textStyle": "icon"
+    }
+   ],
+   "optionalComma": {
+    "insertAt": 31,
+    "key": {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": ",",
+     "output": ",",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      9,
+      -34,
+      0,
+      0
+     ]
+    },
+    "spaceRectWithComma": [
+     0.25,
+     0.75,
+     0.65,
+     1.0
+    ]
+   }
+  },
+  "search.symbols-1": {
+   "kind": "symbols",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "alternates": [
+      {
+       "output": "½"
+      },
+      {
+       "output": "⅓"
+      },
+      {
+       "output": "¼"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "alternates": [
+      {
+       "output": "⅔"
+      },
+      {
+       "output": "²"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "alternates": [
+      {
+       "output": "¾"
+      },
+      {
+       "output": "³"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "0",
+     "output": "0",
+     "alternates": [
+      {
+       "output": "°"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.1,
+      0.5
+     ],
+     "label": "@",
+     "output": "@",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.25,
+      0.2,
+      0.5
+     ],
+     "label": "#",
+     "output": "#",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.25,
+      0.3,
+      0.5
+     ],
+     "label": "€",
+     "output": "€",
+     "alternates": [
+      {
+       "output": "$"
+      },
+      {
+       "output": "£"
+      },
+      {
+       "output": "¥"
+      },
+      {
+       "output": "¢"
+      },
+      {
+       "output": "¤"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.25,
+      0.4,
+      0.5
+     ],
+     "label": "%",
+     "output": "%",
+     "alternates": [
+      {
+       "output": "‰"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.25,
+      0.5,
+      0.5
+     ],
+     "label": "&",
+     "output": "&",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.25,
+      0.6,
+      0.5
+     ],
+     "label": "*",
+     "output": "*",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.25,
+      0.7,
+      0.5
+     ],
+     "label": "(",
+     "output": "(",
+     "alternates": [
+      {
+       "output": "["
+      },
+      {
+       "output": "{"
+      },
+      {
+       "output": "<"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.25,
+      0.8,
+      0.5
+     ],
+     "label": ")",
+     "output": ")",
+     "alternates": [
+      {
+       "output": "]"
+      },
+      {
+       "output": "}"
+      },
+      {
+       "output": ">"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.25,
+      0.9,
+      0.5
+     ],
+     "label": "-",
+     "output": "-",
+     "alternates": [
+      {
+       "output": "_"
+      },
+      {
+       "output": "~"
+      },
+      {
+       "output": "¬"
+      },
+      {
+       "output": "·"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "\\",
+     "output": "\\",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "arrow-right",
+     "target": "search.symbols-2",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "!",
+     "output": "!",
+     "alternates": [
+      {
+       "output": "¡"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": ";",
+     "output": ";",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": ":",
+     "output": ":",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "'",
+     "output": "'",
+     "alternates": [
+      {
+       "output": "`"
+      },
+      {
+       "output": "‘"
+      },
+      {
+       "output": "’"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "\"",
+     "output": "\"",
+     "alternates": [
+      {
+       "output": "”"
+      },
+      {
+       "output": "“"
+      },
+      {
+       "output": "»"
+      },
+      {
+       "output": "«"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "?",
+     "output": "?",
+     "alternates": [
+      {
+       "output": "¿"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "/",
+     "output": "/",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "abcd",
+     "target": "search.letters",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.25,
+      0.75,
+      0.65,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": ",",
+     "output": ",",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      9,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": "?"
+      },
+      {
+       "output": ":"
+      },
+      {
+       "output": "!"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "go",
+     "popup": false,
+     "appearance": "emphasized",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "search.symbols-2": {
+   "kind": "symbols",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.1,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "alternates": [
+      {
+       "output": "½"
+      },
+      {
+       "output": "⅓"
+      },
+      {
+       "output": "¼"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.0,
+      0.2,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "alternates": [
+      {
+       "output": "⅔"
+      },
+      {
+       "output": "²"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.0,
+      0.3,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "alternates": [
+      {
+       "output": "¾"
+      },
+      {
+       "output": "³"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.0,
+      0.4,
+      0.25
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.0,
+      0.5,
+      0.25
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.0,
+      0.6,
+      0.25
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.0,
+      0.7,
+      0.25
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.0,
+      0.8,
+      0.25
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.0,
+      0.9,
+      0.25
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "0",
+     "output": "0",
+     "alternates": [
+      {
+       "output": "°"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.1,
+      0.5
+     ],
+     "label": "^",
+     "output": "^",
+     "alternates": [
+      {
+       "output": "√"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.1,
+      0.25,
+      0.2,
+      0.5
+     ],
+     "label": "[",
+     "output": "[",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.2,
+      0.25,
+      0.3,
+      0.5
+     ],
+     "label": "]",
+     "output": "]",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.3,
+      0.25,
+      0.4,
+      0.5
+     ],
+     "label": "{",
+     "output": "{",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.4,
+      0.25,
+      0.5,
+      0.5
+     ],
+     "label": "}",
+     "output": "}",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.5,
+      0.25,
+      0.6,
+      0.5
+     ],
+     "label": "<",
+     "output": "<",
+     "alternates": [
+      {
+       "output": "≤"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.6,
+      0.25,
+      0.7,
+      0.5
+     ],
+     "label": ">",
+     "output": ">",
+     "alternates": [
+      {
+       "output": "≥"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.7,
+      0.25,
+      0.8,
+      0.5
+     ],
+     "label": "$",
+     "output": "$",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.8,
+      0.25,
+      0.9,
+      0.5
+     ],
+     "label": "£",
+     "output": "£",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.9,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "¥",
+     "output": "¥",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.5,
+      0.15,
+      0.75
+     ],
+     "icon": "arrow-left",
+     "target": "search.symbols-1",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.15,
+      0.5,
+      0.25,
+      0.75
+     ],
+     "label": "•",
+     "output": "•",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.25,
+      0.5,
+      0.35,
+      0.75
+     ],
+     "label": "-",
+     "output": "-",
+     "alternates": [
+      {
+       "output": "_"
+      },
+      {
+       "output": "~"
+      },
+      {
+       "output": "¬"
+      },
+      {
+       "output": "·"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.35,
+      0.5,
+      0.45,
+      0.75
+     ],
+     "label": "+",
+     "output": "+",
+     "alternates": [
+      {
+       "output": "±"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.45,
+      0.5,
+      0.55,
+      0.75
+     ],
+     "label": "=",
+     "output": "=",
+     "alternates": [
+      {
+       "output": "≠"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.55,
+      0.5,
+      0.65,
+      0.75
+     ],
+     "label": "_",
+     "output": "_",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.5,
+      0.75,
+      0.75
+     ],
+     "label": "~",
+     "output": "~",
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.5,
+      0.85,
+      0.75
+     ],
+     "label": "|",
+     "output": "|",
+     "alternates": [
+      {
+       "output": "¦"
+      }
+     ],
+     "popup": true,
+     "appearance": "normal",
+     "textStyle": "letter"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.85,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    },
+    {
+     "role": "page",
+     "rect": [
+      0.0,
+      0.75,
+      0.15,
+      1.0
+     ],
+     "label": "abcd",
+     "target": "search.letters",
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "multichar"
+    },
+    {
+     "role": "language",
+     "rect": [
+      0.15,
+      0.75,
+      0.25,
+      1.0
+     ],
+     "label": "ITA",
+     "subIcon": "keyboard",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "language"
+    },
+    {
+     "role": "space",
+     "rect": [
+      0.25,
+      0.75,
+      0.65,
+      1.0
+     ],
+     "label": "spazio",
+     "output": " ",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "letter"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.65,
+      0.75,
+      0.75,
+      1.0
+     ],
+     "label": ",",
+     "output": ",",
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      9,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.75,
+      0.75,
+      0.85,
+      1.0
+     ],
+     "label": ".",
+     "output": ".",
+     "alternates": [
+      {
+       "output": "?"
+      },
+      {
+       "output": ":"
+      },
+      {
+       "output": "!"
+      },
+      {
+       "output": "-"
+      }
+     ],
+     "longPressMs": 200,
+     "popup": true,
+     "appearance": "function",
+     "textStyle": "punctuation-large",
+     "labelInset": [
+      0,
+      -34,
+      0,
+      0
+     ]
+    },
+    {
+     "role": "enter",
+     "rect": [
+      0.85,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "go",
+     "popup": false,
+     "appearance": "emphasized",
+     "textStyle": "icon"
+    }
+   ]
+  },
+  "pin.numpad": {
+   "kind": "numpad",
+   "rows": 4,
+   "keys": [
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.0,
+      0.33,
+      0.25
+     ],
+     "label": "1",
+     "output": "1",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.33,
+      0.0,
+      0.67,
+      0.25
+     ],
+     "label": "2",
+     "output": "2",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.67,
+      0.0,
+      1.0,
+      0.25
+     ],
+     "label": "3",
+     "output": "3",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.25,
+      0.33,
+      0.5
+     ],
+     "label": "4",
+     "output": "4",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.33,
+      0.25,
+      0.67,
+      0.5
+     ],
+     "label": "5",
+     "output": "5",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.67,
+      0.25,
+      1.0,
+      0.5
+     ],
+     "label": "6",
+     "output": "6",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.0,
+      0.5,
+      0.33,
+      0.75
+     ],
+     "label": "7",
+     "output": "7",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.33,
+      0.5,
+      0.67,
+      0.75
+     ],
+     "label": "8",
+     "output": "8",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.67,
+      0.5,
+      1.0,
+      0.75
+     ],
+     "label": "9",
+     "output": "9",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "blank",
+     "rect": [
+      0.0,
+      0.75,
+      0.33,
+      1.0
+     ],
+     "label": "",
+     "popup": false,
+     "enabled": false,
+     "appearance": "function",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "char",
+     "rect": [
+      0.33,
+      0.75,
+      0.67,
+      1.0
+     ],
+     "label": "0",
+     "output": "0",
+     "popup": false,
+     "appearance": "normal",
+     "textStyle": "numeric"
+    },
+    {
+     "role": "backspace",
+     "rect": [
+      0.67,
+      0.75,
+      1.0,
+      1.0
+     ],
+     "icon": "backspace",
+     "repeat": true,
+     "popup": false,
+     "appearance": "function",
+     "textStyle": "icon"
+    }
+   ]
+  }
+ }
+}

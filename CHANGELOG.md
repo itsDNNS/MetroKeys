@@ -3,6 +3,31 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.6.2 – 2026-10-16
+
+### Languages
+- New keyboard language **Italian**: the English QWERTY rows with à, è/é, ì, ò/ó and ù on long press, the apostrophe
+  on the first symbol page, "spazio" on the space bar, "ITA" with the keyboard pictogram on the language key and picker,
+  `.com .it` first among the domain endings in Italy, and a decimal comma on the number pad. The language key cycles
+  DEU → ENG → ESP → ITA → POR.
+- Italian dictionary built from free sources (subtitle frequencies, Italian and English Wiktionary, Tatoeba and Common
+  Voice; CC BY-SA 4.0, attribution on the licenses page): accents are restored on the last letter ("perche" →
+  "perché", "piu" → "più", "citta" → "città"), a wrong accent is fixed ("perchè" → "perché"), words that exist in both
+  spellings stay as typed with the accented one offered ("e"/"è", "si"/"sì", "la"/"là"), clitic forms are words
+  ("dimmelo", "farlo"), and a missing space is fixed ("perfavore" → "per favore").
+- Elision without an apostrophe key: "lacqua" → "l'acqua", "cè" → "c'è", "dellanno" → "dell'anno"; typed with the
+  apostrophe, only the rest is corrected ("c'e" → "c'è"); a typed "l" or "dell" offers "l'" / "dell'", which is inserted
+  without a space, and the bar then offers whole words ("dell'acqua", "dell'anno"). "un po" → "un po'".
+- Shape writing for Italian: accented letters through their base keys ("più"), elided words in one gesture
+  ("l'acqua", "c'è"), and no space before a word swiped after "l'".
+
+### Typing
+- All languages with an elided prefix (Portuguese "d'", Italian): a word learned after the prefix keeps it as context,
+  so learned words can appear after a bare "d'".
+
+### Settings
+- Italian on the languages page.
+
 ## 0.6.1 – 2026-10-16
 
 ### Languages

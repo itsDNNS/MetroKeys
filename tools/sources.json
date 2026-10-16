@@ -272,6 +272,41 @@
    "path": "cv/pt/sentence-collector.txt",
    "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/pt/sentence-collector.txt",
    "sha256": "bdabc8258ab0955aada07f75f31fae9fad8b1ca5d40899b92074610bb5aed13d"
+  },
+  {
+   "path": "fw/it_full.txt",
+   "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/525f9b560de45753a5ea01069454e72e9aa541c6/content/2018/it/it_full.txt",
+   "sha256": "b23b0c6a3f59c1da1c7caa667b9df5699e95323fee20a05f343c7d7dae73c4be"
+  },
+  {
+   "path": "wiktionary/itwiktionary-20261001-pages-articles.xml.bz2",
+   "url": "https://dumps.wikimedia.org/itwiktionary/20261001/itwiktionary-20261001-pages-articles.xml.bz2",
+   "sha256": "a7a334de675ab98eef6948cd029248f20ebc185773a8984f392f2bb2d793237e"
+  },
+  {
+   "path": "tatoeba/ita_sentences.tsv.bz2",
+   "url": "https://downloads.tatoeba.org/exports/per_language/ita/ita_sentences.tsv.bz2",
+   "sha256": "9456a860f6528d21429b6b58ee92aa144b4cd7e698532648aeb8a72d006f9fa8"
+  },
+  {
+   "path": "cv/it/frasi.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/it/frasi.txt",
+   "sha256": "5655a5eb1d8245d6db25bd430d7e11a8673e064cb0f03c8a08f3f0cb896a4be2"
+  },
+  {
+   "path": "cv/it/sentence-collector.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/it/sentence-collector.txt",
+   "sha256": "5917d71dc7e6e245becc1b50df04a650aea6877737bca3a9b60541b3f230c86e"
+  },
+  {
+   "path": "cv/it/wiki.it.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/it/wiki.it.txt",
+   "sha256": "007b50b609b01788ee380e7087584681a6945cd8844a3408c0ed2e03fa093e88"
+  },
+  {
+   "path": "cv/it/wiki.it.rerun-2021-10.txt",
+   "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/it/wiki.it.rerun-2021-10.txt",
+   "sha256": "499cfa27a09ee41e405ae818100a951f2960cb87aaa1e62f90f37c03ba4b5d44"
   }
  ]
 }

@@ -12,7 +12,7 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew :engine:test testDebugUnitTest lintDebug ass
 **Release build.** `assembleRelease` minifies with R8 (`proguard-android-optimize.txt`) and shrinks resources. No own
 keep rules are needed (reasons in `app/proguard-rules.pro`): manifest components are kept by AAPT's rules, the engine
 loads its dictionaries by absolute Java resource paths, and the only reflective call targets a framework method. The
-release APK (10.6 MB since the Portuguese dictionary in 0.6.1, 9.1 MB in 0.6.0; debug about 22 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
+release APK (12.5 MB since the Italian dictionary in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 23.6 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
 writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences. Signing uses
 `keystore.properties` in the repository root when present (README, "Building"); the version is `appVersionName` /
 `appVersionCode` in `gradle/libs.versions.toml`.
@@ -74,6 +74,10 @@ after a swipe; identical values): de+en 63.0 / 39.0 MB, de+es 65.1 / 41.1 MB, en
 With Portuguese (0.6.1, same measurement, Portuguese selected, after a swipe of "faço"): de+pt 62.6 / 38.1 MB, en+pt
 56.2 / 31.6 MB, es+pt 58.4 / 33.8 MB, de+en+pt 75.0 / 50.4 MB, de+es+pt 77.1 / 52.6 MB, en+es+pt 70.7 / 46.1 MB, all
 four enabled (active set pt, de, en) 75.0 / 50.4 MB.
+With Italian (0.6.2, same measurement, Italian selected, after a swipe of "più"; highest sample while loading / after
+the swipe): it alone 41.3 / 20.7 → 43.8 / 21.9 MB; de+it 63.8 / 39.2 → 65.0 / 40.4 MB, en+it 58.6 / 34.0, es+it
+60.7 / 36.1, it+pt 56.6 / 32.1 MB; de+en+it 77.1 / 52.5, de+es+it 79.2 / 54.6, en+es+it 72.9 / 48.3, es+it+pt
+70.9 / 46.3 MB; all five enabled (active set it plus two) 77.1 / 52.5 MB.
 
 The whole scenario (0.5) also runs with the per-app heap limit lowered to 64 MB (`dalvik.vm.heapgrowthlimit`, root on the
 emulator) without an OutOfMemoryError; the default limit is 192 MB. Results come back with a generation number; an
@@ -109,7 +113,10 @@ word gets the correction search). It also runs every own insertion and edit afte
 and image, emoji, text smiley, domain key, alternate, dictation, caret move, pick, autocorrection undo) on a fake
 editor that, like Android, keeps the composing span through a paste and skips it in `deleteSurroundingText`, also
 with an editor that leaves the composing region out of its selection updates. `LayoutDataTest` checks the fixed
-text-smiley list of emoji.json.
+text-smiley list of emoji.json. `ItalianInputLogicTest` covers the Italian rules with the bundled dictionary (accents, missing
+apostrophes, "c'e", "un po", a picked "dell'" without space followed by an elided word, a swipe after "l'");
+`LayoutDataTest.italianPages` the Italian layout data (English rows, no apostrophe on the letter pages, `'` on
+symbols-1, "spazio", ITA, domains, decimal comma).
 
 ## Spec sections → code
 
@@ -122,6 +129,7 @@ text-smiley list of emoji.json.
 | 01 §11.6 domains | `KeyboardController.domains` (the list of the layout data whose region is the device region; other regions: own ccTLD first) |
 | 04 §1.6 ¿ ¡ | `TextRules.isOpeningMark`; `InputLogic.otherText` (space first after a swiped word), `InputLogic.applySwipe` (no space after the mark); auto-shift via `TextRules.isSentenceStart` |
 | 06 §5.1 item 1 space before a swiped word | `TextRules.spaceBeforeSwipe` (none after whitespace, `¿ ¡` or "letter + hyphen"), used by `InputLogic.applySwipe` |
+| 04 §11.2 Italian apostrophes | elision, truncation and the missing apostrophe in the engine (ENGINE.md); `InputLogic.pick`: a strip item with `elisionPrefix` is inserted without trailing space or auto space and runs the typing query for the bare prefix; `InputLogic.applySwipe`: no space after an elision prefix of a loaded language (`PredictionEngine.isElisionPrefix`) |
 | 04 §11.1 Portuguese words (hyphen, `d'`, º ª) | the hyphen is no trigger and empties the strip (`InputLogic.otherText`); `d'` and º ª are handled by the engine (`LanguageEngine.elisionPrefixLength`, ENGINE.md) |
 | 02 §2, §3, 03 §17 sizes | `Metrics` (portrait s = w/1080, landscape s = min(w/1596, short/1080), height factor) |
 | 02 §4 typography | `TextStyles`, `Fonts`, `KeyboardView.drawLabel` (cap-height centring, 96 % fit) |

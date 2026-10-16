@@ -24,12 +24,14 @@ sys.path.insert(0, os.path.join(HERE, "dictbuild"))
 import build_de  # noqa: E402
 import build_en  # noqa: E402
 import build_es  # noqa: E402
+import build_it  # noqa: E402
 import build_pt  # noqa: E402
 import common  # noqa: E402
 import licenses  # noqa: E402
 import pairs  # noqa: E402
 import wiktionary_de  # noqa: E402
 import wiktionary_es  # noqa: E402
+import wiktionary_it  # noqa: E402
 import wiktionary_pt  # noqa: E402
 
 ROOT = os.path.dirname(HERE)
@@ -40,7 +42,10 @@ WIKT_DUMP = "wiktionary/dewiktionary-20261001-pages-articles.xml.bz2"
 ES_WIKT_DUMP = "wiktionary/eswiktionary-20261001-pages-articles.xml.bz2"
 EN_WIKT_DUMP = "wiktionary/enwiktionary-20261001-pages-articles.xml.bz2"
 PT_WIKT_DUMP = "wiktionary/ptwiktionary-20261001-pages-articles.xml.bz2"
+IT_WIKT_DUMP = "wiktionary/itwiktionary-20261001-pages-articles.xml.bz2"
 SCOWL = "scowl/scowl-2020.12.07.tar.gz"
+# generic, carries no personal data
+USER_AGENT = "MetroKeys-dictionary-build/0.6 (+https://github.com/itsDNNS/MetroKeys)"
 
 
 def manifest():
@@ -55,7 +60,13 @@ def download():
             continue
         os.makedirs(os.path.dirname(path), exist_ok=True)
         print("downloading", s["url"])
-        urllib.request.urlretrieve(s["url"], path + ".part")
+        req = urllib.request.Request(s["url"], headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req) as resp, open(path + ".part", "wb") as out:
+            while True:
+                chunk = resp.read(1 << 20)
+                if not chunk:
+                    break
+                out.write(chunk)
         os.replace(path + ".part", path)
     verify()
 
@@ -88,6 +99,7 @@ CV_FILES = {
     "en": None,
     "es": {"sentence-collector.txt": 3, "wiki.es.txt": 1},
     "pt": {"sentence-collector.txt": 3},
+    "it": {"frasi.txt": 3, "sentence-collector.txt": 3, "wiki.it.txt": 1, "wiki.it.rerun-2021-10.txt": 1},
 }
 
 
@@ -140,12 +152,12 @@ def build_pairs(lang, entries, keys, tatoeba_name, tatoeba_lang, cv_lang, stock=
     return counter.table(order)
 
 
-def write_outputs(tag, scale, max_count, corpus_tokens, entries, table, stats):
+def write_outputs(tag, scale, max_count, corpus_tokens, entries, table, stats, prefixes=None):
     os.makedirs(OUT, exist_ok=True)
     words_path = os.path.join(OUT, f"{tag}.words.gz")
     pairs_path = os.path.join(OUT, f"{tag}.pairs.gz")
-    digest, keys = common.write_word_list(words_path, tag, scale, max_count, corpus_tokens, entries)
-    common.write_pair_table(pairs_path, tag, digest, keys, entries, table)
+    digest, keys = common.write_word_list(words_path, tag, scale, max_count, corpus_tokens, entries, prefixes)
+    common.write_pair_table(pairs_path, tag, digest, keys, entries, table, [p for p, _ in prefixes] if prefixes else None)
     stats[tag] = {
         "S": scale,
         "maxCount": int(max_count),
@@ -342,11 +354,92 @@ def build_portuguese(stats):
     write_licenses(tags=["pt-BR"])
 
 
+def build_italian(stats):
+    it_cache = os.path.join(CACHE, "itwiktionary-20261001-it.tsv.gz")
+    en_cache = os.path.join(CACHE, "enwiktionary-20261001-it.tsv.gz")
+    if not os.path.exists(it_cache):
+        print("Italian Wiktionary pass")
+        wiktionary_it.extract(os.path.join(SRC, IT_WIKT_DUMP), it_cache, "it")
+    if not os.path.exists(en_cache):
+        print("English Wiktionary pass, Italian sections (about 15 minutes)")
+        wiktionary_it.extract(os.path.join(SRC, EN_WIKT_DUMP), en_cache, "en")
+    it_titles, it_secs = wiktionary_it.load_extract(it_cache)
+    en_titles, en_secs = wiktionary_it.load_extract(en_cache)
+    it_pages = (it_titles, {t: wiktionary_it.classify_it(t, s) for t, s in it_secs.items()})
+    en_pages = (en_titles, {t: wiktionary_it.classify_en(t, s) for t, s in en_secs.items()})
+    del it_secs, en_secs
+    it = build_it.ItalianBuilder(os.path.join(SRC, "fw", "it_full.txt"), it_pages, en_pages)
+    cov_before = it.coverage(it.counts)
+
+    def sentences():
+        for text in tatoeba_sentences("ita_sentences.tsv.bz2", "ita"):
+            yield text, 3, True, True
+        for _, weight, lines in cv_files("it"):
+            for text in lines:
+                yield text, weight, weight == 3, False
+
+    # §5 step 3: stock names from the capitalised Tatoeba tokens
+    capitalised = {}
+    tatoeba_tokens = 0
+    for text in tatoeba_sentences("ita_sentences.tsv.bz2", "ita"):
+        for kind, tok in build_it.tokens(text):
+            if kind != "w":
+                continue
+            tatoeba_tokens += 1
+            if tok[0].isupper():
+                capitalised[tok] = capitalised.get(tok, 0) + 1
+    stock, top30, added = build_it.stock_names(capitalised, tatoeba_tokens, it.counts)
+    # sentence counts and running-text evidence (§10.3, §10.4); phrase candidates of §10.5 step 5
+    st = build_it.SentenceStats(stock, it.phrase_candidates())
+    for text, weight, conversational, tatoeba in sentences():
+        st.add(text, weight, conversational, tatoeba)
+    st.finish()
+    it.apostrophe_rules(st)
+    it.spellings(st)
+    it.artefacts()
+    it.finish_header()
+    it_entries = it.build()
+    it_keys = sorted(it_entries)
+    counter = pairs.ItalianPairCounter(it_entries, build_it.PREFIXES, stock)
+    for text, weight, _, tatoeba in sentences():
+        counter.add(text, weight, tatoeba)
+    it_table = counter.table({k: i for i, k in enumerate(it_keys)})
+    cov = it.coverage(it.counts)
+    report = dict(it.report)
+    elided = {p: len(it_table.get(p, ())) for p in build_it.PREFIXES}
+    report.update({
+        "maxCountKey": it.max_key,
+        "coverageTop20000ItalianDump": round(cov["it"], 4),
+        "coverageTop20000EnglishDump": round(cov["en"], 4),
+        "coverageTop20000BothDumps": round(cov["both"], 4),
+        "coverageTop20000BeforeSpellingStepsBothDumps": round(cov_before["both"], 4),
+        "italianWiktionaryTitles": len(it_titles),
+        "italianWiktionaryItalianSections": len(it_pages[1]),
+        "englishWiktionaryItalianSections": len(en_pages[1]),
+        "commonVoiceFiles": [[fn, weight] for fn, weight, _ in cv_files("it")],
+        "sentenceTokensWeighted": st.s_total,
+        "tatoebaStockNames": sorted(stock),
+        "tatoebaStockNamesAdded": added,
+        "tatoebaTop30Capitalised": top30,
+        "formsKeptWithTwoCases": sum(1 for v in it_entries.values() if len(v) > 1),
+        "properNounKeys": sum(1 for v in it_entries.values() if v[0][0][0].isupper()),
+        "elidedPairs": sum(elided.values()),
+        "elidedPairsPerPrefix": elided,
+        "elidedPairsDropped": len(counter.dropped_elided),
+        "elidedPairsDroppedList": counter.dropped_elided[:150],
+        "prefixesAsFollowers": sum(1 for v in it_table.values() for k, _, _ in v if k in build_it.PREFIX_SET),
+    })
+    stats["it-IT-extra"] = report
+    write_outputs("it-IT", it.scale, it.max_count, it.corpus_tokens, it_entries, it_table, stats, it.prefix_table)
+    write_licenses(tags=["it-IT"])
+
+
 # build profiles (05b §7): language tag -> builder
 PROFILES = {
     "de-DE": build_german,
     "en-US": build_english,
     "es-ES": build_spanish,
+    "it-IT": build_italian,
     "pt-BR": build_portuguese,
 }
 

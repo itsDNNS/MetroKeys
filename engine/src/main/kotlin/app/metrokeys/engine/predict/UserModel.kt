@@ -136,19 +136,43 @@ public class UserModel(private val lexicon: Lexicon?) {
     /**
      * Learns a committed word with up to two previous words (05 §12.1). With [accepted] the user picked the typed
      * word itself in the candidate bar (05 §12.5), which makes an unknown word known at once.
+     *
+     * [elision] gives the length of a word's elision prefix (05 §2.2, 0 for none): a part that starts with one is
+     * learned as its remainder with the prefix (lower case, `'`) as the last context word, and a bare prefix is never
+     * learned as a word (§12.1). With [expandContext] an elided previous word counts as its prefix and its remainder.
      */
     @Synchronized
     @JvmOverloads
-    public fun learn(word: String, previousWords: List<String>, accepted: Boolean = false) {
+    public fun learn(
+        word: String,
+        previousWords: List<String>,
+        accepted: Boolean = false,
+        elision: ((String) -> Int)? = null,
+        expandContext: Boolean = false,
+    ) {
         val ctx = ArrayList<String>()
         for (w in previousWords) for (part in w.split(' ')) {
             val t = TextModel.trimNonWord(part)
-            if (t.isNotEmpty()) ctx.add(t)
+            if (t.isEmpty()) continue
+            val n = if (expandContext && elision != null) elision(t) else 0
+            if (n in 1 until t.length) {
+                ctx.add(Lexicon.normalizePrefix(t.substring(0, n)))
+                ctx.add(t.substring(n))
+            } else {
+                ctx.add(t)
+            }
         }
         while (ctx.size > Params.LEARN_CONTEXT) ctx.removeAt(0)
         for (raw in word.split(' ')) {
-            val part = TextModel.trimNonWord(raw)
+            var part = TextModel.trimNonWord(raw)
             if (part.isEmpty()) continue
+            val n = elision?.invoke(part) ?: 0
+            if (n > 0) {
+                ctx.add(Lexicon.normalizePrefix(part.substring(0, n)))
+                while (ctx.size > Params.LEARN_CONTEXT) ctx.removeAt(0)
+                if (n == part.length) continue
+                part = part.substring(n)
+            }
             if (part.length in Params.LEARN_MIN_LEN..Params.WORD_MAX_LEN && TextModel.isLearnable(part)) {
                 learnOne(part, ctx, accepted)
             }

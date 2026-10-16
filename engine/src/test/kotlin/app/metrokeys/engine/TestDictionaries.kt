@@ -13,6 +13,7 @@ object TestDictionaries {
     val en: Dictionary by lazy { Dictionary.loadBundled("en-US") }
     val es: Dictionary by lazy { Dictionary.loadBundled("es-ES") }
     val pt: Dictionary by lazy { Dictionary.loadBundled("pt-BR") }
+    val it: Dictionary by lazy { Dictionary.loadBundled("it-IT") }
 
     fun german(): LanguageEngine = LanguageEngine(LanguageParams.GERMAN, de)
 
@@ -23,6 +24,9 @@ object TestDictionaries {
 
     /** Portuguese (Brazil) on the Portuguese fallback grid (row 2 without indent, ç its own key). */
     fun portuguese(): LanguageEngine = LanguageEngine(LanguageParams.PORTUGUESE, pt)
+
+    /** Italian on the Italian fallback grid (the English rows, 05 §4). */
+    fun italian(): LanguageEngine = LanguageEngine(LanguageParams.ITALIAN, it)
 
     /** Several languages, [selected] chosen with the language key, multilingual typing on. */
     fun multilingual(selected: String, vararg engines: LanguageEngine): PredictionEngine =

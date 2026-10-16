@@ -48,4 +48,24 @@ class ActiveLanguagesTest {
         assertEquals(emptyList(), ActiveLanguages.parse(null))
         assertEquals("es-ES,de-DE", ActiveLanguages.format(listOf("es-ES", "de-DE")))
     }
+
+    @Test
+    fun theFiveSupportedLanguages() {
+        // 0.6.2: de, en, es, it and pt enabled; the language key goes DEU → ENG → ESP → ITA → POR → DEU (01 §11.2)
+        val all = app.metrokeys.engine.predict.LanguageParams.ALL.map { it.languageTag }
+        assertEquals(listOf("de-DE", "en-US", "es-ES", "it-IT", "pt-BR"), all)
+        var recency = emptyList<String>()
+        val sets = ArrayList<List<String>>()
+        for (tag in all + all.first()) {
+            recency = ActiveLanguages.selected(recency, tag, all)
+            sets.add(ActiveLanguages.select(all, tag, recency))
+        }
+        assertEquals(listOf("de-DE", "en-US", "es-ES"), sets[0])
+        assertEquals(listOf("de-DE", "en-US", "es-ES"), sets[2])
+        // Italian enters, German (least recently selected) leaves
+        assertEquals(listOf("en-US", "es-ES", "it-IT"), sets[3])
+        assertEquals(listOf("es-ES", "it-IT", "pt-BR"), sets[4])
+        assertEquals(listOf("de-DE", "it-IT", "pt-BR"), sets[5])
+        assertEquals(listOf("de-DE", "pt-BR", "it-IT", "es-ES", "en-US"), recency)
+    }
 }
