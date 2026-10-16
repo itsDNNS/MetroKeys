@@ -88,12 +88,12 @@ the recent window, and the undo table with an undo count per typed word.
 
 - **Known learned words** (`isKnownLearned`): a form whose key the dictionary knows in some casing needs
   `LEARN_MIN_COUNT` (2) uses; a word the dictionary does not know needs to be accepted, or `LEARN_MIN_UNKNOWN` (3) uses,
-  or `REJECT_MIN_UNKNOWN` (2) undos. This one test is used for validity rule 3, the LM cost of learned-only words,
+  or one undone autocorrection (it is in the undo table; 0.6.8, before two). This one test is used for validity rule 3, the LM cost of learned-only words,
   the correction pool, completions, compound parts and learned next-word followers.
 - **Acceptance**: `learn(…, accepted = true)` when the typed word itself is picked, `reject(…, accepted = true)` when an
   autocorrection is undone by picking the typed word, and every `addWord`.
-- **Undo**: `isRejected` holds after one undo for a word the dictionary knows in some casing, after two for an unknown
-  word. With learning on, a reject raises a dictionary word to two uses and adds one use to an unknown word.
+- **Undo**: `isRejected` holds after one undo for every word, whether the dictionary knows it or not (05 §10.4, 0.6.8 as
+  in the reference; `REJECT_MIN_UNKNOWN` = 2 for unknown words before). With learning on, a reject raises a dictionary word to two uses and adds one use to an unknown word.
 - **Forget**: removes every form with the word's key from counts, contexts (as follower and as context word), recent
   window, accepted marks and undo table; refused for words a loaded dictionary knows. `PredictionEngine.forget` runs it
   in every language; `learnedWords()` is the list of 05 §12.5: every stored form unknown to every loaded dictionary,
@@ -101,8 +101,8 @@ the recent window, and the undo table with an undo count per typed word.
 
 **Learned-data format** (`MKUM`, big-endian `DataOutputStream`): version 2 = stamp; words (form, count, last use, flags
 byte with bit 0 = accepted); contexts (key, followers with counts); recent window; undo table (word, undo count).
-Version 1 (without the flags byte and the undo counts) is still read: its undo entries get `REJECT_MIN_UNKNOWN` undos
-(they were fully rejected before), its words are not accepted. Anything else yields an empty model.
+Version 1 (without the flags byte and the undo counts) is still read: its undo entries get one undo (they were rejected
+before), its words are not accepted. Anything else yields an empty model.
 
 **Three-letter words** (05 §8.1 extension): `LanguageEngine.twoNeighbourSubstitutions` tries, for each pair of positions,
 every pair of neighbour letters (touch-model proximity at the key centres ≤ `NEAR_MAX`) and adds the best cased form of
@@ -185,7 +185,7 @@ language (`PROFILES`, 05b §7).
 conformance checklist of 05 §18 (`ConformanceTest`) and unit tests of all parts, against the bundled dictionaries
 where the spec's numbers depend on them. The rules of 05 §12.5 are covered with the real dictionaries: "usz" → "ist",
 "Usz" → "Ist", "pqt" does not reach "ist"; an unknown word typed twice is still corrected and known after the third
-use; acceptance by picking or "add to dictionary"; one or two undos; forgetting; the version-1 data format. `MemoryBudgetTest`
+use; acceptance by picking or "add to dictionary"; one undo for every word; forgetting; the version-1 data format. `MemoryBudgetTest`
 loads every pair of languages with pair tables in a separate JVM with `-Xmx56m` (0.6.5: 80, 0.6.4: 44) and the sets of
 three with `-Xmx68m` (0.6.5: 88, 0.6.4: 60), runs queries and a multilingual swipe (retained heap in 0.6.6 with the
 dictionary-only German lemmas, KB / 1000: de+en 40.3 MB, de+es 42.4 MB, de+pt 38.3 MB, it+de 41.3 MB, fr+de 42.4 MB;
@@ -213,7 +213,8 @@ penalty. `-PshowOutput` shows test output.
 
 ## Decisions where the specification leaves room
 
-- **Search fields and the double-space period**: 05 §15 says yes, 04 §2/§8.2 says no; 04 is followed (off).
+- **Search fields and the double-space period** (0.6.8): on, as in the reference (04 §2, §8.2 and 05 §15 agree since
+  0.6.8; before, 04 was followed and it was off).
 - **ED_CASE on substitutions** (05 §5): added to every substitution branch (diacritic, space, neighbour) when exactly
   one of the two letters is upper case.
 - **Autocorrection runner-up** (05 §10.1 step 7): the second candidate in correction-cost order.
@@ -268,8 +269,17 @@ penalty. `-PshowOutput` shows test output.
   the whole word.
 - **Ordinal indicators** º ª: word characters (letters), never autocorrected (§10.1 step 3, like digits) and never
   checked by proofing (`TextModel.isCheckable`).
-- **Swipe after a hyphen** (06 §5.1 item 1, all languages): `TextRules.spaceBeforeSwipe` inserts no space after
-  whitespace, `¿ ¡` or a hyphen that directly follows a letter ("deixe-" + "me", "E-" + "Mail").
+- **Space before a swiped word** (06 §5.1 item 1, all languages, 0.6.8 as in the reference): `TextRules.spaceBeforeSwipe`
+  inserts no space after whitespace (every Unicode space), a line break, an object marker (U+FFFC) or one of
+  `¿ ¡ ( " - # @ /` ("(" + "word" → "(word", "deixe-" + "me", " -" + "word" → " -word"; before 0.6.8 only after `¿ ¡`
+  and a hyphen that followed a letter). The elision-prefix exception is applied by the keyboard
+  (`PredictionEngine.isElisionPrefix`). `TextRules.capitalizesSwipe` is true directly after `. ! ? :` or the danda
+  (06 §5.2: a swiped word there is capitalised like after a one-shot shift).
+- **Swipe candidate** (06 §2.1, 0.6.8): `ShapeWriter.isSwipeCandidate(y, height)` no longer asks for a letter key; a
+  touch in the upper 75 % may start a swipe on whatever key it lands (on the letter pages also Shift and Backspace).
+  The recogniser already ignores samples outside the letter keys (§3.2), so the first letter key reached starts the
+  sequence. `KeySequenceTracker` builds the key sequence sample by sample (the live word of 06 §5.3);
+  `ShapeWriter.keySequence` uses it, so both agree. `PredictionEngine.geometry` exposes the current letter geometry.
 - **Portuguese worked examples** (05 §17.9, 06 E10/E11): `PortugueseExamplesTest` and `PortugueseShapeTest` with the
   computed values of this build: lm(você) 41, score(não) 91, lm(amanhã | até) 51, lm(ação) 89, lm(por favor) 68,
   score(d'água) = lm(água) + 37; E10 searchCost(faço) = 120 + LM; E11 searchCost(você) = 121.5 + LM (spec 120.4 with

@@ -301,8 +301,6 @@ public object Params {
     /** Uses before a word the dictionary does not know becomes valid / suggestible (extension, 05 §12.5). */
     public const val LEARN_MIN_UNKNOWN: Int = 3
 
-    /** Undone corrections before a word the dictionary does not know becomes valid (extension, 05 §10.4). */
-    public const val REJECT_MIN_UNKNOWN: Int = 2
     public const val LEARN_MIN_LEN: Int = 2
     public const val LEARN_CONTEXT: Int = 2
     public const val USER_MAX_WORDS: Int = 10000

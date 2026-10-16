@@ -20,6 +20,9 @@ enum class StripKind {
     /** Alternatives of an unrecognised swipe: nothing was inserted (06 §5.5). */
     SWIPE_UNRECOGNISED,
 
+    /** The best word of a running swipe (06 §5.3): shown only during the gesture, a tap on it does nothing. */
+    SWIPE_LIVE,
+
     /** Candidates for exactly one selected word: a pick replaces the selection. */
     SELECTION,
 

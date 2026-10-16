@@ -91,6 +91,32 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     /** The field, with a copy of the text around the caret so typing does not wait for the app (CachingEditor). */
     val editor = CachingEditor(InputConnectionEditor(service, service))
     val logic = InputLogic(editor, scheduler, this)
+
+    /** The live best word during a swipe (06 §5.3). */
+    private val liveSwipe = LiveSwipe(scheduler, object : LiveSwipe.Host {
+        override fun geometry(): KeyboardGeometry? = engine?.geometry
+        override fun bestWord(trace: ShapeTrace, before: String): String? {
+            val e = engine ?: return null
+            val r = e.recognizeShape(trace, before, liveField)
+            return r.texts(liveShift).firstOrNull()
+        }
+        override fun showLive(word: String) {
+            val c = StripContent(StripKind.SWIPE_LIVE, listOf(StripItem(word)))
+            strip = c
+            view?.onStrip(c)
+        }
+        override fun restoreStrip() {
+            strip = logic.strip
+            view?.onStrip(logic.strip)
+        }
+    })
+
+    @Volatile
+    private var liveShift = ShiftState.OFF
+
+    @Volatile
+    private var liveField = FieldState.EMPTY.info
+
     val feedback = Feedback(service)
 
     /** Contact names as a word source (05 §13); the engine gets them on the worker thread. */
@@ -139,6 +165,10 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     private var justUnlocked = false
     private var lastShiftDown = 0L
     val isShifted: Boolean get() = shift != Shift.OFF
+
+    /** Shift state before the last touch-down on Shift, set back if that touch becomes a trace (03 §4 item 8). */
+    private data class ShiftSnapshot(val shift: Shift, val manual: Boolean, val justUnlocked: Boolean, val lastDown: Long)
+    private var shiftBeforeTouch: ShiftSnapshot? = null
 
     // ---------------------------------------------------------------- panels and strip
 
@@ -422,6 +452,8 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     // ================================================================ InputLogic.Listener
 
     override fun onStrip(content: StripContent): Unit = Perf.section("mk:strip") {
+        // the live word of a running swipe stays until the gesture ends (06 §5.3); the list is shown afterwards
+        if (liveSwipe.active && liveSwipe.shown) return@section
         strip = content
         view?.onStrip(content)
     }
@@ -454,6 +486,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
 
     fun shiftDown() {
         val now = SystemClock.uptimeMillis()
+        shiftBeforeTouch = ShiftSnapshot(shift, shiftManual, justUnlocked, lastShiftDown)
         val double = now - lastShiftDown < 500
         lastShiftDown = now
         val old = shift
@@ -607,7 +640,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     /** Held key repeat step (03 §5). */
     fun keyRepeat(key: Key) {
         when (key.role) {
-            KeyRole.BACKSPACE -> logic.backspace(repeated = true)
+            KeyRole.BACKSPACE -> logic.backspace()
             KeyRole.SPACE -> typeOnPage(" ")
             KeyRole.ENTER -> enter()
             else -> {}
@@ -721,19 +754,67 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         get() = settings.shapeWriting && page.isLetters && this.field.policy.shapeWriting && engine != null &&
             view?.touchExploration != true
 
-    fun swipe(trace: ShapeTrace) {
-        val e = engine ?: return
-        val before = editor.textBefore(InputLogic.BEFORE).toString()
-        val shiftState = when (shift) {
-            Shift.OFF -> ShiftState.OFF
-            Shift.ONE_SHOT -> ShiftState.ONE_SHOT
+    /**
+     * The case of a swiped word (06 §5.2): the shift state, and a one-shot shift directly after `. ! ? :` when
+     * automatic capitalisation is allowed (04 §1.1 preconditions, §1.5), although no space was typed.
+     */
+    private fun swipeShiftState(before: String): ShiftState {
+        val st = when (shift) {
             Shift.CAPS_LOCK -> ShiftState.CAPS_LOCK
+            Shift.ONE_SHOT -> ShiftState.ONE_SHOT
+            Shift.OFF -> ShiftState.OFF
         }
+        return InputLogic.swipeShift(st, autoCapsAllowed(), before)
+    }
+
+    /** The preconditions of 04 §1.1: setting on, letter page, field type, field asks for capitalisation. */
+    private fun autoCapsAllowed(): Boolean = settings.autoCaps && page.isLetters && field.policy.autoCapitalisation &&
+        (field.capsSentences || field.capsWordsOrChars)
+
+    /**
+     * A touch became a trace (03 §1.5 item 2) on [startKey]: a trace that started on Shift sets the shift state back
+     * unless caps lock is on now (03 §4 item 8, §1.5 item 1d); the live word starts (06 §5.3).
+     */
+    fun swipeStarted(startKey: Key, xs: FloatArray, ys: FloatArray, ts: LongArray, downTime: Long) {
+        liveDownTime = downTime
+        if (startKey.role == KeyRole.SHIFT && shift != Shift.CAPS_LOCK) {
+            shiftBeforeTouch?.let {
+                shift = it.shift
+                shiftManual = it.manual
+                justUnlocked = it.justUnlocked
+                lastShiftDown = it.lastDown
+                view?.invalidate()
+            }
+        }
+        shiftBeforeTouch = null
+        if (!shapeWritingActive) return
+        val before = editor.textBefore(InputLogic.BEFORE).toString()
+        liveShift = swipeShiftState(before)
+        liveField = field.info
+        liveSwipe.start(xs, ys, ts, before)
+    }
+
+    private var liveDownTime = 0L
+
+    /** A further sample of the running trace ([t] = event time). */
+    fun swipeSample(x: Float, y: Float, t: Long) = liveSwipe.add(x, y, t - liveDownTime)
+
+    /** The trace ended without recognition (cancel, a long press won, 06 §2.4): the strip returns. */
+    fun swipeAborted() = liveSwipe.abort()
+
+    fun swipe(trace: ShapeTrace) {
+        val id = liveSwipe.end()
+        val e = engine ?: return liveSwipe.finished(id, false)
+        val before = editor.textBefore(InputLogic.BEFORE).toString()
+        val shiftState = swipeShiftState(before)
         val f = field.info
         scheduler.background {
             val r = e.recognizeShape(trace, before, f)
             val texts = r.texts(shiftState)
-            scheduler.main(0) { Perf.section("mk:applySwipe") { logic.applySwipe(r, texts) } }
+            scheduler.main(0) {
+                liveSwipe.finished(id, texts.isNotEmpty())
+                Perf.section("mk:applySwipe") { logic.applySwipe(r, texts) }
+            }
         }
     }
 
@@ -762,6 +843,13 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     /** "Can paste" of 03 §6.6.2: also false while the recently-copied chip is shown. */
     val canPaste: Boolean
         get() = clipPresent && !this.field.isPassword && !appBarHasClipboard() && chip == null
+
+    /**
+     * The paste header is *dimmed* (03 §6.6 items 2 and 8, 02 §5.8.5): the only missing condition is the clip. It is
+     * drawn at 50 % opacity when in view and ignores taps; in the other cases it is suppressed (not drawn).
+     */
+    val pasteDimmed: Boolean
+        get() = !clipPresent && !this.field.isPassword && !appBarHasClipboard() && chip == null
 
     /** The system clipboard holds a clip / a text clip: read when it changes, at input start and when shown (not per frame). */
     private var clipPresent = false

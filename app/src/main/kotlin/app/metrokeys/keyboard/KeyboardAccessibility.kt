@@ -105,7 +105,13 @@ class KeyboardAccessibility(private val v: KeyboardView) : ExploreByTouchHelper(
                 val i = (id - STRIP) % 1000
                 node.className = "android.widget.Button"
                 node.contentDescription = when (kind) {
-                    StripBar.HEADER -> ctl.str(R.string.a11y_paste)
+                    StripBar.HEADER -> ctl.str(R.string.a11y_paste).also {
+                        // dimmed with an empty clipboard: disabled (03 §19.2, §6.6 item 8)
+                        if (!ctl.canPaste) {
+                            node.isEnabled = false
+                            node.removeAction(AccessibilityActionCompat.ACTION_CLICK)
+                        }
+                    }
                     StripBar.CHIP -> {
                         node.removeAction(AccessibilityActionCompat.ACTION_CLICK)
                         node.addAction(AccessibilityActionCompat(AccessibilityNodeInfoCompat.ACTION_CLICK, ctl.str(R.string.a11y_paste_action)))

@@ -75,9 +75,20 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
 
         /** The popup content of [k] as shown now (label, or the language tag of the language key). */
         fun popupSnapshot(k: Key): String
-        fun traceStart(xs: FloatArrayList, ys: FloatArrayList, ts: LongArrayList, downTime: Long)
+
+        /**
+         * The touch became a trace (03 §1.5 item 2) on [startKey]: the samples since touch-down (times relative to
+         * [downTime]); the drawn trace starts at sample [drawFrom] (0, or the swipe start for a touch that began on Shift
+         * or Backspace, 06 §2.3). A trace that starts on Shift sets the shift state back (03 §4 item 8).
+         */
+        fun traceStart(startKey: Key, xs: FloatArrayList, ys: FloatArrayList, ts: LongArrayList, downTime: Long, drawFrom: Int)
         fun traceAdd(x: Float, y: Float, t: Long)
+
+        /** The drawn trace ends (it fades). */
         fun traceEnd()
+
+        /** The trace ends without recognition: cancel, a long press that won (06 §2.4), too few samples. */
+        fun traceAborted()
         fun swipe(xs: FloatArray, ys: FloatArray, ts: LongArray)
         fun activeKeyChanged(k: Key)
         fun invalidate()
@@ -128,6 +139,10 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
     /** The touch started as a trace candidate (03 §1.5 item 1): keys reached by sliding show no feedback. */
     private var traceCandidateTouch = false
     private var traceCandidate = false
+    private var traceStartKey: Key? = null
+
+    /** Cell of a non-letter start key (Shift, Backspace): no trace while the finger is inside it (03 §1.5 item 1b). */
+    private var traceStartCell: PxRect? = null
     var tracing = false
         private set
     private val traceX = FloatArrayList()
@@ -221,8 +236,11 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
         activate(k, Activation.DOWN, x, y, corrected = k !== hit.key, show = true)
         consumed = k.role == KeyRole.SHIFT || k.role == KeyRole.EMOJI_CATEGORY
         if (!consumed) clock.post(holdTask, k.longPressMs.toLong())
-        traceCandidate = host.shapeWritingActive && ShapeWriter.isSwipeCandidate(y, host.keyAreaHeight, k.isLetter)
+        // whatever key it lands on (03 §1.5 item 1, 06 §2.1): on the letter pages also Shift and Backspace
+        traceCandidate = host.shapeWritingActive && ShapeWriter.isSwipeCandidate(y, host.keyAreaHeight)
         traceCandidateTouch = traceCandidate
+        traceStartKey = k
+        traceStartCell = if (k.isLetter) null else cells.cell(k)
         if (traceCandidate) addTrace(x, y, t)
     }
 
@@ -237,10 +255,13 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
             addTrace(x, y, t)
             if (tracing) {
                 host.traceAdd(x, y, t)
-            } else if (ShapeWriter.isSwipeStart(x - downX, y - downY, host.keyAreaWidth, host.keyAreaHeight)) {
+            } else if (ShapeWriter.isSwipeStart(x - downX, y - downY, host.keyAreaWidth, host.keyAreaHeight) &&
+                traceStartCell?.contains(x, y) != true
+            ) {
+                // the hold timer keeps running while the finger stays in the start key's area (03 §1.5 item 2)
                 tracing = true
-                stopTimers()
-                host.traceStart(traceX, traceY, traceT, downTime)
+                val from = if (traceStartCell == null) 0 else traceX.size - 1
+                host.traceStart(traceStartKey!!, traceX, traceY, traceT, downTime, from)
                 host.invalidate()
             }
         }
@@ -304,7 +325,7 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
             host.traceEnd()
             activeKey?.let { if (activeShown) startLinger(it) }
             activeKey = null
-            if (traceX.size >= 2) host.swipe(traceX.toArray(), traceY.toArray(), traceT.toArray())
+            if (traceX.size >= 2) host.swipe(traceX.toArray(), traceY.toArray(), traceT.toArray()) else host.traceAborted()
             reset()
             host.invalidate()
             return
@@ -328,7 +349,10 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
     /** System cancel, keyboard hidden, panel or size change: nothing is committed (03 §1.2). */
     fun cancel() {
         stopTimers()
-        if (tracing) host.traceEnd()
+        if (tracing) {
+            host.traceEnd()
+            host.traceAborted()
+        }
         reset()
         inTouch = false
         swallow = false
@@ -418,6 +442,8 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
         tracing = false
         traceCandidate = false
         traceCandidateTouch = false
+        traceStartKey = null
+        traceStartCell = null
         pageSwitchLock = false
         traceX.clear()
         traceY.clear()
@@ -430,11 +456,16 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
         traceT.add(t - downTime)
     }
 
+    /**
+     * The hold timer fired on the touched-down key, also while the touch is a trace that has not left the key (03 §1.5
+     * item 2, §3.2): a long press that opens the picker or starts a key repeat wins over the trace.
+     */
     private fun onHold() {
         val k = activeKey ?: return
-        if (tracing || activation != Activation.DOWN || !inTouch) return
+        if (activation != Activation.DOWN || !inTouch) return
         val cell = cellOf(k) ?: return
         if (k.holdOutput != null) {
+            abortTrace()
             host.holdOutput(k)
             consumed = true
             host.invalidate()
@@ -442,6 +473,7 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
         }
         val items = host.pickerItems(k)
         if (items != null) {
+            abortTrace()
             traceCandidate = false
             val (cw, ch) = host.pickerCellSize(k, items)
             picker = PickerModel.place(k, cell, items, cw, ch, FRAME * s, host.keyAreaWidth, k.role == KeyRole.LANGUAGE, clock.now())
@@ -450,12 +482,21 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
             return
         }
         if (k.repeat) {
+            abortTrace()
             repeating = true
             traceCandidate = false
             repeatStart = clock.now()
             host.repeat(k)
             clock.post(repeatTask, REPEAT_INTERVAL_MS)
         }
+    }
+
+    /** A running trace ends without recognition: the drawn trace fades (06 §2.3, §2.4). */
+    private fun abortTrace() {
+        if (!tracing) return
+        tracing = false
+        host.traceEnd()
+        host.traceAborted()
     }
 
     companion object {

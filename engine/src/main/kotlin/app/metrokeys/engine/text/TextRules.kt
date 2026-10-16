@@ -130,25 +130,35 @@ public object TextRules {
 
     /**
      * The Spanish opening marks `¿` `¡` (04 §1.6): no triggers, never an automatic space before or after them, auto-shift
-     * after them; after a swiped word a space is inserted first.
+     * after them; after a swiped word they are appended without a space like other punctuation (06 §5.6).
      */
     @JvmStatic
     public fun isOpeningMark(text: CharSequence): Boolean = text.length == 1 && (text[0] == '¿' || text[0] == '¡')
 
+    /** Characters after which a swiped word gets no space (06 §5.1 item 1, 04 §12.2 item 5). */
+    public const val NO_SPACE_BEFORE_SWIPE: String = "¿¡(\"-#@/"
+
     /**
      * Space before a swiped word (06 §5.1 item 1): true if the text before the caret ends with a character that is not
-     * whitespace, except directly after an opening mark `¿ ¡` (04 §1.6) and directly after a hyphen that follows a
-     * letter (`deixe-` + `me` → `deixe-me`, `E-` + `Mail` → `E-Mail`; a hyphen after a space keeps the space).
+     * whitespace, a line break, an embedded-object marker or one of `¿ ¡ ( " - # @ /` (`(` + swipe → `(word`,
+     * `deixe-` + `me` → `deixe-me`, ` -` + swipe → ` -word`). The elision-prefix exception is the caller's (it needs
+     * the engine).
      */
     @JvmStatic
     public fun spaceBeforeSwipe(before: CharSequence): Boolean {
         val n = before.length
         if (n == 0) return false
         val last = before[n - 1]
-        if (last.isWhitespace() || last == '¿' || last == '¡') return false
-        if (last == '-' && n >= 2 && Character.isLetter(before[n - 2])) return false
-        return true
+        if (last.isWhitespace() || Character.isSpaceChar(last) || last == '\uFFFC') return false
+        return NO_SPACE_BEFORE_SWIPE.indexOf(last) < 0
     }
+
+    /**
+     * A swiped word directly after a sentence delimiter `. ! ? :` or the danda (06 §5.2, 04 §1.5) is capitalised like
+     * after a one-shot shift, although no space was typed; the caller checks the auto-capitalisation preconditions.
+     */
+    @JvmStatic
+    public fun capitalizesSwipe(before: CharSequence): Boolean = before.isNotEmpty() && CAP_DELIMITERS.indexOf(before[before.length - 1]) >= 0
 
     /** Smart space (04 §4.3): an auto space is deleted before this character (a trigger other than space). */
     @JvmStatic

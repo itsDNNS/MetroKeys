@@ -1,8 +1,7 @@
 package app.metrokeys.engine.text
 
 /**
- * Per-input-type policy (spec 05 §15, 04 §8.2). Where 05 §15 and 04 §8.2 disagree (double-space period in search
- * fields) 04 §8.2 is followed, see docs/ENGINE.md.
+ * Per-input-type policy (spec 05 §15, 04 §8.2). Since 0.6.8 search fields also get the double-space period (04 §2).
  */
 public enum class FieldPolicy(
     public val prediction: Boolean,
@@ -16,7 +15,7 @@ public enum class FieldPolicy(
 ) {
     TEXT(true, true, true, true, true, true, true, true),
     DEFAULT(true, true, true, true, true, true, false, true),
-    SEARCH(true, false, false, false, true, true, true, true),
+    SEARCH(true, false, false, true, true, true, true, true),
     URL(true, false, false, false, false, false, false, false),
     EMAIL(true, false, false, false, false, false, false, false),
     NUMBER(false, false, false, false, false, false, false, false),

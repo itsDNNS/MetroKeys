@@ -96,15 +96,12 @@ class ConformanceTest {
 
     @Test
     fun rejectedCorrection() {
-        // "Hsus" is unknown to the dictionary: one undo by editing the word is not enough (05 §10.4), two are
+        // "Hsus" is unknown to the dictionary: one undo by editing the word is enough (05 §10.4, 0.6.8)
         val e = de()
         assertEquals("Haus", e.ac("Hsus"))
         e.learn("Haus", emptyList())
         e.rejectAutoCorrection("Hsus", "Haus")
         assertEquals(0, e.active.user.count("Haus"))
-        assertEquals("Haus", e.ac("Hsus"))
-        assertFalse(e.isKnown("Hsus"))
-        e.rejectAutoCorrection("Hsus", "Haus")
         val p = e.query(Query("Hsus"))
         assertTrue(p.typedIsValid)
         assertNull(p.autoCorrection)
@@ -128,11 +125,13 @@ class ConformanceTest {
         e.rejectAutoCorrection("Hsus", "Haus", accepted = true)
         assertNull(e.ac("Hsus"))
         assertTrue(e.isKnown("Hsus"))
-        // without learning nothing is accepted: one undo of an unknown word is not enough
+        // without learning nothing is accepted or learned, but the undo table still makes the word valid
         val off = de()
         off.settings = EngineSettings(learning = false)
         off.rejectAutoCorrection("Hsus", "Haus", accepted = true)
-        assertEquals("Haus", off.ac("Hsus"))
+        assertFalse(off.active.user.isAccepted("Hsus"))
+        assertEquals(0, off.active.user.count("Hsus"))
+        assertNull(off.ac("Hsus"))
     }
 
     @Test
@@ -194,7 +193,7 @@ class ConformanceTest {
         assertEquals(1, e.active.user.count("Haus"))
         assertTrue(e.learnedWords().isEmpty())
         // the undo table entry goes too
-        repeat(2) { e.rejectAutoCorrection("Hsus", "Haus") }
+        e.rejectAutoCorrection("Hsus", "Haus")
         assertNull(e.ac("Hsus"))
         assertTrue(e.forget("Hsus"))
         assertEquals("Haus", e.ac("Hsus"))

@@ -56,9 +56,35 @@ class ShapeWriterTest {
         assertEquals(119.4, ShapeWriter.startThreshold(1596f, 576f), 0.05)
         assertFalse(ShapeWriter.isSwipeStart(518f - 410f, 300f - 280f, 1080f, 756f))
         assertTrue(ShapeWriter.isSwipeStart(525f - 410f, 290f - 280f, 1080f, 756f))
-        assertFalse(ShapeWriter.isSwipeCandidate(600f, 756f, onLetterKey = true))
-        assertTrue(ShapeWriter.isSwipeCandidate(280f, 756f, onLetterKey = true))
-        assertFalse(ShapeWriter.isSwipeCandidate(280f, 756f, onLetterKey = false))
+        assertFalse(ShapeWriter.isSwipeCandidate(600f, 756f))
+        assertFalse(ShapeWriter.isSwipeCandidate(567f, 756f))
+        assertTrue(ShapeWriter.isSwipeCandidate(566f, 756f))
+        assertTrue(ShapeWriter.isSwipeCandidate(280f, 756f))
+    }
+
+    @Test
+    fun aSwipeStartedOnShiftIgnoresTheShiftSamples() {
+        // 06 §2.1 example and §3.2 item 2: touch-down on Shift at (80, 470), up to (90, 350), then on to the letters
+        val e = TestDictionaries.german()
+        val w = ShapeWriter(e)
+        val word = trace("aber")
+        val shiftPart = listOf(80f to 470f, 80f to 440f, 80f to 400f, 80f to 360f, 90f to 350f, 100f to 320f)
+        val pts = shiftPart + (0 until word.size).map { word.xs[it] to word.ys[it] }
+        val started = ShapeTrace.of(pts)
+        val seq = ShapeWriter.keySequence(started, g)!!
+        assertEquals('a', g.keys[seq.keys[0]].letter)
+        assertEquals(ShapeWriter.keySequence(word, g)!!.keys.toList(), seq.keys.toList())
+        assertEquals(w.recognize(word).candidates.first().text, w.recognize(started).candidates.first().text)
+    }
+
+    @Test
+    fun theTrackerGainsKeysLikeTheKeySequence() {
+        val t = trace("hallo")
+        val tracker = KeySequenceTracker(g)
+        val gained = (0 until t.size).map { tracker.add(t.xs[it], t.ys[it]) }.filter { it >= 0 }
+        assertEquals(ShapeWriter.keySequence(t, g)!!.keys.toList(), gained)
+        assertEquals(gained.size, tracker.size)
+        assertEquals(-1, tracker.add(t.xs[t.size - 1], t.ys[t.size - 1]))
     }
 
     @Test

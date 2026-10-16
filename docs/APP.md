@@ -12,8 +12,14 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew :engine:test testDebugUnitTest lintDebug ass
 **Release build.** `assembleRelease` minifies with R8 (`proguard-android-optimize.txt`) and shrinks resources. No own
 keep rules are needed (reasons in `app/proguard-rules.pro`): manifest components are kept by AAPT's rules, the engine
 loads its dictionaries by absolute Java resource paths, and the only reflective call targets a framework method. The
-release APK (15.0 MB in 0.6.6 with the dictionary-only German lemmas, 15.7 MB in 0.6.5 with all dictionary-only German forms, 14.6 MB in 0.6.4, 14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
-writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences; for 0.6.6 the key
+release APK (15.0 MB in 0.6.8 and 0.6.6 with the dictionary-only German lemmas, 15.7 MB in 0.6.5 with all dictionary-only German forms, 14.6 MB in 0.6.4, 14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
+writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences; for 0.6.8 (`input motionevent`, screenshots): a vertical move inside
+`s` beyond the threshold shows the trace and, held, opens the picker (the trace fades, the drag selects); a swipe
+from Shift through a-l-t gives "alt" in lower case (shift set back); "(" + swipe → "(gut"; swipe + "?" → "gut?";
+"?" + swipe and "." + swipe → "? Gut", ". Gut"; "hsllo " → "hallo", undone by tapping "hsllo" and by holding backspace
+into "habe" (both stay uncorrected when typed again); "hallo" + quick double space in the system settings search →
+"hallo. "; the live word during a slow swipe ("ja", "hab", then "hallo" inserted); the paste ring at 50 % (143 instead
+of 255 on the dark strip) with an empty clipboard, a tap on it does nothing, normal after a copy; for 0.6.6 the key
 popup and picker checks listed under "Touch handling (0.6.6)" and a swipe of "vielleicht" with German and English; for 0.6.5 fast typing in Google Messages with German and English (ten keys per second,
 "ich habe dke katze gesehen und dke maus …": every "dke" → "die"), "Die App ist nicht performanz" → "performant" first,
 a swipe of "vielleicht" and the settings app; for 0.6.4 the
@@ -222,6 +228,33 @@ examples of 03 §3.4, the sticky picker, key repeat, fast typing, the page-switc
 worked example of 03 §1.1 and §1.1a and the indent rule of rule 9 for every pixel; `PickerModelTest` the zones, slots,
 rows and the opening animation.
 
+### Swipe start, hold timer and live word (0.6.8)
+
+- **Swipe candidate on any key** (03 §1.5 item 1, 06 §2.1): `KeyTouch.down` makes every touch in the upper 75 % of a
+  letter page with shape writing a trace candidate; for a start key that is not a letter (Shift, Backspace) it keeps the
+  key's cell and starts the trace only when the threshold is exceeded **and** the finger is outside that cell (a long
+  move inside it stays a key press). `Host.traceStart` passes all samples since touch-down (recognised on release) and
+  the index of the first drawn sample (the swipe start for Shift/Backspace, 06 §2.3). The controller then sets the
+  shift state back for a trace that started on Shift (unless caps lock is on now).
+- **Hold timer** (03 §1.5 item 2, §3.2; 06 §2.3, §2.4): the swipe start no longer stops it; it stops when the finger
+  leaves the start key's hysteresis area or lifts. When it fires on a trace that has not left the key and opens the
+  picker or starts a key repeat, the trace ends (`traceEnd`, the drawn trace fades; `traceAborted`, nothing is
+  recognised) and the touch continues as a picker selection or a repeat. A key without a picker or repeat leaves the
+  trace running.
+- **Live word** (06 §5.3): `LiveSwipe` follows the key sequence with `KeySequenceTracker`; each gained key starts a
+  recognition of the samples so far unless one is still running; its best word (case of 06 §5.2) replaces the strip.
+  Release: the result list replaces it; no result, a cancel or a long press that won: the strip of the text state comes
+  back. Results that arrive after the lift are dropped.
+
+`KeyTouchTest` (0.6.8): a vertical 120 px move inside `s` becomes a trace and the long press then opens the picker,
+fades the trace and commits "ß" by dragging; the hold timer of a trace that left its key never fires; a key without
+alternates keeps the trace; the Shift example of 06 §2.1 ((80, 470) → (80, 360) no trace, (90, 350) trace drawn from
+sample 2, no feedback for keys reached); a 189 px move inside the Shift cell is no trace; Backspace: a move inside the
+cell types a backspace, leaving it beyond the threshold swipes, a held Backspace repeats and never traces; a cancelled
+trace is aborted; the sticky picker tap clicks once and commits silently. `LiveSwipeTest`: a word per gained key, none
+while a recognition runs, none after the lift, the strip restored without a result and after an abort, the samples
+before a Shift start, and the German engine's word for a partial trace of "hallo".
+
 ### Own edits versus caret moves
 
 `InputLogic` tracks the selection itself. After each own edit it records the selection it expects; an
@@ -246,8 +279,11 @@ files, and the style name deciding before the weight class); `LayoutDataTest` th
 clipboard history with image entries (dedup, pinning, reported files of removed entries, version-1 data);
 `ForgetRequestsTest` the preference that carries forgotten words to the keyboard; `AppBarTouchTest` the bar's touch
 regions and that an empty part of the bar gives no feedback and does not toggle (0.6.4). `InputLogicTest` covers the 05 §12.5
-undo rules: picking the typed word accepts it, editing the corrected word needs two undos for an unknown word, and a
-held backspace never rejects; and the selection of the word still being typed ("Kopiert" keeps "Kopierte …", an older
+undo rules: picking the typed word accepts it, editing the corrected word needs one undo also for an unknown word, and a
+held backspace rejects when its second step deletes into the resumed word (0.6.8; before, two undos and a held backspace
+never rejected); the swipe spacing of 06 §5.1 (`( " # @ / -` without, `« [ . 3` with a space), punctuation appended
+after a swiped word, the capital after "Hallo.", the double-space period in a search field, the live word that cannot be
+picked (0.6.8); and the selection of the word still being typed ("Kopiert" keeps "Kopierte …", an older
 word gets the correction search), and the caret inside a word (0.6.4): candidates for the whole word ("Cur|sos" →
 "Cursor" first), a pick replaces the whole word without a space (also inside running text), typing or backspace there
 empties the strip (also after a refresh), a caret at a word start still gives an empty strip, at the word end the word is
@@ -276,8 +312,12 @@ FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < EN
 | 05 §14.5 active set | `KeyboardController.activeSet`/`loadEngine` (engines of staying languages are reused, new ones load in the background, leaving ones are saved and released), `Prefs.LANGUAGE_RECENCY`, `forgetInStoredData` for enabled languages that are not loaded |
 | 01 §7 emoji page | `EmojiData` (generated `assets/emoji/emoji.txt`), `EmojiPanel`, `EmojiHistory` |
 | 01 §11.6 domains | `KeyboardController.domains` (the list of the layout data whose region is the device region; other regions: own ccTLD first) |
-| 04 §1.6 ¿ ¡ | `TextRules.isOpeningMark`; `InputLogic.otherText` (space first after a swiped word), `InputLogic.applySwipe` (no space after the mark); auto-shift via `TextRules.isSentenceStart` |
-| 06 §5.1 item 1 space before a swiped word | `TextRules.spaceBeforeSwipe` (none after whitespace, `¿ ¡` or "letter + hyphen"), used by `InputLogic.applySwipe` |
+| 04 §1.6 ¿ ¡ | `TextRules.isOpeningMark`; `InputLogic.otherText` (appended without a space after a swiped word, 0.6.8), `InputLogic.applySwipe` (no space after the mark); auto-shift via `TextRules.isSentenceStart` |
+| 06 §5.1 item 1, 04 §12.2 item 5 space before a swiped word | `TextRules.spaceBeforeSwipe` (none after whitespace, an object marker or `¿ ¡ ( " - # @ /`, 0.6.8), used by `InputLogic.applySwipe` and for a picked alternative of an unrecognised swipe (06 §5.5) |
+| 06 §5.2, 04 §1.5 capital after `. ! ? :` | `InputLogic.swipeShift` (with `TextRules.capitalizesSwipe`), used by `KeyboardController.swipeShiftState` for the result and the live word |
+| 06 §5.3 live best word | `LiveSwipe` (key sequence by `KeySequenceTracker`, one recognition at a time on the worker, strip kind `SWIPE_LIVE`), fed by `KeyboardController.swipeStarted`/`swipeSample`/`swipeAborted`/`swipe` |
+| 06 §2.1, §2.3, §2.4; 03 §1.5 swipe start, hold timer during a trace | `KeyTouch.down`/`move`/`onHold`/`abortTrace`; `Host.traceStart` (start key, first drawn sample), `Host.traceAborted` |
+| 03 §4 item 8 shift set back by a trace | `KeyboardController.shiftDown` (snapshot) and `swipeStarted` |
 | 04 §11.3 French apostrophes, hyphens, typography | as Italian; hyphen compounds and apostrophe words are dictionary forms (ENGINE.md), a picked or autocorrected compound is inserted whole; no-break spaces are not produced, the auto space before `; : ! ?` is removed as in every language |
 | 04 §11.2 Italian apostrophes | elision, truncation and the missing apostrophe in the engine (ENGINE.md); `InputLogic.pick`: a strip item with `elisionPrefix` is inserted without trailing space or auto space and runs the typing query for the bare prefix; `InputLogic.applySwipe`: no space after an elision prefix of a loaded language (`PredictionEngine.isElisionPrefix`) |
 | 04 §11.1 Portuguese words (hyphen, `d'`, º ª) | the hyphen is no trigger and empties the strip (`InputLogic.otherText`); `d'` and º ª are handled by the engine (`LanguageEngine.elisionPrefixLength`, ENGINE.md) |
@@ -286,12 +326,12 @@ FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < EN
 | 02 §4.2 key-label weight (0.6.4) | every style the table gives as semibold uses `Weight.LABEL`; `Fonts.get(LABEL)` = the imported semibold font, else Selawik Regular |
 | 02 §5.3–§5.7 keys, popup, picker | `KeyboardView.drawKey`, `drawPopup`, `drawPicker` (per-cell frames, drawing order, pixel snapping); `PickerModel.place` (mirroring, two rows), `PickerModel.cellAt` (opening slide) |
 | 02 §5.8, 03 §6 strip | `StripBar` |
-| 03 §6.6 items 2, 8 paste button | `KeyboardController.canPaste` (false while the chip shows); `StripBar.draw` draws it only when pasting is possible |
+| 03 §6.6 items 2, 8 paste button, 02 §5.8.5 | `KeyboardController.canPaste` (false while the chip shows) and `pasteDimmed` (only the clip missing); `StripBar.draw` draws the header normally, at 50 % opacity (`saveLayerAlpha`, not tappable, target home only before the first candidates) or not at all; `KeyboardAccessibility` marks the dimmed header disabled (03 §19.2) |
 | 03 §6.6 items 5, 6 paste, 04 §12.2 items 2, 4 | `InputLogic.paste`/`insertContent`/`insertClip`: the swiped word's composing text is finished before the editor's paste, an image or a clip is inserted |
 | 03 §6.11 recently-copied chip | `KeyboardController.chip`/`chipPaste` (current clip, 2 min, pasted stamp), `StripBar.drawChip` and chip slot |
 | 03 §6.3 item 4 hold to forget | `StripBar.onHold`/`drawForget`, `KeyboardController.isForgettable`/`forgetWord` → `PredictionEngine.forget` |
 | 03 §10.1 item 3, §10.3 item 7, §10.4 images | `KeyboardController.recordCurrentClip`/`insertImage`, `ClipImages`, `ClipImageProvider`, `ClipboardPanel` thumbnails |
-| 05 §10.4, §12.5 in the keyboard | `InputLogic.pick` (accepting picks), `InputLogic.backspace(repeated)`, `KeyboardController.keyRepeat` |
+| 05 §10.4, §12.5 in the keyboard | `InputLogic.pick` (accepting picks), `InputLogic.backspace` (single and held: both reject when they delete into a resumed correction, 0.6.8), `KeyboardController.keyRepeat` |
 | 07 §9.13 item 5 learned words | `DataPages.LearnedWords` (learned files + `Dictionary.bundledContains`)/`LearnedWordsPage`, `Prefs.FORGET_WORDS`, `KeyboardController.applyForgetRequests` |
 | 03 §6.4 item 5 selected word still typed | `InputLogic.onSelectionUpdate`/`typedWordSelection` |
 | 04 §10 input start, restart and re-shown keyboard (0.6.4) | `InputLogic.startInput` and `InputLogic.reshown` (called from `KeyboardController.onShow`) set the strip from the current selection (`stripFromSelection`, shared with user moves) |
@@ -453,9 +493,13 @@ to a change counter fed by the preference listener, so summaries follow changes 
 - **Loaded languages** (05 §14.5): the active set is loaded also with multilingual typing off, so the language key
   switches between up to three languages without loading; with more than three enabled languages, selecting one
   outside the set loads it in the background while the staying languages answer.
-- **Opening marks before a swipe**: 06 §5.1 inserts a space before a swiped word after any non-space character; after
-  `¿`/`¡` none is inserted, following 04 §1.6 item 4 (see QUESTIONS), and since 0.6.1 none after a hyphen that follows
-  a letter ("deixe-" + "me", "E-" + "Mail"; ` - ` keeps the space), in every language.
+- **Live swipe word** (06 §5.3, 0.6.8): drawn like a normal candidate (not bold; the bold "applied" style is kept for the
+  inserted word after the release); a tap on it does nothing (the release result follows at once). While it is shown,
+  other strip lists (a late typing query) are held back and the text state's list is shown when the gesture ends
+  without a result. The recognition of the partial trace uses the same engine call as the release, on the worker; with
+  one key in the sequence nothing is recognised (06 §3.1 needs two keys).
+- **Shift set back by a trace** (03 §4 item 8): shift state, manual mark, "just unlocked" flag and the time of the
+  previous shift touch-down are restored, so a following tap is no double tap.
 - **Keyboard switched while shown**: `InputMethodService.onDestroy` finishes the input view after
   `KeyboardController.destroy` has shut the engine worker down; background tasks posted then are dropped (the learned
   data was saved in `destroy`). Before 0.6.1 this crashed the keyboard process when another keyboard was chosen.

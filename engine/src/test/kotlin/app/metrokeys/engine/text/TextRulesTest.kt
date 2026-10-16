@@ -49,9 +49,30 @@ class TextRulesTest {
         assertFalse(period("Hallo  ", SpaceOrigin.KEY, 100))
         assertFalse(period("- ", SpaceOrigin.KEY, 100))
         assertFalse(period("Hallo ", SpaceOrigin.KEY, 100, FieldPolicy.URL))
-        assertFalse(period("Hallo ", SpaceOrigin.KEY, 100, FieldPolicy.SEARCH))
+        // search fields too since 0.6.8 (04 §2, §8.2; 05 §15)
+        assertTrue(period("Hallo ", SpaceOrigin.KEY, 100, FieldPolicy.SEARCH))
+        assertFalse(period("Hallo ", SpaceOrigin.KEY, 100, FieldPolicy.EMAIL))
         assertTrue(period("Hallo ", SpaceOrigin.KEY, 100, FieldPolicy.DEFAULT))
         assertFalse(TextRules.shouldInsertPeriod("Hallo ", SpaceOrigin.KEY, 100, false, FieldPolicy.TEXT))
+    }
+
+    @Test
+    fun spaceBeforeASwipedWord() {
+        // 06 §5.1 item 1: none at the start, after whitespace, an object marker and `¿ ¡ ( " - # @ /`
+        for (b in listOf("", "a ", "a\n", "\uFFFC", "¿", "¡", "(", "\"", "-", " -", "1-", "deixe-", "#", "@", "/", "a\u00A0")) {
+            assertFalse(TextRules.spaceBeforeSwipe(b), "'$b'")
+        }
+        // every other character: «, “, [, {, ., ,, a digit, an apostrophe, a letter
+        for (b in listOf("a", "«", "“", "[", "{", ".", ",", "1", "don'", "!", "?", ":", ")")) {
+            assertTrue(TextRules.spaceBeforeSwipe(b), "'$b'")
+        }
+    }
+
+    @Test
+    fun swipeCapitalisationAfterADelimiter() {
+        // 06 §5.2, 04 §1.5: directly after . ! ? : (or the danda), without a space
+        for (b in listOf("Hallo.", "Hallo!", "Hallo?", "Achtung:", "क।")) assertTrue(TextRules.capitalizesSwipe(b), b)
+        for (b in listOf("", "Hallo", "Hallo,", "Hallo;", "(", "Hallo. ")) assertFalse(TextRules.capitalizesSwipe(b), b)
     }
 
     @Test

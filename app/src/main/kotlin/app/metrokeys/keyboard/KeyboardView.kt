@@ -667,9 +667,16 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
         }
         override fun pickerCommit(k: Key, item: String) = controller.pickerCommit(k, item)
         override fun popupSnapshot(k: Key): String = if (k.role == KeyRole.LANGUAGE) controller.language else labelOf(k)
-        override fun traceStart(xs: FloatArrayList, ys: FloatArrayList, ts: LongArrayList, downTime: Long) = traceOverlay.start(xs, ys, ts, downTime)
-        override fun traceAdd(x: Float, y: Float, t: Long) = traceOverlay.add(x, y, t)
+        override fun traceStart(startKey: Key, xs: FloatArrayList, ys: FloatArrayList, ts: LongArrayList, downTime: Long, drawFrom: Int) {
+            traceOverlay.start(xs, ys, ts, downTime, drawFrom)
+            controller.swipeStarted(startKey, xs.toArray(), ys.toArray(), ts.toArray(), downTime)
+        }
+        override fun traceAdd(x: Float, y: Float, t: Long) {
+            traceOverlay.add(x, y, t)
+            controller.swipeSample(x, y, t)
+        }
         override fun traceEnd() = traceOverlay.end()
+        override fun traceAborted() = controller.swipeAborted()
         override fun swipe(xs: FloatArray, ys: FloatArray, ts: LongArray) = controller.swipe(ShapeTrace(xs, ys, ts))
         override fun activeKeyChanged(k: Key) = a11y.onActiveKey(k)
         override fun invalidate() = this@KeyboardView.invalidate()

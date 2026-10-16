@@ -77,14 +77,17 @@ class UserModelTest {
     @Test
     fun undoCountsAndAcceptance() {
         val e = de()
+        assertFalse(e.validity("Zwuckel", CaseMode.FIRST_UPPER).valid)
+        // one undo is enough for a word the dictionary does not know (05 §10.4, 0.6.8)
         e.user.reject("Zwuckel", "Zucker", learn = true)
         assertEquals(1, e.user.undoCount("Zwuckel"))
-        assertFalse(e.user.isRejected("Zwuckel"))
-        assertFalse(e.validity("Zwuckel", CaseMode.FIRST_UPPER).valid)
+        assertTrue(e.user.isRejected("Zwuckel"))
+        assertTrue(e.user.isKnownLearned("Zwuckel"))
+        assertTrue(e.validity("Zwuckel", CaseMode.FIRST_UPPER).valid)
+        assertEquals(1, e.user.count("Zwuckel"))
         e.user.reject("Zwuckel", "Zucker", learn = true)
         assertEquals(2, e.user.undoCount("Zwuckel"))
         assertTrue(e.user.isRejected("Zwuckel"))
-        assertTrue(e.validity("Zwuckel", CaseMode.FIRST_UPPER).valid)
         assertEquals(2, e.user.count("Zwuckel"))
         // picking the typed word accepts it after one undo
         e.user.reject("Zwockel", "Zucker", learn = true, accepted = true)
@@ -162,8 +165,8 @@ class UserModelTest {
         val e = de()
         e.user.learn("Haus", emptyList())
         e.user.reject("Hsus", "Haus", learn = true)
-        // unknown word: one use per undo, rejected after two undos
-        assertFalse(e.user.isRejected("Hsus"))
+        // unknown word: one use per undo, rejected after one undo (0.6.8)
+        assertTrue(e.user.isRejected("Hsus"))
         assertEquals(1, e.user.count("Hsus"))
         assertEquals(0, e.user.count("Haus"))
         assertEquals(1, e.user.totalCount)
@@ -172,7 +175,7 @@ class UserModelTest {
         assertTrue(e.user.isRejected("haus"))
         assertEquals(2, e.user.count("haus"))
         val noLearn = de()
-        repeat(2) { noLearn.user.reject("Hsus", "Haus", learn = false) }
+        noLearn.user.reject("Hsus", "Haus", learn = false)
         assertTrue(noLearn.user.isRejected("Hsus"))
         assertEquals(0, noLearn.user.count("Hsus"))
     }
@@ -185,8 +188,7 @@ class UserModelTest {
         assertFalse(u.isRejected("wort0"))
         u.reject("wort10", "x", learn = false)
         assertEquals("wort10", u.rejectedWords().last())
-        // NFKC ("fix" is a dictionary word in English only; here it is unknown and needs two undos)
-        u.reject("ﬁx", "fix", learn = false)
+        // NFKC ("fix" is a dictionary word in English only; here it is unknown, one undo suffices)
         u.reject("ﬁx", "fix", learn = false)
         assertTrue(u.isRejected("fix"))
     }
@@ -219,7 +221,9 @@ class UserModelTest {
         assertEquals(2, restored.recentCount("Zwuckel"))
         assertEquals(mapOf("Zwuckel" to 2), restored.followers("mein"))
         assertTrue(restored.isRejected("Hsus"))
+        assertEquals(2, restored.undoCount("Hsus"))
         assertEquals(1, restored.undoCount("Hsis"))
+        assertTrue(restored.isRejected("Hsis"))
         assertEquals(e.user.totalCount, restored.totalCount)
         assertTrue(bytes.contentEquals(restored.serialize()))
     }

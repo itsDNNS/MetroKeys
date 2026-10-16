@@ -97,20 +97,39 @@ class KeyTouchTest {
         }
 
         override fun pickerCellSize(k: Key, items: List<String>) = if (items.any { it.length > 3 }) 203f to 203f else 131f to 203f
-        override fun pickerOpened(items: List<String>) {}
+        override fun pickerOpened(items: List<String>) {
+            pickers++
+        }
         override fun pickerClosed() {}
         override fun pickerCommit(k: Key, item: String) {
             commits.add(item)
         }
 
         override fun popupSnapshot(k: Key): String = label(k)
-        override fun traceStart(xs: FloatArrayList, ys: FloatArrayList, ts: LongArrayList, downTime: Long) {
+        var traceStartKey: String? = null
+        var traceDrawFrom = -1
+        var traceStartSamples = 0
+        var traceAdds = 0
+        var aborted = 0
+        var pickers = 0
+
+        override fun traceStart(startKey: Key, xs: FloatArrayList, ys: FloatArrayList, ts: LongArrayList, downTime: Long, drawFrom: Int) {
             tracing = true
+            traceStartKey = name(startKey)
+            traceDrawFrom = drawFrom
+            traceStartSamples = xs.size
         }
 
-        override fun traceAdd(x: Float, y: Float, t: Long) {}
+        override fun traceAdd(x: Float, y: Float, t: Long) {
+            traceAdds++
+        }
+
         override fun traceEnd() {
             tracing = false
+        }
+
+        override fun traceAborted() {
+            aborted++
         }
 
         override fun swipe(xs: FloatArray, ys: FloatArray, ts: LongArray) {
@@ -484,6 +503,160 @@ class KeyTouchTest {
         assertEquals(1, touch.picker!!.highlighted)
         up(350f, -20f)
         assertEquals("ß", host.commits.last())
+    }
+
+    @Test
+    fun aLongPressWinsOverATraceInsideTheStartKey() {
+        // 03 §1.5 item 2, §3.2; 06 §2.3, §2.4: s (162–270 × 189–378), area 152–280 × 179–388; a vertical move of
+        // 120 px > 112.5 inside the area becomes a trace, the hold timer keeps running and opens the picker
+        down(216f, 370f)
+        clock.advance(100)
+        move(216f, 250f)
+        assertTrue(host.tracing)
+        assertEquals("s", host.traceStartKey)
+        assertEquals(0, host.traceDrawFrom)
+        clock.advance(350)
+        assertNotNull(touch.picker)
+        assertEquals(1, host.pickers)
+        assertFalse(host.tracing) // the drawn trace fades
+        assertEquals(1, host.aborted) // nothing is recognised
+        // the touch continues as a picker selection: leaving the zone starts the drag phase, slot 1 → ß
+        move(295f, 250f)
+        move(300f, 250f)
+        up(300f, 250f)
+        assertEquals(0, host.swipes)
+        assertEquals(listOf("ß"), host.commits)
+    }
+
+    @Test
+    fun theHoldTimerStopsWhenTheTraceLeavesTheStartKey() {
+        down(540f, 280f)
+        move(700f, 280f)
+        assertTrue(host.tracing)
+        clock.advance(1000)
+        assertNull(touch.picker)
+        assertEquals(0, host.pickers)
+        assertTrue(host.tracing)
+        up(800f, 280f)
+        assertEquals(1, host.swipes)
+        assertEquals(0, host.aborted)
+        assertTrue(host.commits.isEmpty())
+    }
+
+    @Test
+    fun aTraceThatHasNotLeftAKeyWithoutAlternatesKeepsRunning() {
+        // g has no alternates: the hold timer fires, nothing happens, the trace is recognised on release (§3.2 item 5)
+        down(540f, 370f)
+        move(540f, 250f)
+        clock.advance(500)
+        assertNull(touch.picker)
+        assertTrue(host.tracing)
+        up(540f, 250f)
+        assertEquals(1, host.swipes)
+    }
+
+    @Test
+    fun aSwipeMayStartOnShift() {
+        // 06 §2.1 example: Shift (0–162 × 378–567); (80, 360) is outside the cell but |dy| = 110 ≤ 112.5; at (90, 350)
+        // |dy| = 120 → the trace starts there and is drawn from that sample
+        down(80f, 470f)
+        assertEquals(listOf("SHIFT"), host.downs)
+        move(80f, 360f)
+        assertFalse(host.tracing)
+        move(90f, 350f)
+        assertTrue(host.tracing)
+        assertEquals("SHIFT", host.traceStartKey)
+        assertEquals(2, host.traceDrawFrom)
+        assertEquals(3, host.traceStartSamples)
+        // keys reached by sliding show no feedback (03 §1.2a item 5)
+        move(300f, 300f)
+        assertNull(touch.pressedKey)
+        assertNull(touch.popup)
+        up(500f, 300f)
+        assertEquals(1, host.swipes)
+        assertTrue(host.commits.isEmpty())
+        assertEquals(listOf("SHIFT"), host.downs)
+    }
+
+    @Test
+    fun aMoveInsideTheShiftCellIsNoTrace() {
+        // 03 §1.5 item 1b: never a trace while inside the cell, however long the move (vertical 189 px, horizontal)
+        down(10f, 380f)
+        move(150f, 380f)
+        move(150f, 566f)
+        move(10f, 566f)
+        assertFalse(host.tracing)
+        up(10f, 566f)
+        assertEquals(0, host.swipes)
+        assertTrue(host.commits.isEmpty()) // Shift acted on touch-down only
+        assertEquals(listOf("SHIFT"), host.downs)
+    }
+
+    @Test
+    fun aSwipeMayStartOnBackspace() {
+        val (x, y) = centre("BACKSPACE")
+        // a move inside the cell is a plain key press on release
+        down(x, y)
+        move(x - 60f, y + 80f)
+        assertFalse(host.tracing)
+        up(x - 60f, y + 80f)
+        assertEquals(listOf("BACKSPACE"), host.commits)
+        assertEquals(0, host.swipes)
+        // leaving the cell beyond the threshold starts the trace there; the samples since touch-down are kept
+        host.commits.clear()
+        down(x, y)
+        move(x, y - 60f)
+        move(x, y - 170f)
+        assertTrue(host.tracing)
+        assertEquals("BACKSPACE", host.traceStartKey)
+        assertEquals(2, host.traceDrawFrom)
+        move(x - 300f, y - 170f)
+        up(x - 300f, y - 170f)
+        assertEquals(1, host.swipes)
+        assertTrue(host.commits.isEmpty())
+        assertTrue(host.repeats.isEmpty())
+    }
+
+    @Test
+    fun aHeldBackspaceInsideItsCellRepeatsAndNeverTraces() {
+        val (x, y) = centre("BACKSPACE")
+        down(x, y)
+        move(x - 50f, y)
+        clock.advance(450)
+        assertEquals(listOf("BACKSPACE"), host.repeats)
+        move(x, y - 170f) // leaving the area stops the repeat; no trace any more
+        assertFalse(host.tracing)
+        clock.advance(200)
+        assertEquals(1, host.repeats.size)
+        up(x, y - 170f)
+        assertEquals(0, host.swipes)
+    }
+
+    @Test
+    fun aCancelledTraceIsAborted() {
+        down(540f, 280f)
+        move(700f, 280f)
+        assertTrue(host.tracing)
+        touch.cancel()
+        assertFalse(host.tracing)
+        assertEquals(1, host.aborted)
+        assertEquals(0, host.swipes)
+    }
+
+    @Test
+    fun aStickyPickerTapClicksOnceAndCommitsSilently() {
+        // 03 §3.4 item 6: the touch-down on a slot gives the key click (Host.pickerTap), not the picker sound
+        down(216f, 300f)
+        clock.advance(450)
+        up(216f, 300f)
+        assertEquals(1, host.pickers)
+        down(350f, 100f)
+        assertEquals(1, host.pickerTaps)
+        move(360f, 120f)
+        up(360f, 120f)
+        assertEquals(listOf("ß"), host.commits)
+        assertEquals(1, host.pickerTaps)
+        assertEquals(1, host.pickers)
     }
 
     @Test

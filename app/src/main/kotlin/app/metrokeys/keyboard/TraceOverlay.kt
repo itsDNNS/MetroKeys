@@ -84,13 +84,16 @@ class TraceOverlay(private val v: KeyboardView) {
         minX = Int.MAX_VALUE; minY = Int.MAX_VALUE; maxX = -1; maxY = -1
     }
 
-    /** The swipe started: draw the samples since touch-down ([ts] relative to [down]). */
-    fun start(xs: FloatArrayList, ys: FloatArrayList, ts: LongArrayList, down: Long) {
+    /**
+     * The swipe started: draw the samples since touch-down ([ts] relative to [down]) from sample [from] on (a swipe that
+     * started on Shift or Backspace is drawn from the point where it started, 06 §2.3).
+     */
+    fun start(xs: FloatArrayList, ys: FloatArrayList, ts: LongArrayList, down: Long, from: Int = 0) {
         ensure()
         downTime = down
         live = true
         lastX = Float.NaN
-        for (i in 0 until xs.size) queue(xs[i], ys[i], down + ts[i])
+        for (i in from until xs.size) queue(xs[i], ys[i], down + ts[i])
         lastTick = 0L
         v.invalidate()
     }

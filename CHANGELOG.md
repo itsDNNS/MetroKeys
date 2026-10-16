@@ -3,6 +3,34 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.6.8 – 2026-10-16
+
+### Shape writing
+- A swipe may start on Shift or Backspace. As long as the finger stays on that key it is a normal key press (also
+  after a long move); once it leaves the key beyond the swipe threshold the trace starts there. A swipe that starts
+  on Shift leaves the shift state as it was (unless caps lock was turned on).
+- A long press wins over a swipe that has not left its key yet: when the finger moves up or down inside a key and
+  holds, the alternates open (or Backspace repeats), the trace fades and nothing is inserted.
+- No space before a swiped word after `¿ ¡ ( " - # @ /`: "(" + swipe gives "(word", "#" + swipe "#word",
+  " -" + swipe " -word". Punctuation after a swiped word, `¿` and `¡` included, is appended without a space
+  ("Hola" swiped + "¿" → "Hola¿").
+- A word swiped directly after `. ! ? :` starts with a capital: "Hallo." + swipe "morgen" → "Hallo. Morgen".
+- While swiping, the strip shows the best word for the trace so far; when the gesture ends without a word the strip
+  shows what it showed before.
+- Tapping an alternative of an unrecognised swipe follows the same spacing rule.
+
+### Typing
+- Undoing an autocorrection once is enough for every word, also for words the dictionary does not know: "Hsllo"
+  corrected to "Hallo", undone once, is never corrected again.
+- A held Backspace that deletes back into an autocorrected word undoes the correction as well (the first repeat
+  deletes the space, the next deletes into the word).
+- The double-space period also works in search fields.
+
+### Candidate strip
+- With an empty clipboard the paste button stays in the strip, dimmed to 50 %, and cannot be tapped (shown on a freshly
+  opened keyboard before the first suggestions, or when the list is dragged back to its start). It is still left out
+  in password fields, with the clipboard button on the app bar and while the recently-copied chip is shown.
+
 ## 0.6.7 – 2026-10-16
 
 ### Spanish, Portuguese, Italian and French dictionaries

@@ -118,6 +118,9 @@ public class PredictionEngine(
 
     // ------------------------------------------------------------------ configuration
 
+    /** The letter-page geometry of the current layout (the key sequence of a live swipe, 06 §5.3). */
+    public val geometry: KeyboardGeometry get() = languages.first().geometry
+
     /** Sets the letter-page geometry (all languages use the geometry of the current layout). */
     public fun setGeometry(geometry: KeyboardGeometry) {
         for (l in languages) l.geometry = geometry

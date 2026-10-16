@@ -110,19 +110,28 @@ class SpanishInputLogicTest {
     }
 
     @Test
-    fun openingMarkAfterASwipedWordGetsASpaceFirst() {
+    fun openingMarkAfterASwipedWordIsAppendedDirectly() {
+        // 04 §1.6 item 4, 06 §5.6 (0.6.8, as in the reference): "Hola" swiped + "¿" → "Hola¿"
         swipe("Hola", "Hora")
         assertEquals("Hola|", editor.toString())
         logic.onText("¿")
         sched.run(400)
-        assertEquals("Hola ¿|", editor.toString())
-        // a swiped word directly after the mark gets no space
-        swipe("qué", "que")
-        assertEquals("Hola ¿qué|", editor.toString())
+        assertEquals("Hola¿|", editor.toString())
+        // a swiped word directly after the mark gets no space (06 §5.1: "Hola¿" + swipe "que" → "Hola¿Que" with the
+        // auto-shift after ¿)
+        assertTrue(TextRules.isSentenceStart("Hola¿"))
+        swipe("Qué", "Que")
+        assertEquals("Hola¿Qué|", editor.toString())
         // other punctuation after a swiped word is appended directly (06 §5.6)
         logic.onText("?")
         sched.run(400)
-        assertEquals("Hola ¿qué?|", editor.toString())
+        assertEquals("Hola¿Qué?|", editor.toString())
+        logic.onText(" ")
+        sched.run(400)
+        swipe("Hola")
+        logic.onText("¡")
+        sched.run(400)
+        assertEquals("Hola¿Qué? Hola¡|", editor.toString())
     }
 
     @Test

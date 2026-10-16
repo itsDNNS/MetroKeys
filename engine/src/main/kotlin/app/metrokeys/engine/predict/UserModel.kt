@@ -20,7 +20,7 @@ import java.text.Normalizer
  * All methods are thread-safe.
  *
  * Words the dictionary does not know in any casing ("unknown words") count as known only when accepted, used
- * `LEARN_MIN_UNKNOWN` times or undone `REJECT_MIN_UNKNOWN` times; words the dictionary knows in some casing need
+ * `LEARN_MIN_UNKNOWN` times or undone once; words the dictionary knows in some casing need
  * `LEARN_MIN_COUNT` uses (05 §7 rule 3, §12.2, §12.5).
  */
 public class UserModel(private val lexicon: Lexicon?) {
@@ -71,15 +71,15 @@ public class UserModel(private val lexicon: Lexicon?) {
 
     /**
      * True if the learned form [form] counts as a known word (05 §7 rule 3, §12.5): a form whose key the dictionary
-     * knows needs `LEARN_MIN_COUNT` uses; an unknown word must be accepted, used `LEARN_MIN_UNKNOWN` times or undone
-     * `REJECT_MIN_UNKNOWN` times.
+     * knows needs `LEARN_MIN_COUNT` uses; an unknown word must be accepted, used `LEARN_MIN_UNKNOWN` times or be in the
+     * undo table (one undone autocorrection, 0.6.8).
      */
     @Synchronized
     public fun isKnownLearned(form: String): Boolean {
         val e = words[form]
         if (dictionaryKnows(form)) return e != null && e.count >= Params.LEARN_MIN_COUNT
         if (e != null && (e.accepted || e.count >= Params.LEARN_MIN_UNKNOWN)) return true
-        return e != null && e.count > 0 && undoCount(form) >= Params.REJECT_MIN_UNKNOWN
+        return e != null && e.count > 0 && undoCount(form) > 0
     }
 
     /** Learned forms that count as known words (§12.5), with their counts: the correction pool and completions. */
@@ -103,16 +103,13 @@ public class UserModel(private val lexicon: Lexicon?) {
     public fun followers(context: String): Map<String, Int>? = contexts[context]?.let { LinkedHashMap(it) }
 
     /**
-     * True if [word] is a rejected autocorrection that is valid and never autocorrected again (05 §10.4): a word the
-     * dictionary knows in some casing after one undo, an unknown word after `REJECT_MIN_UNKNOWN` undos.
+     * True if [word] is a rejected autocorrection that is valid and never autocorrected again (05 §10.4): one undo is
+     * enough for every word, whether the dictionary knows it or not (0.6.8, as in the reference).
      */
     @Synchronized
-    public fun isRejected(word: String): Boolean {
-        val n = undo[nfkc(word)] ?: return false
-        return n >= (if (dictionaryKnows(word)) 1 else Params.REJECT_MIN_UNKNOWN)
-    }
+    public fun isRejected(word: String): Boolean = (undo[nfkc(word)] ?: 0) > 0
 
-    /** All words of the undo table, oldest first (also those not yet undone often enough to count). */
+    /** All words of the undo table, oldest first. */
     @Synchronized
     public fun rejectedWords(): List<String> = undo.keys.toList()
 
@@ -448,8 +445,8 @@ public class UserModel(private val lexicon: Lexicon?) {
             if (nu !in 0..Params.UNDO_MAX) throw IOException("bad undo count")
             repeat(nu) {
                 val w = inp.readUTF()
-                // version 1 had no undo counts and treated every entry as fully rejected
-                val n = if (version >= VERSION) inp.readInt() else Params.REJECT_MIN_UNKNOWN
+                // version 1 had no undo counts; every entry was rejected
+                val n = if (version >= VERSION) inp.readInt() else 1
                 if (n <= 0) throw IOException("bad undo count")
                 undo[w] = n
             }

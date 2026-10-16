@@ -38,7 +38,7 @@ class StripBar(private val v: KeyboardView) {
     private var recentlyPasted = false
     private var lastDragInView = true
     private var drawnSinceShown = false
-    private var lastCanPaste = false
+    private var lastCanPaste = HEADER_SUPPRESSED
     private var awaitingRest = false
 
     // clipboard slot (03 §6.7.3)
@@ -200,7 +200,7 @@ class StripBar(private val v: KeyboardView) {
         dragged = false
         recentlyPasted = false
         lastDragInView = true
-        lastCanPaste = v.controller.canPaste
+        lastCanPaste = headerState()
         slot = if (v.controller.clipButtonVisible) 1f else 0f
         slotTo = slot
         forgetWord = null
@@ -222,7 +222,7 @@ class StripBar(private val v: KeyboardView) {
     }
 
     fun onFieldStateChanged() {
-        val cp = v.controller.canPaste
+        val cp = headerState()
         if (cp != lastCanPaste) {
             lastCanPaste = cp
             scrollHome()
@@ -233,7 +233,7 @@ class StripBar(private val v: KeyboardView) {
     fun onClipboardChanged() {
         recentlyPasted = false
         dragged = false
-        lastCanPaste = v.controller.canPaste
+        lastCanPaste = headerState()
         updateSlotTarget()
         scrollHome()
     }
@@ -249,9 +249,19 @@ class StripBar(private val v: KeyboardView) {
         v.invalidate()
     }
 
+    /** State of the paste header (03 §6.6 item 2): normal, dimmed (empty clipboard) or suppressed. */
+    private fun headerState(): Int = when {
+        v.controller.canPaste -> HEADER_NORMAL
+        v.controller.pasteDimmed -> HEADER_DIMMED
+        else -> HEADER_SUPPRESSED
+    }
+
     /** Header target of 03 §6.6.3. */
     private fun headerTarget(): Float {
-        if (!v.controller.canPaste) return headerW
+        if (!v.controller.canPaste) {
+            // dimmed: home on a freshly shown keyboard before the first candidates, else hidden; suppressed: hidden
+            return if (v.controller.pasteDimmed && !candidatesShown) 0f else headerW
+        }
         if (!candidatesShown) return 0f
         if (!dragged && !recentlyPasted) return 0f
         if (dragged && lastDragInView && !recentlyPasted) return 0f
@@ -403,11 +413,18 @@ class StripBar(private val v: KeyboardView) {
         }
         c.save()
         c.clipRect(0f, top, v.width.toFloat(), top + h)
-        // paste header: not drawn at all when nothing can be pasted (03 §6.6 item 8)
+        // paste header (03 §6.6 item 8): at 50 % opacity with an empty clipboard, not drawn when suppressed
         val hx = s.display(96f * m.s, contentLength)
         val cy = top + h / 2
-        if (hx > -60 * m.s && v.controller.canPaste) {
-            drawRoundButton(c, hx, cy, pressed == HEADER) { col, bg -> v.glyphs.pastePictogram(c, hx, cy, m.s, col, bg) }
+        if (hx > -60 * m.s) {
+            if (v.controller.canPaste) {
+                drawRoundButton(c, hx, cy, pressed == HEADER) { col, bg -> v.glyphs.pastePictogram(c, hx, cy, m.s, col, bg) }
+            } else if (v.controller.pasteDimmed) {
+                val r = 60f * m.s
+                c.saveLayerAlpha(hx - r, cy - r, hx + r, cy + r, 128)
+                drawRoundButton(c, hx, cy, false) { col, bg -> v.glyphs.pastePictogram(c, hx, cy, m.s, col, bg) }
+                c.restore()
+            }
         }
         // recently-copied chip
         if (chipSlot > 0f) {
@@ -783,7 +800,7 @@ class StripBar(private val v: KeyboardView) {
         if (!v.controller.chipPaste()) return
         recentlyPasted = true
         dragged = false
-        lastCanPaste = v.controller.canPaste
+        lastCanPaste = headerState()
         updateSlotTarget()
         scrollHome()
     }
@@ -817,7 +834,9 @@ class StripBar(private val v: KeyboardView) {
             return out
         }
         val hx = s.display(96f * m.s, contentLength)
-        if (v.controller.canPaste && hx > 0) out.add(Triple(HEADER, 0, RectF(hx - 50 * m.s, top, hx + 50 * m.s, top + h)))
+        if ((v.controller.canPaste || v.controller.pasteDimmed) && hx > 0) {
+            out.add(Triple(HEADER, 0, RectF(hx - 50 * m.s, top, hx + 50 * m.s, top + h)))
+        }
         if (chipSlot > 0.5f && chip != null) {
             val l = maxOf(0f, s.display(headerW, contentLength) + chipGap)
             val r = minOf(v.width.toFloat(), s.display(headerW + chipW, contentLength) - chipGap)
@@ -852,7 +871,7 @@ class StripBar(private val v: KeyboardView) {
 
     fun activate(kind: Int, index: Int, long: Boolean = false) {
         when (kind) {
-            HEADER -> {
+            HEADER -> if (v.controller.canPaste) {
                 v.controller.paste()
                 recentlyPasted = true
                 scrollHome()
@@ -892,5 +911,9 @@ class StripBar(private val v: KeyboardView) {
         const val ITEM = 1
         const val DICTATION = 2
         const val FORGET = 3
+
+        private const val HEADER_SUPPRESSED = 0
+        private const val HEADER_DIMMED = 1
+        private const val HEADER_NORMAL = 2
     }
 }

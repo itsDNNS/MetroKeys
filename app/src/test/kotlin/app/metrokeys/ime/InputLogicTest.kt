@@ -88,7 +88,8 @@ class InputLogicTest {
     }
 
     @Test
-    fun undoByEditingNeedsTwoUndosForAnUnknownWord() {
+    fun undoByEditingNeedsOneUndoAlsoForAnUnknownWord() {
+        // 05 §10.4, 04 §3.5 (0.6.8, as in the reference): one rejection is enough for every word
         type("Hsllo ")
         assertEquals("Hallo |", editor.toString())
         backspace()
@@ -96,26 +97,43 @@ class InputLogicTest {
         backspace()
         assertEquals("Hall|", editor.toString())
         assertEquals(1, engine.active.user.undoCount("Hsllo"))
+        assertTrue(!engine.active.user.isAccepted("Hsllo"))
         type(" Hsllo ")
-        assertEquals("Hall Hallo |", editor.toString())
-        backspace()
-        backspace()
-        assertEquals(2, engine.active.user.undoCount("Hsllo"))
-        type(" Hsllo ")
-        assertEquals("Hall Hall Hsllo |", editor.toString())
+        assertEquals("Hall Hsllo |", editor.toString())
     }
 
     @Test
-    fun heldBackspaceNeverRejects() {
+    fun aHeldBackspaceRejectsWhenItDeletesIntoTheCorrectedWord() {
+        // 05 §17 test list, 04 §6.2: the first repeat deletes the space and resumes "Hallo", the next deletes into it
         type("Hsllo ")
         assertEquals("Hallo |", editor.toString())
-        repeat(3) {
-            logic.backspace(repeated = true)
-            sched.run(83)
-        }
+        logic.backspace()
+        sched.run(83)
+        assertEquals("Hallo|", editor.toString())
+        assertEquals(StripKind.RESUMED, strip.kind)
+        logic.backspace()
+        sched.run(83)
+        logic.backspace()
         sched.run(400)
         assertEquals("Hal|", editor.toString())
-        assertEquals(0, engine.active.user.undoCount("Hsllo"))
+        assertEquals(1, engine.active.user.undoCount("Hsllo"))
+        // "Hsllo" is never corrected again (a new input, so "Hal" is not autocorrected by the next space)
+        logic.startInput(FieldState.from(TEXT_MULTILINE, 0), 3, 3)
+        type(" Hsllo ")
+        assertEquals("Hal Hsllo |", editor.toString())
+    }
+
+    @Test
+    fun undoByTappingTheTypedWordNeedsOneUndo() {
+        type("Hsllo ")
+        backspace()
+        assertEquals("Hsllo", strip.items.first().text)
+        logic.pick(strip, 0)
+        sched.run(400)
+        assertEquals("Hsllo |", editor.toString())
+        assertEquals(1, engine.active.user.undoCount("Hsllo"))
+        type("Hsllo ")
+        assertEquals("Hsllo Hsllo |", editor.toString())
     }
 
     @Test
@@ -405,8 +423,8 @@ class InputLogicTest {
     }
 
     @Test
-    fun swipedWordAfterLetterAndHyphenGetsNoSpace() {
-        // 06 §5.1 item 1 (0.6, all languages): "E-" + swipe "Mail" → "E-Mail"; " - " keeps the space
+    fun swipedWordAfterAHyphenGetsNoSpace() {
+        // 06 §5.1 item 1: "E-" + swipe "Mail" → "E-Mail"; since 0.6.8 also " -" + swipe → " -gut"
         type("Die E-")
         val r = app.metrokeys.engine.swipe.ShapeResult(emptyList(), true)
         logic.applySwipe(r, listOf("Mail"))
@@ -415,7 +433,105 @@ class InputLogicTest {
         type(" -")
         logic.applySwipe(r, listOf("gut"))
         sched.run()
-        assertEquals("Die E-Mail - gut|", editor.toString())
+        assertEquals("Die E-Mail -gut|", editor.toString())
+    }
+
+    private fun swipe(vararg words: String) {
+        logic.applySwipe(app.metrokeys.engine.swipe.ShapeResult(emptyList(), true), words.toList())
+        sched.run()
+    }
+
+    @Test
+    fun noSpaceBeforeASwipedWordAfterOpeningCharacters() {
+        // 06 §5.1 item 1, 04 §12.2 item 5 (0.6.8, as in the reference): none after ¿ ¡ ( " - # @ /
+        type("(")
+        swipe("Haus")
+        assertEquals("(Haus|", editor.toString())
+        type(") \"")
+        swipe("gut")
+        assertEquals("(Haus) \"gut|", editor.toString())
+        type("\" #")
+        swipe("tag")
+        type(" @")
+        swipe("anna")
+        type(" /")
+        swipe("weg")
+        assertEquals("(Haus) \"gut\" #tag @anna /weg|", editor.toString())
+        // every other character keeps the usual space: « [ . , a digit
+        type(" «")
+        swipe("wort")
+        type(" [")
+        swipe("wort")
+        type("].")
+        swipe("Wort")
+        type(" 3")
+        swipe("mal")
+        assertEquals("(Haus) \"gut\" #tag @anna /weg « wort [ wort]. Wort 3 mal|", editor.toString())
+    }
+
+    @Test
+    fun punctuationAfterASwipedWordIsAppendedDirectly() {
+        // 06 §5.6, 04 §5.3: . , ? ! and - / ( @ # are appended without a space; a letter starts a new word
+        for (p in listOf("?", ",", "!", ".", "-", "/", "(", "@", "#", ":", ";")) {
+            swipe("gut")
+            type(p)
+            type(" ")
+        }
+        assertEquals("gut? gut, gut! gut. gut- gut/ gut( gut@ gut# gut: gut; |", editor.toString())
+    }
+
+    @Test
+    fun aSwipedWordDirectlyAfterASentenceDelimiterIsCapitalised() {
+        // 06 §5.2, 04 §1.5: "Hallo." + swipe "morgen" → "Hallo. Morgen" (the space comes from §5.1)
+        val off = app.metrokeys.engine.swipe.ShiftState.OFF
+        val one = app.metrokeys.engine.swipe.ShiftState.ONE_SHOT
+        val caps = app.metrokeys.engine.swipe.ShiftState.CAPS_LOCK
+        for (b in listOf("Hallo.", "Hallo!", "Hallo?", "Hallo:")) assertEquals(one, InputLogic.swipeShift(off, true, b))
+        assertEquals(off, InputLogic.swipeShift(off, false, "Hallo."))
+        assertEquals(off, InputLogic.swipeShift(off, true, "Hallo,"))
+        assertEquals(caps, InputLogic.swipeShift(caps, true, "Hallo."))
+        type("Hallo.")
+        fun cand(t: String) = app.metrokeys.engine.swipe.ShapeCandidate(t, 0.0, 0.0, 0.0, 0, "de-DE")
+        val r = app.metrokeys.engine.swipe.ShapeResult(listOf(cand("morgen"), cand("Morgen"), cand("morgens")), true)
+        val texts = r.texts(InputLogic.swipeShift(off, true, editor.toString().removeSuffix("|")))
+        assertEquals(listOf("Morgen", "Morgens"), texts)
+        logic.applySwipe(r, texts)
+        sched.run()
+        assertEquals("Hallo. Morgen|", editor.toString())
+    }
+
+    @Test
+    fun theLiveSwipeWordCannotBePicked() {
+        type("Das ")
+        val before = editor.toString()
+        logic.pick(StripContent(StripKind.SWIPE_LIVE, listOf(StripItem("ist"))), 0)
+        sched.run(400)
+        assertEquals(before, editor.toString())
+    }
+
+    @Test
+    fun aPickedUnrecognisedSwipeAlternativeFollowsTheLeadingSpaceRule() {
+        // 06 §5.5: tapping an alternative inserts it with the leading space rule of §5.1
+        type("(")
+        logic.applySwipe(app.metrokeys.engine.swipe.ShapeResult(emptyList(), false), listOf("Haus", "Hans"))
+        sched.run()
+        assertEquals(StripKind.SWIPE_UNRECOGNISED, strip.kind)
+        assertEquals("(|", editor.toString())
+        logic.pick(strip, 0)
+        sched.run(400)
+        assertEquals("(Haus |", editor.toString())
+    }
+
+    @Test
+    fun doubleSpacePeriodInASearchField() {
+        // 04 §2, §8.2; 05 §15 (0.6.8): also in search fields (text field with the search action)
+        logic.startInput(FieldState.from(0x1, 3), 0, 0)
+        type("hallo")
+        logic.onText(" ")
+        sched.run(100)
+        logic.onText(" ")
+        sched.run()
+        assertEquals("hallo. |", editor.toString())
     }
 
     @Test

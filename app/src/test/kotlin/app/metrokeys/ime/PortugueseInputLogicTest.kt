@@ -114,20 +114,20 @@ class PortugueseInputLogicTest {
 
     @Test
     fun swipedWordsAfterLetterAndHyphen() {
-        // 06 §5.1 item 1 (0.6, all languages): no space directly after "<letter>-"
+        // 06 §5.1 item 1 (all languages): no space directly after "-"
         swipe("deixe", "deixa")
         logic.onText("-")
         sched.run(400)
         assertEquals("deixe-|", editor.toString())
         swipe("me", "mas")
         assertEquals("deixe-me|", editor.toString())
-        // a hyphen after a space (a dash) keeps the space before the next swiped word
+        // since 0.6.8 also a hyphen after a space: " -" + swipe → " -ver" (the hyphen needs no letter before it)
         logic.onText(" ")
         sched.run(400)
         logic.onText("-")
         sched.run(400)
         swipe("ver")
-        assertEquals("deixe-me - ver|", editor.toString())
+        assertEquals("deixe-me -ver|", editor.toString())
     }
 
     @Test
@@ -135,9 +135,9 @@ class PortugueseInputLogicTest {
         assertFalse(TextRules.spaceBeforeSwipe(""))
         assertFalse(TextRules.spaceBeforeSwipe("deixe-"))
         assertFalse(TextRules.spaceBeforeSwipe("E-"))
-        assertTrue(TextRules.spaceBeforeSwipe(" -"))
-        assertTrue(TextRules.spaceBeforeSwipe("-"))
-        assertTrue(TextRules.spaceBeforeSwipe("1-"))
+        assertFalse(TextRules.spaceBeforeSwipe(" -"))
+        assertFalse(TextRules.spaceBeforeSwipe("-"))
+        assertFalse(TextRules.spaceBeforeSwipe("1-"))
         assertFalse(TextRules.spaceBeforeSwipe("¿"))
         assertFalse(TextRules.spaceBeforeSwipe("a "))
         assertTrue(TextRules.spaceBeforeSwipe("a"))

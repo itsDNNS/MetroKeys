@@ -7,6 +7,7 @@ import app.metrokeys.engine.Query
 import app.metrokeys.engine.SuggestionKind
 import app.metrokeys.engine.TextRange
 import app.metrokeys.engine.swipe.ShapeResult
+import app.metrokeys.engine.swipe.ShiftState
 import app.metrokeys.engine.text.FieldPolicy
 import app.metrokeys.engine.text.SpaceOrigin
 import app.metrokeys.engine.text.TextModel
@@ -529,8 +530,8 @@ class InputLogic(
         if (word.isNotEmpty() && typedSinceMove && !wasSwiped && !TextRules.caretInsideWord(editor.textAfter(1))) {
             learn(word, TextModel.precedingWords(before, before.length - word.length, 2))
         }
-        // an opening mark ¿ ¡ starts a new phrase: after a swiped word a space comes first (04 §1.6 item 4, 06 §5.6)
-        if (wasSwiped && TextRules.isOpeningMark(text)) commit(" ")
+        // after a swiped word every punctuation mark, ¿ ¡ included, is appended without a space (04 §1.6 item 4,
+        // §5.3; 06 §5.6)
         commit(text)
         editor.endBatch()
         lastSpaceTime = 0
@@ -603,10 +604,10 @@ class InputLogic(
     // ================================================================ backspace (04 §6)
 
     /**
-     * One backspace (04 §6). [repeated]: a step of a held backspace (03 §5), which never rejects an autocorrection
-     * (05 §10.4 extension): deleting through corrected words is no undo.
+     * One backspace (04 §6), also each step of a held backspace (03 §5): both reject a resumed autocorrection they
+     * delete into (04 §6.2, 05 §10.4, 0.6.8).
      */
-    fun backspace(repeated: Boolean = false) {
+    fun backspace() {
         noteKey()
         lastWasBackspace = true
         autoSpace = false
@@ -643,7 +644,7 @@ class InputLogic(
         val n = lastGraphemeLength(before)
         val removed = before.substring(before.length - n)
         val r = resumed
-        if (r?.autoTyped != null && selStart == r.end && !repeated) reject(r)
+        if (r?.autoTyped != null && selStart == r.end) reject(r)
         resumed = null
         editor.beginBatch()
         deleteBefore(n)
@@ -747,6 +748,7 @@ class InputLogic(
     /** Tap on strip entry [index] of [content]. */
     fun pick(content: StripContent, index: Int) {
         val item = content.items.getOrNull(index) ?: return
+        if (content.kind == StripKind.SWIPE_LIVE) return
         noteKey()
         if (item.addWord) {
             val e = engine
@@ -791,12 +793,13 @@ class InputLogic(
             }
             StripKind.SWIPE_UNRECOGNISED -> {
                 finishComposing()
-                val b = editor.textBefore(1)
-                if (b.isNotEmpty() && !b.last().isWhitespace()) commit(" ")
+                // the leading space rule of a swiped word (06 §5.5, §5.1)
+                val elided = engine?.isElisionPrefix(TextModel.currentWord(editor.textBefore(BEFORE))) == true
+                if (!elided && TextRules.spaceBeforeSwipe(editor.textBefore(2))) commit(" ")
                 newStart = selStart
                 commit(text)
             }
-            StripKind.PREDICTION, StripKind.NONE -> {
+            StripKind.PREDICTION, StripKind.NONE, StripKind.SWIPE_LIVE -> {
                 finishComposing()
                 if (item.emoji) {
                     val b = editor.textBefore(BEFORE).toString()
@@ -865,8 +868,8 @@ class InputLogic(
         finishComposing()
         swiped = null
         autoSpace = false
-        // 06 §5.1 item 1; never a space directly after an opening mark ¿ ¡ (04 §1.6 item 4), after "<letter>-" or
-        // after an elision prefix of a loaded language ("l'" + "acqua")
+        // 06 §5.1 item 1: no space after whitespace, an object marker, `¿ ¡ ( " - # @ /` or an elision prefix of a
+        // loaded language ("l'" + "acqua")
         val elided = engine?.isElisionPrefix(TextModel.currentWord(editor.textBefore(BEFORE))) == true
         if (!elided && TextRules.spaceBeforeSwipe(editor.textBefore(2))) commit(" ")
         val start = selStart
@@ -1368,6 +1371,14 @@ class InputLogic(
         const val AHEAD_WAIT_MS = 1000L
 
         private val breaker: BreakIterator = BreakIterator.getCharacterInstance()
+
+        /**
+         * The case of a swiped word and its alternatives (06 §5.2): the [shift] state, and a one-shot shift directly
+         * after `. ! ? :` (or the danda) when automatic capitalisation is allowed ([autoCaps], 04 §1.1 preconditions),
+         * although no space was typed: `Hallo.` + swipe `morgen` → `Hallo. Morgen` (04 §1.5).
+         */
+        fun swipeShift(shift: ShiftState, autoCaps: Boolean, before: CharSequence): ShiftState =
+            if (shift == ShiftState.OFF && autoCaps && TextRules.capitalizesSwipe(before)) ShiftState.ONE_SHOT else shift
 
         /** Length of the last grapheme cluster of [s] (04 §6.1.4). */
         fun lastGraphemeLength(s: String): Int {

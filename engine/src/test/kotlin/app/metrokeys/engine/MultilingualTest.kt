@@ -92,8 +92,8 @@ class MultilingualTest {
         assertEquals(1, en.user.count("Zwuckel"))
         e.learn("Zwockel", listOf("Ich", "glaube"))
         assertEquals(1, de.user.count("Zwockel"))
-        // rejection goes to all languages ("Hsus" is unknown: two undos)
-        repeat(2) { e.rejectAutoCorrection("Hsus", "Haus") }
+        // rejection goes to all languages ("Hsus" is unknown: one undo suffices)
+        e.rejectAutoCorrection("Hsus", "Haus")
         assertTrue(de.user.isRejected("Hsus") && en.user.isRejected("Hsus"))
         // forgetting removes the word from every language
         assertTrue(e.forget("Zwuckel"))

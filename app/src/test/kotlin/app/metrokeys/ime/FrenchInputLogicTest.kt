@@ -130,6 +130,31 @@ class FrenchInputLogicTest {
     }
 
     @Test
+    fun aHyphenKeepsTheAutoSpace() {
+        // 04 §4.3, §11.3 item 3 (0.6.8, as in the reference): "dis" picked + "-moi" → "dis -moi", no exception
+        type("di")
+        val i = logic.strip.items.indexOfFirst { it.text == "dis" }
+        assertTrue(logic.strip.items.toString(), i >= 0)
+        logic.pick(logic.strip, i)
+        sched.run(400)
+        type("-moi")
+        assertEquals("dis -moi|", editor.toString())
+    }
+
+    @Test
+    fun noTypographicApostropheOrNoBreakSpaceIsInserted() {
+        // 04 §11.3 item 8: an elided correction gets ASCII ', a "!" after an auto space gets no (narrow) no-break space
+        type("cest ")
+        type("Merc")
+        logic.pick(logic.strip, logic.strip.items.indexOfFirst { it.text == "Merci" })
+        sched.run(400)
+        type("!")
+        val text = editor.toString()
+        assertEquals("c'est Merci!|", text)
+        assertTrue(text.none { it == '’' || it == '\u00A0' || it == '\u202F' })
+    }
+
+    @Test
     fun autoSpaceBeforeExclamationMarkIsRemoved() {
         type("Merc")
         val i = logic.strip.items.indexOfFirst { it.text == "Merci" }

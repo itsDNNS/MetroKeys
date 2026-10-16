@@ -482,9 +482,12 @@ public class ShapeWriter @JvmOverloads constructor(
             return abs(dx) > t || abs(dy) > t
         }
 
-        /** True if a touch-down at [y] on a letter key may become a swipe (upper 75 % of the key area). */
+        /**
+         * True if a touch-down at [y] may become a swipe (upper 75 % of the key area), whatever key it lands on (06 §2.1,
+         * 0.6.8: also Shift and Backspace).
+         */
         @JvmStatic
-        public fun isSwipeCandidate(y: Float, height: Float, onLetterKey: Boolean): Boolean = onLetterKey && y < NO_START_BOTTOM * height
+        public fun isSwipeCandidate(y: Float, height: Float): Boolean = y < NO_START_BOTTOM * height
 
         internal fun exceedsThreshold(trace: ShapeTrace, g: KeyboardGeometry): Boolean {
             val x0 = trace.xs[0]
@@ -499,23 +502,16 @@ public class ShapeWriter @JvmOverloads constructor(
             val keys = ArrayList<Int>()
             val ex = ArrayList<Float>()
             val ey = ArrayList<Float>()
+            val tracker = KeySequenceTracker(g)
             for (i in 0 until trace.size) {
-                if (keys.size >= MAX_KEYS) break
+                if (tracker.size >= MAX_KEYS) break
                 val x = trace.xs[i]
                 val y = trace.ys[i]
-                val k = g.keys.indexOfFirst { it.contains(x, y) }
+                val k = tracker.add(x, y)
                 if (k < 0) continue
-                if (keys.isEmpty()) {
-                    keys.add(k)
-                    ex.add(x)
-                    ey.add(y)
-                    continue
-                }
-                if (k != keys.last() && g.keys[k].containsShrunk(x, y, KEY_HYSTERESIS, KEY_HYSTERESIS)) {
-                    keys.add(k)
-                    ex.add(x)
-                    ey.add(y)
-                }
+                keys.add(k)
+                ex.add(x)
+                ey.add(y)
             }
             if (keys.isEmpty()) return null
             val n = keys.size
@@ -614,5 +610,27 @@ public class ShapeWriter @JvmOverloads constructor(
             }
             return cost[n - 1][m - 1] / steps[n - 1][m - 1]
         }
+    }
+}
+
+/**
+ * The key sequence of 06 §3.2 built sample by sample: the live best word of 06 §5.3 is recognised each time it gains a
+ * key. [keySequence][ShapeWriter.keySequence] uses the same rules.
+ */
+public class KeySequenceTracker(private val g: KeyboardGeometry) {
+    /** Number of keys in the sequence so far (at most `swMaxKeys`). */
+    public var size: Int = 0
+        private set
+    private var last = -1
+
+    /** Adds a sample; returns the index of the letter key the sequence gained, or −1 if it gained none. */
+    public fun add(x: Float, y: Float): Int {
+        if (size >= ShapeWriter.MAX_KEYS) return -1
+        val k = g.keys.indexOfFirst { it.contains(x, y) }
+        if (k < 0) return -1
+        if (size > 0 && (k == last || !g.keys[k].containsShrunk(x, y, ShapeWriter.KEY_HYSTERESIS, ShapeWriter.KEY_HYSTERESIS))) return -1
+        last = k
+        size++
+        return k
     }
 }
