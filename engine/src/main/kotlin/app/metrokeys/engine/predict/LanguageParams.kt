@@ -84,6 +84,11 @@ public data class LanguageParams(
      */
     val capsUnaccented: Boolean = false,
     /**
+     * `UMLAUT_TRANSLIT` (extension, §5, §8.4 item 5; 0.7.0): typed "ae"/"oe"/"ue" for a candidate ä/ö/ü costs
+     * `ED_DIACRITIC` (umlaut rule; 1 unit), and a prefix with "ae"/"oe"/"ue" also completes with the umlaut.
+     */
+    val umlautTranslit: Boolean = false,
+    /**
      * The unattested-key rule of §10.1 step 5: a word valid only through an unattested lower-case key no longer blocks a
      * clearly better correction. Off in 0.6.9 (owner decision: in effect from 0.7.0 with the spelling dictionaries);
      * the one switch is [Params.UNATTESTED_KEYS_RULE].
@@ -117,6 +122,8 @@ public data class LanguageParams(
             accentSwap = false,
             // 0.6.4: real-word typos of the German build (05b §3.6) are class 0: valid, never offered
             hideClassZero = true,
+            // 0.7.0: "fuer" → "für" costs ED_DIACRITIC (umlaut rule, §5)
+            umlautTranslit = true,
             fallbackRows = listOf("qwertzuiop", "asdfghjkl", "yxcvbnm"),
             fallbackRow2Start = 0.05f,
             shape = ShapeParams(unusedKeyCost = 10.0, neighbourFactor = 0.096, doubleLetterCost = 14.0, accentFactor = 0.24, cornerAngle = 45f),

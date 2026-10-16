@@ -120,6 +120,12 @@ public class LanguageSuggestions internal constructor(
     public val autoCorrection: Candidate?,
     /** True if the typed word is the letters of an elision prefix and [ranked] starts with that prefix (05 §8.5). */
     public val prefixFirst: Boolean = false,
+    /**
+     * The step of 05 §10.1 that ended the autocorrection decision: "1", "2", "2a", "3" … "8" ("8" = applied), "-" when
+     * no decision was made (corrections only, empty or too long word). Diagnostics of the dictionary evaluation (05c §5);
+     * not part of the public API.
+     */
+    internal val decisionStep: String = "-",
 ) {
     /** Candidate-bar entries of this language alone (05 §9), without emoji. */
     public fun bar(): List<Candidate> {
@@ -580,6 +586,7 @@ public class LanguageEngine @JvmOverloads constructor(
         }
         return LanguageSuggestions(
             languageTag, ctx.word, r.validity, r.ranked.map(::map), r.corrections.map(::map), r.autoCorrection?.let(::map),
+            decisionStep = r.decisionStep,
         )
     }
 
@@ -647,7 +654,9 @@ public class LanguageEngine @JvmOverloads constructor(
 
         // 8.1 correction pool
         val pool = LinkedHashSet<String>()
-        val unitsOf = { key: String -> EditDistance.units(low, key, accentSwap = params.accentSwap) }
+        val unitsOf = { key: String ->
+            EditDistance.units(low, key, accentSwap = params.accentSwap, umlautTranslit = params.umlautTranslit)
+        }
         for (m in lexicon.fuzzy(low, maxEdits, Params.FUZZY_POOL, unitsOf)) pool.add(m.form.text)
         if (len == 3) pool.addAll(twoNeighbourSubstitutions(low))
         if ("ss" in low) for (m in lexicon.fuzzy(low.replace("ss", "ß"), 1, 8)) pool.add(m.form.text)
@@ -661,7 +670,7 @@ public class LanguageEngine @JvmOverloads constructor(
         for (word in pool) {
             if (hidden(word)) continue
             val d = display(word, mode)
-            if (EditDistance.units(w, d, params.capsUnaccented, params.accentSwap) > maxUnits) continue
+            if (EditDistance.units(w, d, params.capsUnaccented, params.accentSwap, params.umlautTranslit) > maxUnits) continue
             val e = ed.weighted(w, d, taps)
             val c = b.candidate(word, d)
             val cost = b.lm(word) + e
@@ -719,7 +728,7 @@ public class LanguageEngine @JvmOverloads constructor(
                 if (hidden(word)) continue
                 val d = display(word, mode)
                 val prefix = completionPrefix(d, len) ?: continue
-                val u = EditDistance.units(w, prefix, params.capsUnaccented, params.accentSwap)
+                val u = EditDistance.units(w, prefix, params.capsUnaccented, params.accentSwap, params.umlautTranslit)
                 if (u > maxUnits) continue
                 val l = b.lm(word)
                 if (l + Params.COMP_EDIT_FACTOR * u / len > Params.COMP_LIMIT) continue
@@ -751,8 +760,9 @@ public class LanguageEngine @JvmOverloads constructor(
                 prefixFirst = true
             }
         }
-        val ac = if (correctionsOnly) null else decideAutocorrection(ctx, w, validity, corrections, b, elidedPrefix != null)
-        return LanguageSuggestions(languageTag, w, validity, ranked, corrections, ac, prefixFirst)
+        val decision = if (correctionsOnly) null else decideAutocorrection(ctx, w, validity, corrections, b, elidedPrefix != null)
+        return LanguageSuggestions(languageTag, w, validity, ranked, corrections, decision?.candidate, prefixFirst,
+            decision?.step ?: "-")
     }
 
     /**
@@ -924,7 +934,38 @@ public class LanguageEngine @JvmOverloads constructor(
         if (w.contains("ss", ignoreCase = true)) out.add(w.replace("ss", "ß").replace("SS", "ß").replace("Ss", "ß").replace("sS", "ß"))
         // 4 "oe"/"ae" → "œ"/"æ" in languages whose PREFIX_ACCENTS list the ligatures (fr)
         if (ligatures && (w.contains("oe", ignoreCase = true) || w.contains("ae", ignoreCase = true))) out.add(withLigatures(w))
+        // 5 "ae"/"oe"/"ue" → "ä"/"ö"/"ü" in languages with UMLAUT_TRANSLIT (de); the plain W stays a prefix
+        if (params.umlautTranslit) withUmlauts(w)?.let { out.add(it) }
         return out
+    }
+
+    /**
+     * [w] with every "ae", "oe" and "ue" replaced by ä, ö, ü, the case of the first letter kept ("Ue" → "Ü"); null if
+     * [w] has none of them.
+     */
+    private fun withUmlauts(w: String): String? {
+        val sb = StringBuilder(w.length)
+        var changed = false
+        var i = 0
+        while (i < w.length) {
+            val a = w[i]
+            val la = Character.toLowerCase(a)
+            val umlaut = when (la) {
+                'a' -> 'ä'
+                'o' -> 'ö'
+                'u' -> 'ü'
+                else -> null
+            }
+            if (umlaut != null && i + 1 < w.length && Character.toLowerCase(w[i + 1]) == 'e') {
+                sb.append(if (Character.isUpperCase(a)) Character.toUpperCase(umlaut) else umlaut)
+                changed = true
+                i += 2
+            } else {
+                sb.append(a)
+                i++
+            }
+        }
+        return if (changed) sb.toString() else null
     }
 
     private val ligatures: Boolean = params.prefixAccents.values.any { 'œ' in it || 'æ' in it }
@@ -976,6 +1017,9 @@ public class LanguageEngine @JvmOverloads constructor(
     /** score(c) = lm(c) + AC_EDIT_FACTOR · ed(c) / len. */
     public fun acScore(c: Candidate, len: Int): Int = c.lm + params.acEditFactor * c.ed / len
 
+    /** The autocorrection decision of §10.1 with the step that ended it (diagnostics of 05c §5). */
+    private class Decision(val candidate: Candidate?, val step: String)
+
     private fun decideAutocorrection(
         ctx: QueryContext,
         w: String,
@@ -983,35 +1027,35 @@ public class LanguageEngine @JvmOverloads constructor(
         corrections: List<Candidate>,
         b: Builder,
         elidedRemainder: Boolean,
-    ): Candidate? {
-        if (TextRules.blocksAutocorrect(ctx.charBefore)) return null
+    ): Decision {
+        if (TextRules.blocksAutocorrect(ctx.charBefore)) return Decision(null, "1")
         val len = w.length
         // step 2 does not apply to a one-letter remainder after an elided prefix (05 §2.2)
         if (len == 1 && !elidedRemainder) {
-            if (user.isRejected(w)) return null
-            val fix = params.singleLetterFix[w] ?: return null
+            if (user.isRejected(w)) return Decision(null, "2")
+            val fix = params.singleLetterFix[w] ?: return Decision(null, "2")
             val c = b.byDisplay[fix] ?: b.candidate(fix, fix)
             if (c.correctionCost == Candidate.INF) {
                 c.ed = 0
             }
-            return c
+            return Decision(c, "2")
         }
         // 2a letters of an elision prefix ("qu", "jusqu", "dell") that are no valid word: never autocorrected
-        if (!elidedRemainder && !validity.valid && isPrefixLetters(toKey(w))) return null
-        if (w.any { it.isDigit() || TextModel.isOrdinalIndicator(it) } || user.isRejected(w)) return null
-        val best = corrections.firstOrNull() ?: return null
+        if (!elidedRemainder && !validity.valid && isPrefixLetters(toKey(w))) return Decision(null, "2a")
+        if (w.any { it.isDigit() || TextModel.isOrdinalIndicator(it) } || user.isRejected(w)) return Decision(null, "3")
+        val best = corrections.firstOrNull() ?: return Decision(null, "4")
         if (validity.valid) {
             // a word valid only through an unattested key counts as rare unless the correction is unattested too (0.6.9)
             val rare = validity.cost > params.acValidRare || (validity.unattested && !lexicon.isUnattestedWord(best.word))
-            if (!(rare && best.lm < params.acValidTarget)) return null
+            if (!(rare && best.lm < params.acValidTarget)) return Decision(null, "5")
         }
         val sb = acScore(best, len)
-        if (sb > params.acLimit) return null
+        if (sb > params.acLimit) return Decision(null, "6")
         val second = corrections.getOrNull(1)
         if (second != null && kotlin.math.abs(sb - acScore(second, len)) <= params.acMargin &&
             !best.display.equals(second.display, ignoreCase = true)
-        ) return null
-        return best
+        ) return Decision(null, "7")
+        return Decision(best, "8")
     }
 
     // ------------------------------------------------------------------ next word (§11)

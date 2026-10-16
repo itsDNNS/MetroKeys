@@ -42,8 +42,10 @@ class FrenchExamplesTest {
         assertEquals(-8.52, fr.a, 1e-9)
         println("fr header: S=${fr.lexicon.scale} maxCount=${fr.lexicon.maxCount} Bc=${fr.bc}")
         assertEquals(LmCost.constantBc(fr.lexicon.scale), fr.bc)
-        assertEquals(15.989, fr.lexicon.scale.toDouble(), 0.01)
-        assertTrue(fr.lexicon.exactClass("de") >= 254 && fr.lexicon.exactClass("je") >= 254)
+        // 0.7.0: S from the combined frequency of 05b §12.2 (0.6.9: 15.989)
+        assertEquals(15.682, fr.lexicon.scale.toDouble(), 0.01)
+        // 0.7.0: "de" the most frequent key of the combined frequency (0.6.9: "de" and "je" ≥ 254)
+        assertEquals(255, fr.lexicon.exactClass("de"))
         // the prefix table: the 14 prefixes of 05 §1.1, "c'" the most frequent
         assertEquals(14, fr.lexicon.prefixCount)
         for (p in LanguageParams.FRENCH_ELISION_PREFIXES) assertTrue(fr.lexicon.prefixClass(p) > 0, p)

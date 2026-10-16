@@ -9,8 +9,8 @@ Word list format (gzip of the payload below; all integers big-endian or unsigned
     keyCount records, keys in ascending UTF-16 order:
         varint shared prefix length with the previous key (chars)
         varint suffix byte length, suffix (UTF-8)
-        u8 number of forms (bits 0-6; bit 7 set = the key is unattested: kept by the count rule of its build
-           without being a form of the language, 05b §3.6 step 7, 05 §10.1 step 5; since 0.6.9, never set before),
+        u8 number of forms (bits 0-6; bit 7 set = the key is unattested: since 0.7.0 kept by the colloquial path of
+           05b §12.4 without being a form of the language; 0.6.9: kept by the count rule; never set before 0.6.9),
            then per form (best first):
             u8 class
             u8 kind: 0 = the key itself, 1 = key with the first char upper-cased,
@@ -74,23 +74,16 @@ def freq_class(count, scale):
     return max(0, min(255, round_half_away(math.log(count) * scale)))
 
 
-# 05b §3.6 step 6a and the damping of non-forms, as applied by the Spanish, Portuguese, Italian and French builds
-# (0.6.7; the German build has its own copy of the same values since 0.6.4): a key of at most SHORT_KEY_LEN letters
-# that is no form of the language is kept only if its count is >= SHORT_KEY_MIN, and a key kept only by the count rule
-# counts with count x DAMPING for its classes and the pair table
+# 05b §3.6 step 6a, as applied by the Spanish, Portuguese, Italian and French builds (0.6.7; the German build has its
+# own copy of the same values since 0.6.4): a key of at most SHORT_KEY_LEN letters that is no form of the language is
+# kept only if its count is >= SHORT_KEY_MIN. (The damping of 0.6.4–0.6.9 is withdrawn in 0.7.0, 05b §3.6.)
 SHORT_KEY_LEN = 3
 SHORT_KEY_MIN = 20000
-DAMPING = 0.01
 
 
 def short_key_dropped(letters, count):
     """05b §3.6 step 6a: a non-form key with [letters] letters and subtitle [count] is dropped."""
     return letters <= SHORT_KEY_LEN and count < SHORT_KEY_MIN
-
-
-def damped_max(counts, damped):
-    """maxCount after the damping (05b §3.6: S and the class formula are computed after it)."""
-    return max(c * DAMPING if k in damped else c for k, c in counts.items())
 
 
 PAIR_B = 255.0 / math.log(1e5)
@@ -246,3 +239,118 @@ def sha256_file(path):
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _read_varint(buf, pos):
+    v = 0
+    shift = 0
+    while True:
+        b = buf[pos]
+        pos += 1
+        v |= (b & 0x7F) << shift
+        if not b & 0x80:
+            return v, pos
+        shift += 7
+
+
+def read_word_list(path):
+    """Decodes a word list written by write_word_list: (header dict, {key: [(form, class)]}, unattested keys,
+    prefixes [(text, class)] or None). Used for the en-US keys of 05b §12.4 condition 5 and the comparison with the
+    previous release (§12.7)."""
+    with gzip.open(path, "rb") as f:
+        buf = f.read()
+    if buf[:4] != b"MKWL":
+        raise ValueError(f"not a word list: {path}")
+    version = buf[4]
+    n = buf[5]
+    tag = buf[6:6 + n].decode("ascii")
+    pos = 6 + n
+    scale = struct.unpack(">f", buf[pos:pos + 4])[0]
+    pos += 4
+    max_count, pos = _read_varint(buf, pos)
+    corpus, pos = _read_varint(buf, pos)
+    key_count, pos = _read_varint(buf, pos)
+    form_count, pos = _read_varint(buf, pos)
+    entries = {}
+    unattested = set()
+    prev = ""
+    for _ in range(key_count):
+        shared, pos = _read_varint(buf, pos)
+        ln, pos = _read_varint(buf, pos)
+        key = prev[:shared] + buf[pos:pos + ln].decode("utf-8")
+        pos += ln
+        nf = buf[pos]
+        pos += 1
+        if nf & 0x80:
+            unattested.add(key)
+        forms = []
+        for _ in range(nf & 0x7F):
+            cls, kind = buf[pos], buf[pos + 1]
+            pos += 2
+            if kind == 0:
+                form = key
+            elif kind == 1:
+                form = capitalize_first(key)
+            elif kind == 2:
+                form = jupper(key)
+            else:
+                ln, pos = _read_varint(buf, pos)
+                form = buf[pos:pos + ln].decode("utf-8")
+                pos += ln
+            forms.append((form, cls))
+        entries[key] = forms
+        prev = key
+    prefixes = None
+    if version == 2:
+        prefixes = []
+        cnt, pos = _read_varint(buf, pos)
+        for _ in range(cnt):
+            ln, pos = _read_varint(buf, pos)
+            text = buf[pos:pos + ln].decode("utf-8")
+            pos += ln
+            prefixes.append((text, buf[pos]))
+            pos += 1
+    header = {"tag": tag, "version": version, "S": scale, "maxCount": max_count, "corpusTokens": corpus,
+              "keys": key_count, "forms": form_count}
+    return header, entries, unattested, prefixes
+
+
+def read_pair_table(path, keys, prefixes=None):
+    """Decodes a pair table written by write_pair_table: {previous ('' = sentence start, or a key or prefix):
+    [(follower key or prefix, class, form index)]}. [keys]: the bound word list's keys in order."""
+    with gzip.open(path, "rb") as f:
+        buf = f.read()
+    if buf[:4] != b"MKPT":
+        raise ValueError(f"not a pair table: {path}")
+    version = buf[4]
+    n = buf[5]
+    pos = 6 + n
+    kc, pos = _read_varint(buf, pos)
+    _, pos = _read_varint(buf, pos)
+    pos += 32
+    prev_count, pos = _read_varint(buf, pos)
+    prefixes = prefixes or []
+    out = {}
+    enc = 0
+    for _ in range(prev_count):
+        d, pos = _read_varint(buf, pos)
+        enc += d
+        if enc == 0:
+            prev = ""
+        elif enc <= kc:
+            prev = keys[enc - 1]
+        else:
+            prev = prefixes[enc - kc - 1]
+        if version == 1:
+            nf = buf[pos]
+            pos += 1
+        else:
+            nf, pos = _read_varint(buf, pos)
+        followers = []
+        for _ in range(nf):
+            idx, pos = _read_varint(buf, pos)
+            cls, fi = buf[pos], buf[pos + 1]
+            pos += 2
+            followers.append((keys[idx] if idx < kc else prefixes[idx - kc], cls, fi))
+        out[prev] = followers
+    return out

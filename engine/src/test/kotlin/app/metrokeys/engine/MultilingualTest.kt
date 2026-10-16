@@ -37,8 +37,8 @@ class MultilingualTest {
         val w = weights(e, "Vielen Dank")
         val german = de.languageLog10("für") + log10(w.getValue("de-DE")) - 2
         val english = en.languageLog10("fur") + log10(w.getValue("en-US"))
-        assertEquals(-4.322, german, 0.001)
-        assertEquals(-8.911, english, 0.002)
+        assertEquals(-4.218, german, 0.001) // 0.7.0 German list (0.6.9: -4.322)
+        assertEquals(-8.875, english, 0.002) // 0.7.0 English classes (05b §12.2); 0.6.9: -8.911
         assertEquals("für", e.query(Query("Vielen Dank fur")).autoCorrection)
     }
 

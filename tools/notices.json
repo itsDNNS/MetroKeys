@@ -1,0 +1,41 @@
+{
+ "comment": "Copyright notices of the spelling dictionaries (spec/05b-dictionaries.md §2.14 'Notices to ship'), from the pinned LibreOffice dictionaries commit; shipped with the licence texts of the data files (05b §2.5), not build inputs of the data. The French notice is README_dict_fr.txt inside the pinned Grammalecte archive of tools/sources.json. Paths are relative to build-data/src.",
+ "sources": [
+  {
+   "path": "hunspell/de/README_de_DE_frami.txt",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/de/README_de_DE_frami.txt",
+   "sha256": "c141f4f79c428b7348b5012836f4ad3db4d124f288f15effc22696dc876512ae",
+   "language": "de-DE"
+  },
+  {
+   "path": "hunspell/es/LICENSE.md",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/LICENSE.md",
+   "sha256": "2b70fd5cb8d3b34cc6ae322c969557a2270b99017594addb2531ef5ffd9e1b17",
+   "language": "es-ES"
+  },
+  {
+   "path": "hunspell/es/README_hunspell_es.txt",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/README_hunspell_es.txt",
+   "sha256": "0b5c39a863ecb61f5c5631ec1cd977667ef9bda6da6f90e80e9fc0edcbfadd97",
+   "language": "es-ES"
+  },
+  {
+   "path": "hunspell/pt_BR/README_pt_BR.txt",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/pt_BR/README_pt_BR.txt",
+   "sha256": "9974ce691fdc1fe731717d7a2dc668244405fdc2bf9bf3367eb9b29e85177c88",
+   "language": "pt-BR"
+  },
+  {
+   "path": "hunspell/pt_BR/README_en.txt",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/pt_BR/README_en.txt",
+   "sha256": "bb064f3db7ba5f5536da7d079773f692c5f928822e8aebc3d78259ff6cceb9e5",
+   "language": "pt-BR"
+  },
+  {
+   "path": "hunspell/it_IT/README_it_IT.txt",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/it_IT/README_it_IT.txt",
+   "sha256": "34c3e93595cf3cf5f3afc9bc0d98eea12593750383f1e82ed1d3ca29f9681283",
+   "language": "it-IT"
+  }
+ ]
+}

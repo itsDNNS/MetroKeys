@@ -178,14 +178,20 @@ The bundled third-party components keep their own licences:
 
 - **Selawik font** (the bundled typeface): © Microsoft Corporation, licensed under the SIL Open Font License 1.1,
   Reserved Font Name "Selawik"; used unmodified. Source: https://github.com/microsoft/Selawik (release 1.01).
-- **Dictionaries** (word lists and word-pair tables, licensed as data under CC BY-SA 4.0, not under the GPL), built
-  from:
+- **Dictionaries** (word lists and word-pair tables; from 0.7.0 distributed under the GNU GPL v3.0 only like the app,
+  the CC BY-SA 4.0 material used under the CC BY-SA 4.0 / GPLv3 compatibility; up to 0.6.9 CC BY-SA 4.0), built from:
   - FrequencyWords by Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0;
+  - wordfreq by Robyn Speer (written-language frequencies), CC BY-SA 4.0;
   - Wiktionary (de.wiktionary.org, es.wiktionary.org, fr.wiktionary.org, pt.wiktionary.org, it.wiktionary.org and
     the Spanish, Portuguese and Italian sections of en.wiktionary.org), CC BY-SA 4.0;
+  - spelling dictionaries: igerman98 with the frami additions (GPL 2 or 3), RLA-ES (GPL 3+ / LGPL 3+ / MPL 1.1+),
+    VERO (LGPL 3 / MPL), Dizionario italiano (GPL 3), Dicollecte (MPL 2.0);
   - Tatoeba sentences (tatoeba.org), CC BY 2.0 FR;
   - SCOWL by Kevin Atkinson and others (wordlist.aspell.net), SCOWL licence (notice shipped verbatim);
   - Mozilla Common Voice sentences, CC0 1.0.
+
+  The source form of the data (word lists and pairs as text, the spelling-dictionary files as used, the build report)
+  is published with each release.
 - **Emoji data**: Unicode `emoji-test.txt` (Emoji 18.0), Unicode License v3.
 - **Libraries**: AndroidX, Jetpack Compose, Navigation 3 and Kotlin libraries, Apache License 2.0.
 

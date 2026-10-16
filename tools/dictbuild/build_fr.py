@@ -12,7 +12,8 @@ import math
 import re
 
 import casing
-from common import DAMPING, damped_max, freq_class, jlower, short_key_dropped
+from attested import AttestedRules
+from common import freq_class, jlower, short_key_dropped
 from wiktionary_pt import strip_diacritics
 
 # 05 §1.1 ELISION_PREFIXES (notes on fr-FR), in order of their frequency in the frequency source
@@ -250,9 +251,12 @@ class SentenceStats:
         return sum(self.rt_all.get(f, 0) for f in self.forms_by_key.get(key, ()))
 
 
-class FrenchBuilder:
-    def __init__(self, freq_path, fr_pages, en_pages=None, abbreviations=None):
-        """[fr_pages]: (titles {title: language codes}, {title: kinds}); [en_pages]: ({title: kinds}) or None."""
+class FrenchBuilder(AttestedRules):
+    def __init__(self, freq_path, fr_pages, en_pages=None, abbreviations=None, spelling=None, written=None,
+                 english_keys=()):
+        """[fr_pages]: (titles {title: language codes}, {title: kinds}); [en_pages]: ({title: kinds}) or None;
+        [spelling], [written], [english_keys]: the inputs of the 0.7.0 rules (05b §12)."""
+        self.setup_attested(spelling, written, frozenset(english_keys))
         self.report = {}
         self.fr_titles, self.fr_kinds = fr_pages
         self.en_kinds = en_pages or {}
@@ -419,9 +423,6 @@ class FrenchBuilder:
         low = ev.get(key, 0)
         return sum(ev.values()) - low > low
 
-    def count(self, key):
-        return self.counts.get(key, 0)
-
     def apostrophe_word_candidates(self):
         """Lower-case apostrophe words (§11.5) for the tokeniser: French titles with an inner apostrophe whose first part
         is no elision prefix."""
@@ -491,6 +492,8 @@ class FrenchBuilder:
 
     def spellings(self, stats):
         self.stats = stats
+        # the spelling dictionary is asked for every key that could be kept (05b §12.1); parallel, cached
+        self.prefetch_spelling(k for k, c in self.counts.items() if not self.is_form(k) and (c >= 2 or self.written(k) > 0))
         self.before_merge = dict(self.counts)
         self._loss_rate(self.before_merge)
         self._merge_accents()
@@ -504,7 +507,8 @@ class FrenchBuilder:
         return index
 
     def _class_forms(self, members):
-        return [t for t in members if self.is_form(t) and (len(t) > 1 or t in ONE_LETTER_WORDS)]
+        """The French forms of an accent class (0.7.0: also those of the spelling dictionary, 05b §11.4)."""
+        return [t for t in members if self.language_form(t) and (len(t) > 1 or t in ONE_LETTER_WORDS)]
 
     def _merge_accents(self):
         """§11.4 step 1: a key that is no French form goes to the form of its accent class with diacritics and
@@ -516,7 +520,7 @@ class FrenchBuilder:
         kept_guard = []
         kept_running = []
         for key in sorted(self.counts):
-            if self.is_form(key):
+            if self.wiktionary_form(key) or self.spelling_protects(key):
                 continue
             options = [t for t in self._class_forms(index.get(accent_class(key), ())) if t != key]
             if not options:
@@ -563,7 +567,7 @@ class FrenchBuilder:
         rows = []
         for key in sorted(self.counts):
             c = self.counts[key]
-            if c < DOMINATED_MIN_COUNT or not self.is_form(key):
+            if c < DOMINATED_MIN_COUNT or not self.language_form(key):
                 continue
             counterparts = []
             members = [a for a in self._class_forms(index.get(accent_class(key), ())) if a != key]
@@ -581,7 +585,7 @@ class FrenchBuilder:
             for letters, prefix in PREFIX_LETTERS.items():
                 if key.startswith(letters) and len(key) > len(letters):
                     r = key[len(letters):]
-                    if self.is_form(r) and starts_vowel_or_h(r) and (len(r) > 1 or r in ONE_LETTER_WORDS):
+                    if self.language_form(r) and starts_vowel_or_h(r) and (len(r) > 1 or r in ONE_LETTER_WORDS):
                         counterparts.append((r, el.get((prefix, r), 0), prefix + r))
             if not counterparts:
                 continue
@@ -614,7 +618,7 @@ class FrenchBuilder:
             index.setdefault(accent_class(k), set()).add(k)
         plain_sum = acc_sum = classes = 0
         for cls, members in index.items():
-            if self.is_form(cls) or len(cls) < 2:
+            if self.language_form(cls) or len(cls) < 2:
                 continue
             accented = [t for t in self._class_forms(members) if has_diacritics(t)]
             if len(accented) != 1 or len(accented[0]) != len(cls):
@@ -638,7 +642,7 @@ class FrenchBuilder:
         rows = []
         for cls in sorted(index):
             p = cls
-            if p not in self.counts or not self.is_form(p) or p in self.zero_forms or self.counts[p] <= 0:
+            if p not in self.counts or not self.language_form(p) or p in self.zero_forms or self.counts[p] <= 0:
                 continue
             accented = sorted(t for t in self._class_forms(index[cls]) if has_diacritics(t) and len(t) == len(p))
             if not accented:
@@ -729,6 +733,8 @@ class FrenchBuilder:
         dict_forms = self.forms_by_key.get(key, set())
         if not dict_forms and key in self.accepted:
             dict_forms = {key}
+        if not dict_forms:
+            dict_forms = self.dictionary_forms(key)  # the spelling dictionary's casings (05b §12.1 item 6)
         return casing.decide(key, variants, dict_forms)
 
     # ------------------------------------------------------------------ §11.6 step 6 candidates
@@ -818,6 +824,10 @@ class FrenchBuilder:
         self.scale = 255.0 / math.log(self.max_count)
 
     def select(self, key, dropped):
+        """§11.6 with the 0.7.0 rules (05b §12): the junk rules exempt only forms of the Wiktionary passes and the
+        abbreviation rule (is_form); the letters of the elision prefixes are never kept (§11.6 step 3, not overridden by
+        the spelling dictionary); a form of the spelling dictionary is kept like the other forms; the count rule is the
+        colloquial path."""
         count = self.count(key)
         form = self.is_form(key)
         zero = key in self.zero_forms
@@ -834,36 +844,38 @@ class FrenchBuilder:
         if not form and any(c not in FRENCH_PLAIN for c in key):
             dropped["nonFrenchCharacters"] += 1
             return None
-        if form:
-            if count >= 2 or zero:
+        if not form and key in self.fused:
+            dropped["missingSpace"] += 1
+            return None
+        if not form and key in self.fused_elisions:
+            dropped["fusedElision"] += 1
+            return None
+        if not form and short_key_dropped(n, count):
+            # 05b §3.6 step 6a: a key of at most 3 letters that is no form needs count >= 20 000
+            dropped["shortKeyStep6a"] += 1
+            if count >= KEEP_MIN_COUNT:
+                self.short_dropped.append(key)
+            return None
+        if form or zero or self.spelling_form(key):
+            if zero or self.admitted(key, count):
                 return self.case_decision(key) or [(key, 1.0)]
             dropped["formBelowCount2"] += 1
             return None
-        if key in self.fused:
-            dropped["missingSpace"] += 1
-            return None
-        if key in self.fused_elisions:
-            dropped["fusedElision"] += 1
-            return None
         if count >= KEEP_MIN_COUNT:
-            sel = self._count_rule(key, count, dropped)
-            if sel and short_key_dropped(n, count):
-                # 05b §3.6 step 6a (0.6.7): a non-form of at most 3 letters needs count >= 20 000
-                dropped["shortKeyStep6a"] += 1
-                self.short_dropped.append(key)
-                return None
-            if sel:
-                self.damped.add(key)  # 05b §3.6 damping (0.6.7): kept only by the count rule
-            return sel
+            return self._count_rule(key, count, dropped)
         dropped["rare"] += 1
         return None
 
     def _count_rule(self, key, count, dropped):
-        """§11.6 count rule (German §3.6 step 7) for a non-form counted at least KEEP_MIN_COUNT times."""
+        """§11.6 count rule (German §3.6 step 7) for a non-form counted at least KEEP_MIN_COUNT times: after the
+        foreign-word clause only the colloquial path keeps it (0.7.0)."""
         if key in self.foreign_titles and count < FOREIGN_MAX:
             dropped["foreign"] += 1
             if len(dropped["foreignExamples"]) < 40 and count >= 2000:
                 dropped["foreignExamples"].append(key)
+            return None
+        if not self.colloquial_path(key, count):
+            dropped["colloquialPath"] += 1
             return None
         dec = self.case_decision(key)
         if dec:
@@ -874,22 +886,20 @@ class FrenchBuilder:
         best = sorted(titles, key=lambda f: (casing.case_kind_rank(f), f))[0]
         return [(best, 1.0)]
 
-    def effective_count(self, key):
-        """The count used for classes and pairs: damped for keys kept only by the count rule (05b §3.6, 0.6.7)."""
-        c = self.counts.get(key, 0)
-        return c * DAMPING if key in self.damped else c
-
-    def build(self):
+    def build(self, name_rule=None):
+        self.name_rule = name_rule
         self.titles_by_key = {}
         for t in self.fr_titles:
             if "'" in t or "-" in t:
                 continue
             self.titles_by_key.setdefault(jlower(t), set()).add(t)
         dropped = {k: 0 for k in ("implausible", "oneLetter", "prefixLetters", "nonFrenchCharacters", "formBelowCount2",
-                                  "missingSpace", "fusedElision", "foreign", "shortKeyStep6a", "rare")}
+                                  "missingSpace", "fusedElision", "foreign", "colloquialPath", "shortKeyStep6a", "rare")}
         dropped["foreignExamples"] = []
-        self.damped = set()
         self.short_dropped = []
+        self.colloquial = set()
+        self.colloquial_dropped = {}
+        self.written_admitted = set()
         alias = {}
         for f, c in self.compound_forms.items():
             alias.setdefault(alias_of(f), []).append((f, c))
@@ -898,60 +908,55 @@ class FrenchBuilder:
         # a frequency-list token that equals an alias key and is no word of its own adds its count (§11.5)
         alias_tokens = []
         for k, lst in alias.items():
-            if k in self.counts and not self.is_form(k) and self.counts[k] > 0:
+            if k in self.counts and not self.language_form(k) and self.counts[k] > 0:
                 f, c = lst[0]
                 lst[0] = (f, c + self.counts[k])
                 alias_tokens.append([k, f, self.counts[k]])
                 del self.counts[k]
+        self.alias_keys = set(alias)
         selected = {}
         kept_unknown = 0
-        for key in sorted(self.counts):
+        candidates = set(self.counts)
+        if self.freq is not None:
+            key_ok = lambda k: 2 <= len(k) <= 27 and plain_key_ok(k) and k not in alias
+            candidates |= self.written_candidates(key_ok)
+        for key in sorted(candidates):
             n = len(key)
             if not 1 <= n <= 27:
                 continue
             sel = self.select(key, dropped)
             if not sel:
                 continue
-            if not self.is_form(key):
+            if not self.language_form(key):
                 kept_unknown += 1
             selected[key] = sel
-        # S and the class formula after the damping (05b §3.6)
-        self.max_count = damped_max(self.counts, self.damped)
-        self.scale = 255.0 / math.log(self.max_count)
-        entries = {}
-        for key, sel in selected.items():
-            count = self.counts[key]
-            damped = self.effective_count(key)
-            forms = []
-            seen = set()
-            for f, share in sel:
-                if f in seen or jlower(f) != key:
-                    continue
-                seen.add(f)
-                # class from the damped count; the third value (the undamped count) decides alias collisions
-                forms.append((f, 0 if key in self.zero_forms else freq_class(damped * share, self.scale), count * share))
-            forms.sort(key=lambda fc: -fc[1])
-            if forms:
-                entries[key] = forms
-        # apostrophe words under their own key; compounds and apostrophe words under their alias keys
+        # apostrophe words under their own key (subtitles alone, 05b §12.2 item 2)
         for w, form in self.apostrophe_words.items():
-            c = self.apostrophe_counts[w]
-            entries[w] = [(form, freq_class(c, self.scale), c)]
+            selected[w] = [(form, 1.0)]
+        self.word_counts = dict(self.apostrophe_counts)
+        alias_max = max((c for lst in alias.values() for _, c in lst), default=0)
+        combined_entries = self.combined_entries(selected, zero=self.zero_forms, weight0=set(self.apostrophe_words),
+                                                 names=name_rule, extra_max=alias_max)
+        # the third value (the subtitle count) decides alias collisions and ties
+        entries = {k: [(f, cls, self.count(k) * dict(selected[k]).get(f, 0.0)) for f, cls in forms]
+                   for k, forms in combined_entries.items()}
         collisions = []
         for k, lst in sorted(alias.items()):
-            items = [(f, freq_class(c, self.scale), c) for f, c in lst]
+            items = [(f, max(1, freq_class(max(c, 0.5), self.scale)), c) for f, c in lst]
             if k in entries:
                 real = entries[k]
                 best_alias = max(c for _, _, c in items)
-                real_count = sum(c for _, _, c in real)
+                real_count = self.count(k)
                 if real_count * ALIAS_RARER <= best_alias:
                     collisions.append([k, [f for f, _, _ in real], [f for f, _, _ in items], "real word dropped"])
                     entries[k] = items
+                    self.combined_counts[k] = max(best_alias, 0.5)
                 else:
                     collisions.append([k, [f for f, _, _ in real], [f for f, _, _ in items], "both kept"])
                     entries[k] = real + items
             else:
                 entries[k] = items
+                self.combined_counts[k] = max(max(c for _, _, c in items), 0.5)
         out = {}
         for k, forms in entries.items():
             forms = sorted(forms, key=lambda fc: (-fc[1], -fc[2], fc[0]))
@@ -967,9 +972,16 @@ class FrenchBuilder:
         self.report["aliasCollisions"] = collisions
         self.report["aliasTokensAdded"] = alias_tokens
         self.report["keysClass0Dominated"] = sorted(k for k in out if k in self.zero_forms)
-        self.prefix_table = [(p, freq_class(self.prefix_counts[p], self.scale)) for p in PREFIXES]
+        # the prefixes: their own counts (subtitles alone, 05b §12.2 item 2) on the scale of the word list
+        self.prefix_table = [(p, freq_class(max(self.prefix_counts[p], 0.5), self.scale)) for p in PREFIXES]
         self.report["prefixTable"] = [[p, self.prefix_counts[p], c] for p, c in self.prefix_table]
         return out
+
+    def count(self, key):
+        c = self.counts.get(key)
+        if c is None:
+            c = getattr(self, "word_counts", {}).get(key, 0)
+        return c
 
     # ------------------------------------------------------------------ coverage (§11.2)
 

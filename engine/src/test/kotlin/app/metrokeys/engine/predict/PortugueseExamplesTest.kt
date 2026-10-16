@@ -36,11 +36,11 @@ class PortugueseExamplesTest {
         // 05 §3.1: corpusTokens = all counts of the main list plus the credited hyphen parts; S from maxCount ("que")
         assertEquals(433_743_576L, pt.lexicon.corpusTokens)
         assertEquals(-8.64, pt.a, 1e-9)
-        assertEquals(0.02815, pt.bc, 1e-9)
-        assertEquals(15.4297f, pt.lexicon.scale, 0.0005f)
-        assertEquals(255, pt.lexicon.exactClass("que"))
+        assertEquals(0.02808, pt.bc, 1e-9) // 0.7.0 (05b §12.2); 0.6.9: 0.02815
+        assertEquals(15.4637f, pt.lexicon.scale, 0.0005f)
+        assertEquals(255, pt.lexicon.exactClass("de")) // 0.7.0: "de" (0.6.9: "que")
         // lm without context: round(170.52 − 0.5067 · k): class 255 → 41, class 0 → 171
-        assertEquals(41, pt.lm("que"))
+        assertEquals(42, pt.lm("de")) // 0.7.0 header (0.6.9: lm(que) 41)
         assertEquals(171, pt.lm("idéia"))
     }
 
@@ -52,7 +52,7 @@ class PortugueseExamplesTest {
         val v = r.corr("você")
         assertEquals(30, v.ed)
         assertEquals(v.lm + 37, pt.acScore(v, 4))
-        assertEquals(41, v.lm)
+        assertEquals(42, v.lm) // 0.7.0 (0.6.9: 41)
         val vice = r.corr("vice")
         assertEquals(44, vice.ed)
         assertTrue(pt.acScore(vice, 4) - pt.acScore(v, 4) > pt.params.acMargin)
@@ -69,7 +69,7 @@ class PortugueseExamplesTest {
         val n = r.corr("não")
         assertEquals(30, n.ed)
         assertEquals(n.lm + 50, pt.acScore(n, 3))
-        assertEquals(91, pt.acScore(n, 3))
+        assertEquals(92, pt.acScore(n, 3)) // 0.7.0 (0.6.9: 91)
         assertEquals(65, r.corr("ano").ed)
         assertEquals("não", ac("nao"))
         val a = pt.query("Até amanha")
@@ -86,7 +86,7 @@ class PortugueseExamplesTest {
         val a = r.corr("ação")
         assertEquals(60, a.ed)
         assertEquals(a.lm + 75, pt.acScore(a, 4))
-        assertEquals(89, a.lm)
+        assertEquals(87, a.lm) // 0.7.0 (0.6.9: 89)
         // ação comes from the correction pool, not from a completion (a variant prefix changes one position only)
         assertEquals(Candidate.INF, a.completionCost)
         assertEquals("ação", bar("acao").first())

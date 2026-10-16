@@ -24,7 +24,7 @@ Everything that differs between them is one `LanguageParams` instance (`Language
 alphabetical by tag): the weights and limits of 05 §1.1, the language rules (`prefixAccents` with one or more accented
 letters per base letter, `oneLetterWords`, `singleLetterFix`, `compoundLinks` = null for no compounds,
 `missingSpaceSplit`, `ingRule`, `elisionPrefixes`, `accentSwap`, `hideClassZero`, `elisionValidSlack`,
-`capsUnaccented`), the fallback grid of 05 §4 (rows and the starts of rows 2 and 3: Spanish and Portuguese have ten keys
+`capsUnaccented`, `umlautTranslit`), the fallback grid of 05 §4 (rows and the starts of rows 2 and 3: Spanish and Portuguese have ten keys
 without indent in row 2, ñ / ç last; French AZERTY has ten keys in row 2 and starts row 3 at 0.2 · width), the
 shape-writing constants
 of 06 §7.1 (`ShapeParams`; English uses its own column since 0.6) and the emoji table. A further language adds one
@@ -116,8 +116,9 @@ Both files are gzip streams (written by `tools/dictbuild/common.py`, read by `Le
   UTF-16 order, front-coded (shared prefix length + UTF-8 suffix), each with its forms (class byte + a kind byte:
   the key itself, first letter upper-cased, all upper-cased, or an explicit string — used for alias keys such as
   `dont` → `don't`).
-- **Unattested flag** (0.6.9): bit 7 of a key's form-count byte marks a key kept by its build's count rule without
-  being a form of the language (the damped keys, 05b §3.6 step 7; DATA-SOURCES.md). `Lexicon.isUnattested` /
+- **Unattested flag** (0.6.9; meaning from 0.7.0): bit 7 of a key's form-count byte marks a key that is no form of the
+  language: since 0.7.0 the keys kept by the colloquial path of 05b §12.4 (23–203 per language), in 0.6.9 the keys kept
+  by the count rule (the damped keys of 05b §3.6 step 7). `Lexicon.isUnattested` /
   `isUnattestedWord`, `unattestedCount`; stored as a `BitSet` over the key indices (≈ 40 KB for German). Files without
   flags (English, and every file before 0.6.9) read unchanged.
 - **Pair table** (`MKPT` v1): binding = key count, form count and the SHA-256 of the uncompressed word-list
@@ -158,7 +159,15 @@ python3 tools/build_dictionaries.py build es-ES   # one language (≈ 1.5 minute
 python3 tools/build_dictionaries.py build pt-BR   # ≈ 1.5 minutes once the Portuguese sections are cached
 python3 tools/build_dictionaries.py build it-IT   # ≈ 8 minutes once the Italian sections are cached (three sentence passes)
 python3 tools/build_dictionaries.py build fr-FR   # ≈ 10 minutes once the French sections are cached
+python3 tools/build_dictionaries.py source-form 0.7.0   # the source form of the data files for the release (05b §2)
 ```
+
+Since 0.7.0 every build also asks the spelling dictionaries for about a million keys per language (parallel over all
+CPU cores, a few minutes the first time; the results are cached in `build-data/cache/spelling-<tag>-<hash>.tsv.gz`) and
+reads the en-US word list for the colloquial path (all-language builds build English first). The build fails when a
+size limit of 05b §6 is exceeded; a word list growing more than 25 % against the previous release (the shipped files
+of that release copied to `build-data/previous-<release>/`) needs the owner's approval recorded in `tools/dictionary-approvals.json`. `MK_STATS_PATH` writes the
+build report to another file (languages built in parallel processes, merged afterwards).
 
 `build-data/` is git-ignored (downloads and caches; the Wiktionary passes are cached in
 `build-data/cache/dewiktionary-20261001.tsv.gz`, `eswiktionary-20261001.tsv.gz`,
@@ -177,10 +186,10 @@ in the pair table via `PairCounter(damped=…)`, and the real-word typos with th
 `wiktionary_it.py` (§10.2), `build_it.py` (§10.1, §10.3–§10.6; also the §5 tokens of Italian),
 `wiktionary_fr.py` (§11.2), `build_fr.py` (§11.1, §11.3–§11.7; also the §5 tokens of French),
 `wiktionary_affix.py` (0.6.7: abbreviation and prefix titles of every dump, 05b §3.6; cached as
-`build-data/cache/<dump>wiktionary-20261001-affix.tsv.gz`), `casing.py` (case decision §3.4, shared by de, es, pt, it and fr), `pairs.py` (§5, per-language pair profiles; Italian
+`build-data/cache/<dump>wiktionary-20261001-affix.tsv.gz`), `attested.py`, `spellcheck.py`, `combined.py`, `names.py` (0.7.0: spelling dictionaries, written-language frequencies, colloquial path, names, combined classes, 05b §12; DATA-SOURCES.md), `casing.py` (case decision §3.4, shared by de, es, pt, it and fr), `pairs.py` (§5, per-language pair profiles; Italian
 prefix tokens and the elided-pair filter in `ItalianPairCounter`, the two French elided-pair filters in
 `FrenchPairCounter`), `common.py`
-(classes and binary formats), `licenses.py` (attribution texts). `build_dictionaries.py` holds one build profile per
+(classes and binary formats, and their decoders for the build report), `licenses.py` (attribution texts, GPL-3.0 from 0.7.0), `provenance.py` (source-form exports of 05b §2). `build_dictionaries.py` holds one build profile per
 language (`PROFILES`, 05b §7).
 
 ## Tests
@@ -222,7 +231,8 @@ penalty. `-PshowOutput` shows test output.
 - **ED_CASE on substitutions** (05 §5): added to every substitution branch (diacritic, space, neighbour) when exactly
   one of the two letters is upper case.
 - **Autocorrection runner-up** (05 §10.1 step 7): the second candidate in correction-cost order.
-- **Unattested keys** (05 §10.1 step 5; off in 0.6.9, in effect from 0.7.0): the rule is behind
+- **Unattested keys** (05 §10.1 step 5; off — owner decision for 0.7.0, the flag marks the colloquial-path keys for the
+  evaluation of 05c only): the rule is behind
   `LanguageParams.unattestedKeysRule`, whose default for every language is the one switch `Params.UNATTESTED_KEYS_RULE`
   (false); the flags are stored and read, but with the switch off `Validity.unattested` is never set and step 5 is as in
   0.6.8. The rule's tests enable it with `LanguageParams.GERMAN.copy(unattestedKeysRule = true)`. With the switch on,
@@ -342,6 +352,14 @@ penalty. `-PshowOutput` shows test output.
   first typed letter differs; UNITS 1); the prefix list of §8.4 adds the variant with "oe"/"ae" replaced by œ/æ when the
   language's `PREFIX_ACCENTS` list a ligature; follower matching of §8.2.1 expands œ → oe; the touch model and shape
   writing put œ/æ on the o/a keys (`KeyboardGeometry.baseLetter`).
+- **Umlaut transliteration** (`UMLAUT_TRANSLIT`, de only; 0.7.0, 05 §5, §8.4 item 5): `EditDistance` has the umlaut
+  rule (typed "ae"/"oe"/"ue" for ä/ö/ü: `ED_DIACRITIC`, plus `ED_CASE` when the case of the first typed letter differs;
+  UNITS 1, which equals the diacritic-plus-deletion path, so the unit filters are unchanged) and the prefix list adds W
+  with every "ae"/"oe"/"ue" replaced by the umlaut (case of the first letter kept, after the other prefixes; the plain W
+  stays first). "fuer" → "für", "ueber" → "über", "Ueber" → "Über", "koennen" → "können" (ed 4 each, autocorrected
+  without context); "fue" completes to "für", "Feue" still to "Feuer" (`UmlautTranslitTest`). The completion prefix of
+  §8.3 still counts an umlaut as one character ("fue" against "für", ed 34; spec/QUESTIONS.md). No worked example of
+  05 §17 or 06 changed.
 - **Unaccented capitals** (`CAPS_UNACCENTED`, fr): validity rules 1 and 2 accept a stored form whose display differs only
   by accents on capitals the user typed without them (`Lexicon.looseKeys` walks the tree with every unaccented capital
   matching its accented letters); the edit cost of such a pair is 0 and UNITS counts 0.
@@ -408,5 +426,28 @@ penalty. `-PshowOutput` shows test output.
   "etc", "vgl" are German words and stay as typed ("Äpfel, Birnen usw" is not autocorrected), Spanish "etc" too
   (`ShortKeysAndNamesTest.abbreviationTitlesAreForms`); German "of" (prefix "of-") stays dropped by step 6a. The German
   key count of `LexiconStructureTest` is 322 189.
+
+- **Evaluation diagnostics (0.7.0, 05c §5)**: `PredictionEngine.queryDiagnosed` (internal, used only by the engine's
+  tests) returns the result of `query` together with `QueryDiagnostics`: the step of 05 §10.1 that ended the
+  decision (`LanguageSuggestions.decisionStep`, internal: "1" … "8", or "off", "14.2 language weight", "14.3 foreign
+  word" in multilingual typing), the typed word's validity with its rule of 05 §7, whether its key is unattested, and
+  for every bar entry `lm`, `ed` and the score of §10.1 step 6. Nothing else changes; `EvaluationDataTest` checks that
+  both return the same prediction. The dictionary evaluation itself (lint, engine runs, report) is described in
+  [EVALUATION.md](EVALUATION.md).
+
+- **Dictionaries of 0.7.0 (05b §12)**: no engine change. With the combined classes the header constants follow the
+  built lists (05 §3.1): en-US Bc 0.02927 (S 14.8356), es-ES 0.02862 (S 15.1738; "de" now the most frequent key),
+  pt-BR 0.02808 ("de"), it-IT ("di"), fr-FR (S 15.6824). Printed test values that changed (outcomes unchanged): English
+  lm(receive) 94 (97), class(don't) 226 (228), unigram(class 131) −5.006 (−5.041); Spanish lm(canción) 86 (87),
+  lm(mañana) 76 (72), lm(ano) 110 (112), lm(dámelo) 113 (101), class(etc) 137 (107); Portuguese lm(você) 42 (41),
+  lm(ação) 87 (89), score(não) 92 (91). 06 E17: "très" is still inserted, but the elided "t'es" now precedes "tes" as
+  the first alternative (spec/QUESTIONS.md). The names and foreign keys of the 0.6.9 count rule in es, pt, it and fr are
+  dropped by the colloquial path or kept as names (`ShortKeysAndNamesTest.step6aAndColloquialPathInOtherLanguages`).
+  German (rebuilt with the approved growth): Bc 0.02563 (S 16.9479), 413 815 keys and about 1 295 000 tree nodes;
+  printed values that changed include class(Haus) 184 (183), lm(Haus) 58 (57), class(dann) 218 (212), class(für) 233
+  (221), lm(Kaffeetasse) 126 (127), class(performant) 12 (1, now admitted by its written frequency), and "Das" at the
+  text start 49 (50; again the value of 05 §17.7). Outcomes: "Cursos" offers "Crusoe", "Cursor", … ("Cursor" among the
+  first three, "Curtis" no key: 05 §17.7a as amended), "dad", "the", "Curtis" and "Captain" are no keys any more, "wär"
+  and "gibts" are flagged colloquial keys; the other German outcomes are unchanged.
 
 Questions with assumptions that matter are recorded in the specification (`spec/QUESTIONS.md`, not published).

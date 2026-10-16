@@ -260,8 +260,8 @@ class InputLogicTest {
         assertEquals("Cursos", strip.word)
         assertEquals(0, strip.wordStart)
         val texts = strip.items.filter { !it.addWord }.map { it.text }
-        // 05 §17.7a: "Cursor" is the first suggestion for "Cursos"
-        assertEquals("$texts", "Cursor", texts.firstOrNull())
+        // 05 §17.7a (0.7.0): "Cursor" is among the first three suggestions for "Cursos"
+        assertTrue("$texts", "Cursor" in texts.take(3))
         assertTrue(strip.items.none { it.bold })
         logic.pick(strip, strip.items.indexOfFirst { it.text == "Cursor" })
         sched.run(400)

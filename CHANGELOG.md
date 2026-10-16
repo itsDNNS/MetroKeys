@@ -3,6 +3,35 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.7.0 – unreleased
+
+### Dictionaries
+- German, Spanish, Portuguese, Italian and French words are now recognised from spelling dictionaries (the Hunspell
+  dictionaries of LibreOffice and Grammalecte) together with Wiktionary, so many real words the old lists lacked are
+  known and offered, also rare ones that never occur in film subtitles.
+- Frequencies combine film subtitles with written-language frequencies (wordfreq). Everyday written words rank higher,
+  words that are typical only of subtitles lower.
+- Names and foreign words of dubbed films that no spelling source knows are no longer words of the language (for
+  example "Joe", "Tom" or "Sam" in Spanish and Italian). Names that a spelling source knows stay valid, with the lower
+  of their two frequencies. Colloquial forms that also occur in written text stay ("gibts", "würd"), misspellings of
+  frequent words do not ("warscheinlich", "mourrir").
+- German spellings with "ae", "oe", "ue" for umlauts ("fuer", "natuerlich") are merged into the real word, so they
+  are corrected.
+- German "ae", "oe", "ue" typed for an umlaut now cost no more than the missing dots, so "fuer", "ueber" and
+  "koennen" are corrected to "für", "über" and "können" instead of competing with typos ("Ufer"), and a prefix such as
+  "fue" completes to "für".
+- The next-word predictions no longer count the sentences the dictionary evaluation tests with.
+
+### Licence
+- The word lists and word pairs are now distributed under the GNU GPL version 3, like the app (up to 0.6.9: CC BY-SA
+  4.0); the licences page names every source, the spelling dictionaries' notices and the GNU LGPL 3 and Mozilla Public
+  License 2.0 texts. The text form of the dictionaries is published with each release.
+
+### Dictionary evaluation
+- Automatic dictionary evaluation (spec 05c): generated typo and false-positive test sets, a data lint, report-only
+  gates and a report with the worst cases per language (docs/EVALUATION.md). Baselines from the 0.6.9 lists and from
+  this release (both with the amended collision rule).
+
 ## 0.6.9 – 2026-10-16
 
 ### Keyboard languages

@@ -41,8 +41,8 @@ class LexiconStructureTest {
         // 0.6.9: 322 073 after the umlaut merge of 05b §3.6 (116 merged keys were in the word list)
         // 0.6.7: 322 189 with the abbreviation titles (English guard) and prefix compounds of 05b §3.6 (0.6.6: 320 804
         // with the dictionary-only lemmas of §3.7; 0.6.5 with all forms 857 274, 236 223 in 0.6.4, 236 559 before step 6a)
-        assertEquals(322073, TestDictionaries.de.lexicon.keyCount)
-        assertEquals(1_091_600.0, TestDictionaries.de.lexicon.nodeCount.toDouble(), 5_000.0)
+        assertEquals(413815, TestDictionaries.de.lexicon.keyCount) // 0.7.0 German list (0.6.9: 322073)
+        assertEquals(1_295_061.0, TestDictionaries.de.lexicon.nodeCount.toDouble(), 5_000.0) // 0.7.0 (0.6.9: 1 091 600)
     }
 
     @Test

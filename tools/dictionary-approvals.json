@@ -1,0 +1,12 @@
+{
+ "comment": "Owner approvals of size changes above the limits of spec/05b-dictionaries.md §6, read by tools/build_dictionaries.py. growth: language tag -> the release it applies to, the previous release it is measured against, the largest word-list growth approved, the date and where the decision is recorded.",
+ "growth": {
+  "de-DE": {
+   "release": "0.7.0",
+   "previous": "0.6.9",
+   "maxGrowth": 0.30,
+   "approved": "2026-10-16",
+   "record": "spec/QUESTIONS.md (answer to the question on 05b §6, 0.7.0 part 2; spec commit e2a5ed4)"
+  }
+ }
+}

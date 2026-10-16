@@ -25,9 +25,10 @@ class UnattestedKeysTest {
         val off = LanguageEngine(LanguageParams.GERMAN, offLexicon())
         assertFalse(off.query("hallp").validity.unattested)
         assertNull(off.query("hallp").autoCorrection)
-        // the bundled German engine: a valid unattested word stays uncorrected ("ally", "gibts")
+        // the bundled German engine: a valid unattested word stays uncorrected (0.7.0: the colloquial "gibts", "würd";
+        // "hiervon" is a form of the spelling dictionary)
         val g = TestDictionaries.german()
-        for (w in listOf("ally", "gibts", "hiervon")) {
+        for (w in listOf("gibts", "würd", "hiervon")) {
             assertFalse(g.query(w).validity.unattested, w)
             assertNull(g.query(w).autoCorrection, w)
         }
@@ -120,18 +121,19 @@ class UnattestedKeysTest {
 
     @Test
     fun bundledFlags() {
-        // English has no unattested keys; the other languages flag exactly their damped keys
+        // English has no unattested keys; from 0.7.0 the other languages flag the keys kept by the colloquial path
+        // (05b §12.4), a few hundred
         assertEquals(0, TestDictionaries.en.lexicon.unattestedCount)
         for (d in listOf(TestDictionaries.de, TestDictionaries.es, TestDictionaries.pt, TestDictionaries.it, TestDictionaries.fr)) {
-            assertTrue(d.lexicon.unattestedCount > 1000, d.languageTag)
+            assertTrue(d.lexicon.unattestedCount in 1..1000, d.languageTag)
         }
         val de = TestDictionaries.de.lexicon
-        // "dad" and "the" are kept by the count rule and damped (05 §17.7a); German forms are never flagged
-        assertTrue(de.isUnattestedWord("dad"))
-        assertTrue(de.isUnattestedWord("the"))
+        // the colloquial keys "wär" and "gibts" are flagged (05b §12.4); German forms are never flagged
+        assertTrue(de.isUnattestedWord("wär"))
+        assertTrue(de.isUnattestedWord("gibts"))
         // unattested names stay flagged but keep blocking corrections (main form capitalised)
         val g = LanguageEngine(RULE_ON, TestDictionaries.de)
-        for (w in listOf("Dad", "Jane", "Emily", "Morgan")) {
+        for (w in listOf("Fred", "Lucie", "Alain")) {
             assertTrue(de.isUnattestedWord(w), w)
             assertFalse(g.query(w).validity.unattested, w)
             assertNull(g.query(w).autoCorrection, w)

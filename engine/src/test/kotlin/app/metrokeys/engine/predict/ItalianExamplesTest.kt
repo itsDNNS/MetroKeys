@@ -41,7 +41,8 @@ class ItalianExamplesTest {
         assertEquals(247_073_874L, it.lexicon.corpusTokens)
         assertEquals(-8.39, it.a, 1e-9)
         println("it header: S=${it.lexicon.scale} maxCount=${it.lexicon.maxCount} Bc=${it.bc}")
-        assertEquals(255, it.lexicon.exactClass("non"))
+        // 0.7.0: with the combined frequency of 05b §12.2 "di" is the most frequent key (0.6.9: "non")
+        assertEquals(255, it.lexicon.exactClass("di"))
         assertEquals(LmCost.constantBc(it.lexicon.scale), it.bc)
         // the prefix table (05b §1.1): 41 prefixes with classes, "l'" the most frequent
         assertEquals(41, it.lexicon.prefixCount)

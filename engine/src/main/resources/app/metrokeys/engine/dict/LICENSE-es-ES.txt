@@ -1,7 +1,115 @@
 MetroKeys dictionary es-ES (es-ES.words.gz, es-ES.pairs.gz)
 
-Word list: FrequencyWords (c) Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; spellings from Wiktionary (es.wiktionary.org and the Spanish sections of en.wiktionary.org), authors see page histories, CC BY-SA 4.0; sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, accents, case, frequency classes), CC BY-SA 4.0.
+Word list: FrequencyWords (c) Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; written-language frequencies from wordfreq (c) Robyn Speer, CC BY-SA 4.0, which contains data from Wikipedia, OPUS OpenSubtitles 2018, SUBTLEX (Brysbaert et al.), Google Books Ngrams and the further sources named in its README; spellings from Wiktionary (es.wiktionary.org and the Spanish sections of en.wiktionary.org), authors see page histories, CC BY-SA 4.0; spelling dictionaries RLA-ES (c) Santiago Bosio and contributors, GNU GPL version 3 or later (also LGPL 3+ / MPL 1.1+), used under GPL 3; sentence statistics from Tatoeba (tatoeba.org, authors see sentence pages, CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, accents, case, frequency classes). Distributed under the GNU GPL version 3; the CC BY-SA 4.0 material is used under the CC BY-SA 4.0 / GPLv3 compatibility.
 
-Word pairs: counted from sentences of Tatoeba (tatoeba.org, authors see sentence pages, CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (pair counts, probability classes), CC BY-SA 4.0.
+Word pairs: counted from sentences of Tatoeba (tatoeba.org, authors see sentence pages, CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (pair counts, probability classes). Distributed under the GNU GPL version 3.
 
-These data files are licensed under the Creative Commons Attribution-ShareAlike 4.0 International licence (CC BY-SA 4.0), https://creativecommons.org/licenses/by-sa/4.0/. The licence applies to the data files only, not to the MetroKeys program code.
+Licence: the word list, the word pairs and the elision prefixes of this language are distributed under the GNU General Public License, version 3 only (https://www.gnu.org/licenses/gpl-3.0.html), the licence of MetroKeys; the CC BY-SA 4.0 material (Creative Commons Attribution-ShareAlike 4.0 International, https://creativecommons.org/licenses/by-sa/4.0/) is used under the one-way compatibility of CC BY-SA 4.0 with GPLv3 declared by Creative Commons. Up to version 0.6.9 the data files were licensed under CC BY-SA 4.0.
+
+Source form: the word lists and word pairs as text, the spelling-dictionary files exactly as used and the build report with the hashes of every input are published with each release at https://github.com/itsDNNS/MetroKeys/releases; the build tools are part of the source code (tools/build_dictionaries.py).
+
+--- Spelling dictionary notice LICENSE.md (verbatim) ---
+
+# Licencia
+
+El proyecto y los diccionarios se distribuyen bajo un triple esquema de
+licencias disjuntas: [GNU GPL versión 3 o posterior](https://www.gnu.org/licenses/gpl-3.0.en.html), [GNU LGPL versión 3 o
+posterior](https://www.gnu.org/licenses/lgpl-3.0.en.html) o [MPL versión 1.1 o posterior](https://www.mozilla.org/en-US/MPL/1.1/).
+Puede seleccionar libremente bajo cuál de estas licencias realizará el uso.
+
+El detalle de cada licencia está accesible en:
+
+- https://www.gnu.org/licenses/gpl-3.0.en.html
+- https://www.gnu.org/licenses/lgpl-3.0.en.html
+- https://www.mozilla.org/en-US/MPL/1.1/
+
+y en los ficheros:
+- LICENSE/GPLv3.txt  
+- LICENSE/LGPLv3.txt
+- LICENSE/MPL-1.1.txt
+
+
+El diccionario de sinónimos se distribuye según lo auspiciado por la [GNU LGPL v2.1](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html).
+
+El detalle está accesible:
+
+- en la dirección web  https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html
+- y en el fichero LICENSE/LGPLv2.1.txt
+
+--- Spelling dictionary notice README_hunspell_es.txt (verbatim) ---
+
+****************************************************************************
+  **                                                                        **
+  **          Diccionario para corrección ortográfica en español de         **
+  **                      LibreOffice/Apache OpenOffice                     **
+  **                                                                        **
+  ****************************************************************************
+
+Para: __LOCALES__
+
+  ****************************************************************************
+
+                                  Versión __VERSION__
+
+SUMARIO
+
+1. AUTOR
+2. LICENCIA
+3. COLABORACIÓN
+4. AGRADECIMIENTOS
+
+
+1. AUTOR
+
+   Este diccionario ha sido desarrollado inicialmente por Santiago Bosio;
+quien actualmente coordina el desarrollo de todos los diccionarios localizados.
+
+   El diccionario es un desarrollo completamente nuevo, y NO ESTÁ BASADO en el
+trabajo de Jesús Carretero y Santiago Rodríguez, ni en la versión adaptada al
+formato de MySpell por Richard Holt.
+
+2. LICENCIA
+
+   Este diccionario para corrección ortográfica, integrado por el fichero
+de afijos y la lista de palabras (__LOCALE__[.aff|.dic]) se distribuye
+bajo un triple esquema de licencias disjuntas: GNU GPL versión 3 o posterior,
+GNU LGPL versión 3 o posterior, ó MPL versión 1.1 o posterior. Puede
+seleccionar libremente bajo cuál de estas licencias utilizará este diccionario.
+En el fichero LICENSE.md encontrá más detalles.
+
+3. COLABORACIÓN
+
+   Este diccionario es resultado del trabajo colaborativo de muchas personas.
+La buena noticia es que ¡usted también puede participar!
+
+   ¿Tiene dudas o sugerencias? ¿Desearía ver palabras agregadas, o que se
+realizaran correcciones? Consulte las indicaciones técnicas publicadas en
+CONTRIBUTING.md. Estaremos encantados de atenderle.
+
+4. AGRADECIMIENTOS
+
+   Hay varias personas que han colaborado con aportes o sugerencias a la
+creación de este diccionario. Se agradece especialmente a:
+
+   - Richard Holt.
+   - Marcelo Garrone.
+   - Kevin Hendricks.
+   - Juan Rey Saura.
+   - Carlos Dávila.
+   - Román Gelbort.
+   - J. Eduardo Moreno.
+   - Gonzalo Higuera Díaz.
+   - Ricardo Palomares Martínez.
+   - Sergio Medina.
+   - Ismael Olea.
+   - Alejandro Moreno.
+   - Alexandro Colorado.
+   - Andrés Sánchez.
+   - Juan Rafael Fernández García.
+   - eksperimental.
+   - Ezequiel (ezeperez26).
+   - KNTRO.
+   - Ricardo Berlasso.
+   - Edward Villegas-Pulgarin (cosmocalibur)
+   - y a todos los integrantes de la comunidad en español que proponen mejoras
+     a este diccionario.

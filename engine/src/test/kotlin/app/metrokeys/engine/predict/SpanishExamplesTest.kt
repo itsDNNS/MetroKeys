@@ -33,11 +33,11 @@ class SpanishExamplesTest {
         // 05 §3.1: corpusTokens fixed by the source, S from maxCount of the finished list
         assertEquals(423_290_924L, es.lexicon.corpusTokens)
         assertEquals(-8.63, es.a, 1e-9)
-        assertEquals(0.02808, es.bc, 1e-9)
-        assertEquals(15.4669f, es.lexicon.scale, 0.0005f)
+        assertEquals(0.02862, es.bc, 1e-9) // 0.7.0 (05b §12.2); 0.6.9: 0.02808
+        assertEquals(15.1738f, es.lexicon.scale, 0.0005f)
         // lm without context: round(170.34 − 0.5054 · k): class 255 → 41, class 0 → 170
-        assertEquals(41, es.lm("que"))
-        assertEquals(255, es.lexicon.exactClass("que"))
+        assertEquals(39, es.lm("de")) // 0.7.0 header (0.6.9: lm(que) 41)
+        assertEquals(255, es.lexicon.exactClass("de")) // 0.7.0: "de" stays the most frequent key
     }
 
     @Test
@@ -49,7 +49,7 @@ class SpanishExamplesTest {
         assertEquals(0, c.ed)
         assertEquals(c.lm, es.acScore(c, 7))
         assertTrue(es.acScore(c, 7) < es.params.acLimit)
-        assertEquals(87, c.lm)
+        assertEquals(86, c.lm) // 0.7.0 (0.6.9: 87)
         assertEquals("canción", r.autoCorrection?.display)
         assertEquals("canción", ac("cancion"))
     }
@@ -61,7 +61,7 @@ class SpanishExamplesTest {
         val m = r.corr("mañana")
         assertEquals(0, m.ed)
         assertEquals(56, m.lm) // lm(mañana | hasta); unigram 72
-        assertEquals(72, es.lm("mañana"))
+        assertEquals(76, es.lm("mañana")) // 0.7.0 (0.6.9: 72)
         assertEquals("mañana", r.autoCorrection?.display)
         assertEquals(150, 4 * 225 / 6)
         assertTrue(es.lm("manzana") + 150 > es.params.acLimit)
@@ -81,7 +81,7 @@ class SpanishExamplesTest {
         assertNull(ac("Creo que esta"))
         assertNull(ac("Creo que esta bien"))
         assertEquals("está", first("Creo que esta"))
-        assertEquals(112, es.lm("ano"))
+        assertEquals(110, es.lm("ano")) // 0.7.0 (0.6.9: 112)
         assertNull(ac("ano"))
         assertEquals("año", first("ano"))
         for ((typed, accented) in listOf("si" to "sí", "el" to "él", "tu" to "tú", "mas" to "más", "solo" to "sólo",
@@ -119,7 +119,7 @@ class SpanishExamplesTest {
         val r = es.query("damelo")
         val d = r.corr("dámelo")
         assertEquals(0, d.ed)
-        assertEquals(101, d.lm)
+        assertEquals(113, d.lm) // 0.7.0 (0.6.9: 101)
         assertEquals("dámelo", r.autoCorrection?.display)
         for (w in listOf("dime", "hazlo", "decírselo", "llámame", "vámonos", "dímelo")) {
             val v = es.query(w)

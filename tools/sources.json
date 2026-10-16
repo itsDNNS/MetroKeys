@@ -1,5 +1,5 @@
 {
- "comment": "Free sources of the MetroKeys dictionaries (spec/05b-dictionaries.md section 2). Paths are relative to build-data/src.",
+ "comment": "Free sources of the MetroKeys dictionaries (spec/05b-dictionaries.md section 2, including the spelling dictionaries of 2.14 and the written-language frequencies of 2.15). Paths are relative to build-data/src.",
  "sources": [
   {
    "path": "fw/de_full.txt",
@@ -378,6 +378,281 @@
    "path": "cv/fr/wiki-2.fr.txt",
    "url": "https://raw.githubusercontent.com/common-voice/common-voice/e983ce07e3f4a935b7958c77224c77b7bdc8079a/server/data/fr/wiki-2.fr.txt",
    "sha256": "38b9df9c0b0f997ab53854ca607b40d9a9117ad111b81b498fe0bfd9980ab93b"
+  },
+  {
+   "path": "wordfreq/large_de.msgpack.gz",
+   "url": "https://raw.githubusercontent.com/rspeer/wordfreq/42233e6c36ce792031bcccfa17cdd0cec9af5fa7/wordfreq/data/large_de.msgpack.gz",
+   "sha256": "8ef04d3f4a28fb48d800d25fa80a96d90a5f80c8496c9a453f99f887c6ad3c12"
+  },
+  {
+   "path": "wordfreq/large_en.msgpack.gz",
+   "url": "https://raw.githubusercontent.com/rspeer/wordfreq/42233e6c36ce792031bcccfa17cdd0cec9af5fa7/wordfreq/data/large_en.msgpack.gz",
+   "sha256": "dffae8066b78dce0a6667cf5f58e567054f902674667090a7ac8a8a44628b05c"
+  },
+  {
+   "path": "wordfreq/large_es.msgpack.gz",
+   "url": "https://raw.githubusercontent.com/rspeer/wordfreq/42233e6c36ce792031bcccfa17cdd0cec9af5fa7/wordfreq/data/large_es.msgpack.gz",
+   "sha256": "14f326b4f68d517f9b8b99c1e26ef56a508d2dc8d0ee7a9e6e8732ddab1aa65e"
+  },
+  {
+   "path": "wordfreq/large_pt.msgpack.gz",
+   "url": "https://raw.githubusercontent.com/rspeer/wordfreq/42233e6c36ce792031bcccfa17cdd0cec9af5fa7/wordfreq/data/large_pt.msgpack.gz",
+   "sha256": "7d764586bca6262f554d5fa77ad8e6841ef42534776e70558065140853660ce2"
+  },
+  {
+   "path": "wordfreq/large_it.msgpack.gz",
+   "url": "https://raw.githubusercontent.com/rspeer/wordfreq/42233e6c36ce792031bcccfa17cdd0cec9af5fa7/wordfreq/data/large_it.msgpack.gz",
+   "sha256": "0b5500e425a50e0f1fefb256d9125e74f586ac6b2f2a6e41bc96634bd5613cc7"
+  },
+  {
+   "path": "wordfreq/large_fr.msgpack.gz",
+   "url": "https://raw.githubusercontent.com/rspeer/wordfreq/42233e6c36ce792031bcccfa17cdd0cec9af5fa7/wordfreq/data/large_fr.msgpack.gz",
+   "sha256": "6f16cd80b9b66c5698ed002becea83ae30d0584c3205f1cf01714ad562c00c8b"
+  },
+  {
+   "path": "hunspell/de/de_DE_frami.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/de/de_DE_frami.aff",
+   "sha256": "646bf3333ac69c23e9d794533ee5241d6f755c359e8fe10a648f87613743d594"
+  },
+  {
+   "path": "hunspell/de/de_DE_frami.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/de/de_DE_frami.dic",
+   "sha256": "4ca3c958b0e5545910999bc246f668840bf8ede3df8e5e6790d05edd5a586c38"
+  },
+  {
+   "path": "hunspell/pt_BR/pt_BR.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/pt_BR/pt_BR.aff",
+   "sha256": "21d8ad2a769a60e17e2b5ea4ef11d4d593a58b9e2a82d642ef82d6a4c5523865"
+  },
+  {
+   "path": "hunspell/pt_BR/pt_BR.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/pt_BR/pt_BR.dic",
+   "sha256": "a38bfb26b68ece2834e79fe83e48d5792652970ace12db89d1b9674bf9933183"
+  },
+  {
+   "path": "hunspell/it_IT/it_IT.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/it_IT/it_IT.aff",
+   "sha256": "951afaa19272f13555b8823e8bcf9ccf78f8fe1a07835bdfb912ab3e4d537c2b"
+  },
+  {
+   "path": "hunspell/it_IT/it_IT.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/it_IT/it_IT.dic",
+   "sha256": "bae1e3501dcd2a923669592493b3fde6c02aae7c7aab83bf5e5b49077e73dd64"
+  },
+  {
+   "path": "hunspell/es/es_ES.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_ES.aff",
+   "sha256": "e73a9bf8e1383f4986a5dc9e2fbed49371c0c61f511c626d15586bd433c1cad9"
+  },
+  {
+   "path": "hunspell/es/es_ES.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_ES.dic",
+   "sha256": "6975dddec3d5d2c676069537bc67b4b5f786c65c5d4cf6703a82acf779ac9ec1"
+  },
+  {
+   "path": "hunspell/es/es_AR.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_AR.aff",
+   "sha256": "e9a96514295f8664db270d024c345700ccb9410a384eb71aec0fe5f0931d8c70"
+  },
+  {
+   "path": "hunspell/es/es_AR.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_AR.dic",
+   "sha256": "4fe3e193425bb3841ee218d36a9fc95d85b8daa8909363bdbba55a2f9f4e3d1d"
+  },
+  {
+   "path": "hunspell/es/es_BO.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_BO.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_BO.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_BO.dic",
+   "sha256": "c882b993a0ae83c94ab94c4b84a8f8300979e0e44fc4dceb2f15eaba521a30e7"
+  },
+  {
+   "path": "hunspell/es/es_CL.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_CL.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_CL.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_CL.dic",
+   "sha256": "e249a50ed9c9b939801bd2ba12099c9decb59217782c59fc65e7f72831b0b401"
+  },
+  {
+   "path": "hunspell/es/es_CO.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_CO.aff",
+   "sha256": "243d5dc50b68261dd10118799724beb95a6c19d4f9d6848ebfc977430bf2f8e2"
+  },
+  {
+   "path": "hunspell/es/es_CO.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_CO.dic",
+   "sha256": "10f5e38e1c6898194cd860c237b1569725f721eb5eb0705e3a7158c69652c226"
+  },
+  {
+   "path": "hunspell/es/es_CR.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_CR.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_CR.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_CR.dic",
+   "sha256": "073b27663394a297eb1c896419b5b5518bd5b345acfe244d00968433ad9709bd"
+  },
+  {
+   "path": "hunspell/es/es_CU.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_CU.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_CU.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_CU.dic",
+   "sha256": "3fc1bb0eeffdb99ec8851166453b8d32745da51e9d1036c689f2512dd22c887c"
+  },
+  {
+   "path": "hunspell/es/es_DO.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_DO.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_DO.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_DO.dic",
+   "sha256": "194293e1785b2a0ce9b8166cdc4164afebc1ef57db92305786b32350fcb13832"
+  },
+  {
+   "path": "hunspell/es/es_EC.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_EC.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_EC.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_EC.dic",
+   "sha256": "caeea1b6bb09c80ca1ff36c81a02ca868fe709f330ac4303806cbf1cd7a6bc0b"
+  },
+  {
+   "path": "hunspell/es/es_GT.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_GT.aff",
+   "sha256": "2cdfcb8d86b70090b3f23f2fe2b6d9d6cfa5f76c803fa8229c674af2b87e6adc"
+  },
+  {
+   "path": "hunspell/es/es_GT.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_GT.dic",
+   "sha256": "f424e3546db88d36b38bbc735fd01126296a4f7500ca1368d7017fac561107e7"
+  },
+  {
+   "path": "hunspell/es/es_HN.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_HN.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_HN.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_HN.dic",
+   "sha256": "a1fa7c74a68cb4e7746bae221dd53a27467c320a1cdc2d712cf55926896ee28d"
+  },
+  {
+   "path": "hunspell/es/es_MX.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_MX.aff",
+   "sha256": "d966cb748e4a688ed75ec84b50c0835ac438e5325ee4fce703a093794f9cba7e"
+  },
+  {
+   "path": "hunspell/es/es_MX.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_MX.dic",
+   "sha256": "44ce35af220962c68f97962776639bef271f7d90a85ba924b539a36e33315f82"
+  },
+  {
+   "path": "hunspell/es/es_NI.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_NI.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_NI.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_NI.dic",
+   "sha256": "4d7ecc54d369aab904733e64729fffa42413412e14e6a27a32f7fbd56e9161b9"
+  },
+  {
+   "path": "hunspell/es/es_PA.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_PA.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_PA.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_PA.dic",
+   "sha256": "bd87e7e25b776d8fe96c4197360909b41d45289ec91c7c47eb000948c04a3ae2"
+  },
+  {
+   "path": "hunspell/es/es_PE.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_PE.aff",
+   "sha256": "d966cb748e4a688ed75ec84b50c0835ac438e5325ee4fce703a093794f9cba7e"
+  },
+  {
+   "path": "hunspell/es/es_PE.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_PE.dic",
+   "sha256": "1d810a0a319fee329000538cf4df76621bb71228172558b87490f8b9c19b9d75"
+  },
+  {
+   "path": "hunspell/es/es_PR.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_PR.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_PR.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_PR.dic",
+   "sha256": "11e0815f41a25aac5d6871a13767b1c14a1c6ad5a7c40b359fc4c22f8297ff7f"
+  },
+  {
+   "path": "hunspell/es/es_PY.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_PY.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_PY.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_PY.dic",
+   "sha256": "f9a18929f9e5234bc4aba83df1744351156932cb47b77b2ed3358c3170bb41ff"
+  },
+  {
+   "path": "hunspell/es/es_SV.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_SV.aff",
+   "sha256": "dc8213bb8fb08e51dd5869b348d873de23f89e3315656396ca3031fe1d7ffcea"
+  },
+  {
+   "path": "hunspell/es/es_SV.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_SV.dic",
+   "sha256": "3a015f4469046d37806bf374c4d88149cdf570f467a60732f50d736f23d9cac5"
+  },
+  {
+   "path": "hunspell/es/es_US.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_US.aff",
+   "sha256": "674c5a4b4d39fd3b4452f045a4e6e0649db4a2ce23f5903df8c311e21f1a757c"
+  },
+  {
+   "path": "hunspell/es/es_US.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_US.dic",
+   "sha256": "d46932a5c0ec3881fdf265333df4de45a73de51741baedcb5bb54d37b03979c8"
+  },
+  {
+   "path": "hunspell/es/es_UY.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_UY.aff",
+   "sha256": "d7ace3a7ef1fdf6dc89701d37f109730c0bc19aeaeda0ecf59fc67a1c5c28232"
+  },
+  {
+   "path": "hunspell/es/es_UY.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_UY.dic",
+   "sha256": "9f05b75265a78bcd394993b7fee5f9f0e4031c41ce8915828c6fce8ee6579e13"
+  },
+  {
+   "path": "hunspell/es/es_VE.aff",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_VE.aff",
+   "sha256": "d966cb748e4a688ed75ec84b50c0835ac438e5325ee4fce703a093794f9cba7e"
+  },
+  {
+   "path": "hunspell/es/es_VE.dic",
+   "url": "https://raw.githubusercontent.com/LibreOffice/dictionaries/67032ee957631908098a72edf48dc81cac27e369/es/es_VE.dic",
+   "sha256": "57eb3aa695c24e1f8f469ac86367b952194c08ee25bc2b761ba4681686ccc723"
+  },
+  {
+   "path": "hunspell/fr/hunspell-french-dictionaries-v7.7.zip",
+   "url": "https://www.grammalecte.net/dic/hunspell-french-dictionaries-v7.7.zip",
+   "sha256": "44314d992f94b4658c31a86ef2351724a43067531b0af3643f91bf0220eee616"
   }
  ]
 }

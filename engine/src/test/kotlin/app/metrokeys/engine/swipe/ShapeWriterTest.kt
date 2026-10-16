@@ -276,8 +276,8 @@ class ShapeWriterTest {
         assertEquals("en-US", r.candidates[4].languageTag)
         // the penalty is the class drop of the weight: −log10(w) / Bc
         val en = engine.language("en-US")!!
-        assertEquals(-kotlin.math.log10(0.35) / 0.029, engine.shapePenalty(0.35, en), 1e-6)
-        assertEquals(4 / 0.02655, engine.shapePenalty(1e-6, engine.language("de-DE")!!), 1e-6)
+        assertEquals(-kotlin.math.log10(0.35) / 0.02927, engine.shapePenalty(0.35, en), 1e-6) // 0.7.0 Bc (0.6.9: 0.029)
+        assertEquals(4 / 0.02563, engine.shapePenalty(1e-6, engine.language("de-DE")!!), 1e-6) // 0.7.0 (0.6.9: 0.02655)
     }
 
     @Test

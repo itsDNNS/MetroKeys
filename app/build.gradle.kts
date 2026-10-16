@@ -126,6 +126,15 @@ abstract class LicensesTask : DefaultTask() {
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val gpl: RegularFileProperty
 
+    /** Licences of spelling dictionaries the word lists are built from (05b §2.5, 0.7.0): GNU LGPL 3, MPL 2.0. */
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val lgpl: RegularFileProperty
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val mpl: RegularFileProperty
+
     @get:Input
     abstract val libraries: ListProperty<String>
 
@@ -186,7 +195,18 @@ abstract class LicensesTask : DefaultTask() {
             append("Licence: ${row(md, "## Selawik font", "Licence").substringBefore(';')}.\n\n")
             append(reflow(selawik.get().asFile.readText()).trim()).append("\n\n")
             append("DICTIONARIES\n\n")
+            append("The word lists, word pairs and elision prefixes of the keyboard languages are built from the sources ")
+            append("named below; each language's text states their licence. From version 0.7.0 they are distributed under ")
+            append("the GNU General Public License, version 3 only, like MetroKeys (its text is shown above), and the ")
+            append("CC BY-SA 4.0 material is used under the CC BY-SA 4.0 / GPLv3 compatibility. Their source form is ")
+            append("published with each release at https://github.com/itsDNNS/MetroKeys/releases.\n\n")
             for (f in dictionaries.files.sortedBy { it.name }) append(reflow(f.readText()).trim()).append("\n\n")
+            append("GNU LESSER GENERAL PUBLIC LICENSE, VERSION 3 (spelling dictionary of the Portuguese word list)\n\n")
+            append(reflow(lgpl.get().asFile.readText()).lines().joinToString("\n") { it.trim() }.trim()).append("\n\n")
+            append("MOZILLA PUBLIC LICENSE, VERSION 2.0 (spelling dictionary of the French word list)\n\n")
+            append(reflow(mpl.get().asFile.readText()).trim()).append("\n\n")
+            append("CREATIVE COMMONS ATTRIBUTION-SHAREALIKE 4.0 INTERNATIONAL (CC BY-SA 4.0): ")
+            append("https://creativecommons.org/licenses/by-sa/4.0/legalcode\n\n")
             append("EMOJI DATA\n\n")
             append("Emoji list, source: ${row(md, "## Emoji page data", "Source")}.\n\n")
             append("Licence: ${row(md, "## Emoji page data", "Licence").substringBefore(" (")}.\n\n")
@@ -212,6 +232,8 @@ androidComponents {
             unicode.set(file("src/main/assets/licenses/Unicode-LICENSE.txt"))
             apache.set(file("licenses/Apache-2.0.txt"))
             gpl.set(file("licenses/GPL-3.0.txt"))
+            lgpl.set(file("licenses/LGPL-3.0.txt"))
+            mpl.set(file("licenses/MPL-2.0.txt"))
             libraries.set(
                 classpath.map { c ->
                     c.incoming.resolutionResult.allComponents

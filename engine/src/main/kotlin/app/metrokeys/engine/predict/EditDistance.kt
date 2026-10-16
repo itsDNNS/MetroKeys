@@ -58,6 +58,11 @@ public class EditDistance(private val params: LanguageParams, private val touch:
                     val caseCost = if (Character.isUpperCase(typed[i - 2]) != cu) p.edCase else 0
                     v = minOf(v, d[i - 2][j - 1] + p.edDiacritic + caseCost)
                 }
+                // umlaut rule (UMLAUT_TRANSLIT, de): typed "ae"/"oe"/"ue" for "ä"/"ö"/"ü"
+                if (p.umlautTranslit && i > 1 && ti == 'e' && isUmlautOf(t[i - 2], cj)) {
+                    val caseCost = if (Character.isUpperCase(typed[i - 2]) != cu) p.edCase else 0
+                    v = minOf(v, d[i - 2][j - 1] + p.edDiacritic + caseCost)
+                }
                 d[i][j] = v
             }
         }
@@ -98,6 +103,10 @@ public class EditDistance(private val params: LanguageParams, private val touch:
             return s != cand && s == typed
         }
 
+        /** True if [umlaut] (lower case) is ä, ö or ü and [vowel] (lower case) its base letter a, o or u. */
+        internal fun isUmlautOf(vowel: Char, umlaut: Char): Boolean =
+            (umlaut == 'ä' && vowel == 'a') || (umlaut == 'ö' && vowel == 'o') || (umlaut == 'ü' && vowel == 'u')
+
         /** `CAPS_UNACCENTED` pair (lower-cased letters): [typed] has no diacritic and is [cand] without its diacritic. */
         internal fun isUnaccentedCapital(typed: Char, cand: Char): Boolean {
             if (stripDiacritic(typed) != typed) return false
@@ -116,11 +125,18 @@ public class EditDistance(private val params: LanguageParams, private val touch:
         /**
          * UNITS(typed, cand): the same recursion with unit costs, case 0 and filler 0 (05 §5); the ß rule and the ligature
          * rule cost 1, an unaccented capital ([capsUnaccented], fr) 0. A diacritic difference (typed base letter for an
-         * accented letter of the candidate, or an `ACCENT_SWAP` pair when [accentSwap]) counts 0 units (0.6.4).
+         * accented letter of the candidate, or an `ACCENT_SWAP` pair when [accentSwap]) counts 0 units (0.6.4). With
+         * [umlautTranslit] (de, 0.7.0) the umlaut rule (typed "ae"/"oe"/"ue" for "ä"/"ö"/"ü") costs 1 as well.
          */
         @JvmStatic
         @JvmOverloads
-        public fun units(typed: String, cand: String, capsUnaccented: Boolean = false, accentSwap: Boolean = false): Int {
+        public fun units(
+            typed: String,
+            cand: String,
+            capsUnaccented: Boolean = false,
+            accentSwap: Boolean = false,
+            umlautTranslit: Boolean = false,
+        ): Int {
             val n = typed.length
             val m = cand.length
             if (n > Params.ED_MAX_LEN || m > Params.ED_MAX_LEN) return Params.ED_OVERFLOW
@@ -145,6 +161,7 @@ public class EditDistance(private val params: LanguageParams, private val touch:
                     if (i > 1 && ti == 'e' && ((cj == 'œ' && t[i - 2] == 'o') || (cj == 'æ' && t[i - 2] == 'a'))) {
                         v = minOf(v, d[i - 2][j - 1] + 1)
                     }
+                    if (umlautTranslit && i > 1 && ti == 'e' && isUmlautOf(t[i - 2], cj)) v = minOf(v, d[i - 2][j - 1] + 1)
                     d[i][j] = v
                 }
             }

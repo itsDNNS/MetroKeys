@@ -27,7 +27,7 @@ class UserModelTest {
     @Test
     fun hausWorkedExample() {
         val e = de()
-        assertEquals(75, e.lm("Haus"))
+        assertEquals(78, e.lm("Haus")) // 0.7.0 German list (0.6.9: 75)
         repeat(5) { e.user.learn("Haus", emptyList()) }
         repeat(1000) { e.user.learn("Füllwort", emptyList()) }
         repeat(5) { e.user.learn("Haus", emptyList()) }
@@ -35,7 +35,7 @@ class UserModelTest {
         assertEquals(2000, e.user.totalCount)
         assertEquals(10, e.user.count("Haus"))
         assertEquals(5, e.user.recentCount("Haus"))
-        assertEquals(73, e.lm("Haus"))
+        assertEquals(74, e.lm("Haus")) // 0.7.0 German list (0.6.9: 73)
     }
 
     @Test

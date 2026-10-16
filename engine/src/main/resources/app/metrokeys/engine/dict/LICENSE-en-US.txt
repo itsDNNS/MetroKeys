@@ -1,10 +1,12 @@
 MetroKeys dictionary en-US (en-US.words.gz, en-US.pairs.gz)
 
-Word list: FrequencyWords (c) Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; SCOWL (c) Kevin Atkinson and others (wordlist.aspell.net), see the notice below; sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, spelling, contractions, frequency classes), CC BY-SA 4.0.
+Word list: FrequencyWords (c) Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; written-language frequencies from wordfreq (c) Robyn Speer, CC BY-SA 4.0, which contains data from Wikipedia, OPUS OpenSubtitles 2018, SUBTLEX (Brysbaert et al.), Google Books Ngrams and the further sources named in its README; SCOWL (c) Kevin Atkinson and others (wordlist.aspell.net), see the notice below; sentence statistics from Tatoeba (tatoeba.org, authors see sentence pages, CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, spelling, contractions, frequency classes). Distributed under the GNU GPL version 3; the CC BY-SA 4.0 material is used under the CC BY-SA 4.0 / GPLv3 compatibility.
 
-Word pairs: counted from sentences of Tatoeba (tatoeba.org, authors see sentence pages, CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (pair counts, probability classes), CC BY-SA 4.0.
+Word pairs: counted from sentences of Tatoeba (tatoeba.org, authors see sentence pages, CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (pair counts, probability classes). Distributed under the GNU GPL version 3.
 
-These data files are licensed under the Creative Commons Attribution-ShareAlike 4.0 International licence (CC BY-SA 4.0), https://creativecommons.org/licenses/by-sa/4.0/. The licence applies to the data files only, not to the MetroKeys program code.
+Licence: the word list, the word pairs and the elision prefixes of this language are distributed under the GNU General Public License, version 3 only (https://www.gnu.org/licenses/gpl-3.0.html), the licence of MetroKeys; the CC BY-SA 4.0 material (Creative Commons Attribution-ShareAlike 4.0 International, https://creativecommons.org/licenses/by-sa/4.0/) is used under the one-way compatibility of CC BY-SA 4.0 with GPLv3 declared by Creative Commons. Up to version 0.6.9 the data files were licensed under CC BY-SA 4.0.
+
+Source form: the word lists and word pairs as text, the spelling-dictionary files exactly as used and the build report with the hashes of every input are published with each release at https://github.com/itsDNNS/MetroKeys/releases; the build tools are part of the source code (tools/build_dictionaries.py).
 
 --- SCOWL notice (Copyright file of scowl-2020.12.07, verbatim) ---
 

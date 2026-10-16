@@ -189,7 +189,20 @@ public class PredictionEngine(
     public var queryObserver: ((Query) -> Unit)? = null
 
     /** Suggestions for the current word, or next-word predictions when the current word is empty. */
-    public fun query(q: Query): Prediction {
+    public fun query(q: Query): Prediction = queryImpl(q, null)
+
+    /**
+     * [query] with the diagnostics of the dictionary evaluation (05c §5): the decision step of 05 §10.1, the validity
+     * rule of 05 §7, whether the typed word's key is unattested, and lm, ed and score of the bar entries. Only the
+     * engine's own tests use it; it changes nothing in the result.
+     */
+    internal fun queryDiagnosed(q: Query): Pair<Prediction, QueryDiagnostics?> {
+        var d: QueryDiagnostics? = null
+        val p = queryImpl(q) { d = it }
+        return p to d
+    }
+
+    private fun queryImpl(q: Query, diagnostics: ((QueryDiagnostics) -> Unit)?): Prediction {
         queryObserver?.invoke(q)
         if (TextRules.caretInsideWord(q.after)) return Prediction.EMPTY
         val ctx = QueryContext.of(q.before, q.taps, q.field.nameField)
@@ -212,13 +225,21 @@ public class PredictionEngine(
             val ac = if (acAllowed) r.autoCorrection else null
             val bar = ArrayList<Suggestion>()
             val seen = HashSet<String>()
+            val used = if (diagnostics != null) ArrayList<Pair<Candidate, LanguageEngine>>() else null
             ac?.let {
                 bar.add(Suggestion(it.display, SuggestionKind.CORRECTION, -it.cost.coerceAtMost(9999), r.languageTag, true))
                 seen.add(it.display)
+                used?.add(it to engines[0])
             }
             for (c in r.ranked) {
                 if (bar.size >= Params.BAR_MAX) break
-                if (seen.add(c.display)) bar.add(c.toSuggestion(r.languageTag, -c.cost))
+                if (seen.add(c.display)) {
+                    bar.add(c.toSuggestion(r.languageTag, -c.cost))
+                    used?.add(c to engines[0])
+                }
+            }
+            if (diagnostics != null) {
+                diagnostics(diagnose(if (acAllowed) r.decisionStep else "off", r, engines[0], ctx.word.length, used!!))
             }
             if (emojiAllowed) appendEmoji(bar, engines[0], ac?.word ?: ctx.word)
             return Prediction(ctx.word, if (s.suggestions) bar else emptyList(), ac?.display, valid, ac?.let { r.languageTag })
@@ -229,15 +250,18 @@ public class PredictionEngine(
         val top = results[topIdx]
         val topWeight = weights.getValue(top.languageTag)
         var ac: Candidate? = null
+        var step = if (!acAllowed) "off" else if (topWeight < Params.LANG_AC_MIN) "14.2 language weight" else top.decisionStep
         if (acAllowed && topWeight >= Params.LANG_AC_MIN) {
             val x = top.autoCorrection
             if (x != null && !foreignWordBlock(ctx.word, x, engines[topIdx], engines, results, weights)) ac = x
+            else if (x != null) step = "14.3 foreign word"
         }
-        data class Entry(val c: Candidate, val tag: String, val cost: Double)
+        val used = if (diagnostics != null) ArrayList<Pair<Candidate, LanguageEngine>>() else null
+        data class Entry(val c: Candidate, val tag: String, val cost: Double, val engine: LanguageEngine)
         val entries = ArrayList<Entry>()
         for ((i, r) in results.withIndex()) {
             val pen = weightPenalty(weights.getValue(engines[i].languageTag))
-            for (c in r.ranked.take(Params.BAR_MAX)) entries.add(Entry(c, r.languageTag, c.cost + pen))
+            for (c in r.ranked.take(Params.BAR_MAX)) entries.add(Entry(c, r.languageTag, c.cost + pen, engines[i]))
         }
         entries.sortWith(compareBy<Entry>({ it.cost }, { it.c.display }))
         val bar = ArrayList<Suggestion>()
@@ -246,18 +270,43 @@ public class PredictionEngine(
             val pen = weightPenalty(topWeight)
             bar.add(Suggestion(ac.display, SuggestionKind.CORRECTION, -LmCost.roundHalfAway(ac.cost + pen), top.languageTag, true))
             seen.add(ac.display)
+            used?.add(ac to engines[topIdx])
         }
         // letters of an elision prefix of the top language ("qu"): its prefix candidate first (05 §8.5)
         if (top.prefixFirst && ac == null) {
             val p = top.ranked[0]
-            if (seen.add(p.display)) bar.add(p.toSuggestion(top.languageTag, -LmCost.roundHalfAway(p.cost + weightPenalty(topWeight))))
+            if (seen.add(p.display)) {
+                bar.add(p.toSuggestion(top.languageTag, -LmCost.roundHalfAway(p.cost + weightPenalty(topWeight))))
+                used?.add(p to engines[topIdx])
+            }
         }
         for (e in entries) {
             if (bar.size >= Params.BAR_MAX) break
-            if (seen.add(e.c.display)) bar.add(e.c.toSuggestion(e.tag, -LmCost.roundHalfAway(e.cost)))
+            if (seen.add(e.c.display)) {
+                bar.add(e.c.toSuggestion(e.tag, -LmCost.roundHalfAway(e.cost)))
+                used?.add(e.c to e.engine)
+            }
         }
+        if (diagnostics != null) diagnostics(diagnose(step, top, engines[topIdx], ctx.word.length, used!!))
         if (emojiAllowed) appendEmoji(bar, engines[topIdx], ac?.word ?: ctx.word)
         return Prediction(ctx.word, if (s.suggestions) bar else emptyList(), ac?.display, valid, ac?.let { top.languageTag })
+    }
+
+    private fun diagnose(
+        step: String,
+        r: LanguageSuggestions,
+        e: LanguageEngine,
+        len: Int,
+        used: List<Pair<Candidate, LanguageEngine>>,
+    ): QueryDiagnostics {
+        val word = e.stripElision(r.typed)
+        val entries = used.map { (c, le) ->
+            val finite = c.ed < Candidate.INF && c.correctionCost < Candidate.INF
+            EntryDiagnostics(c.display, c.word, le.languageTag, if (c.isCorrection) "correction" else "completion", c.lm,
+                if (finite) c.ed else null, if (finite) le.acScore(c, maxOf(1, len)) else null,
+                le.lexicon.isUnattestedWord(c.word))
+        }
+        return QueryDiagnostics(step, r.languageTag, r.validity, e.lexicon.isUnattestedWord(word), entries)
     }
 
     /** Foreign-word block of 05 §14.3. */
@@ -497,3 +546,28 @@ public class PredictionEngine(
             PredictionEngine(tags.map { LanguageEngine(LanguageParams.forLanguage(it), Dictionary.loadBundled(it)) }, settings)
     }
 }
+
+/** One bar entry of [QueryDiagnostics]: display text, dictionary word, language, kind, lm, ed and score (05 §10.1 step 6). */
+internal data class EntryDiagnostics(
+    val text: String,
+    val word: String,
+    val languageTag: String,
+    val kind: String,
+    val lm: Int,
+    val ed: Int?,
+    val score: Int?,
+    val unattested: Boolean,
+)
+
+/**
+ * Diagnostics of one query for the dictionary evaluation (05c §5): the step of 05 §10.1 that ended the decision (or
+ * "off", "14.2 language weight", "14.3 foreign word" in multilingual typing), the language that decided, the typed
+ * word's validity (with the rule of 05 §7), whether its key is unattested, and the bar entries.
+ */
+internal data class QueryDiagnostics(
+    val step: String,
+    val languageTag: String,
+    val validity: app.metrokeys.engine.predict.Validity,
+    val typedUnattested: Boolean,
+    val entries: List<EntryDiagnostics>,
+)

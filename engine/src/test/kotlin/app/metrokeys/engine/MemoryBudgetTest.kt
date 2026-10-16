@@ -25,6 +25,12 @@ class MemoryBudgetTest {
         return out
     }
 
+    /** The retained heap of each language alone (0.7.0 report, 05b §6). */
+    @Test
+    fun eachLanguageAlone() {
+        for (tag in listOf("de-DE", "en-US", "es-ES", "fr-FR", "it-IT", "pt-BR")) probe(HEAP_TWO_MB, tag)
+    }
+
     @Test
     fun twoLanguagesLoadWithinASmallHeap() {
         probe(HEAP_TWO_MB, "de-DE", "en-US")

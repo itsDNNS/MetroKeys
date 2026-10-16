@@ -7,12 +7,26 @@ The word lists and word-pair tables in `engine/src/main/resources/app/metrokeys/
 
 ## Licence of the data files
 
-The derived data files (`*.words.gz`, `*.pairs.gz`) are licensed under **CC BY-SA 4.0**
-(https://creativecommons.org/licenses/by-sa/4.0/) because the frequency source is CC BY-SA. This licence applies to
-the data files only, not to the MetroKeys code. A licence/attribution text accompanies each data file
-(`LICENSE-de-DE.txt`, `LICENSE-en-US.txt`, `LICENSE-es-ES.txt`, `LICENSE-fr-FR.txt`, `LICENSE-it-IT.txt`,
-`LICENSE-pt-BR.txt`, `SCOWL-Copyright.txt`); the engine exposes it through
-`Dictionary.bundledLicenseText(tag)` for the app's licences screen.
+From 0.7.0 the derived data files (`*.words.gz`, `*.pairs.gz`, including the elision prefix tables) are distributed
+under the **GNU General Public License, version 3 only** (GPL-3.0-only), like the app (spec 05b §2): the spelling
+dictionaries are used under GPL-3.0 (igerman98/frami, RLA-ES), LGPL-3.0 (VERO) and MPL-2.0 (Dicollecte, combined
+under GPL-3.0 as secondary licence); the CC BY-SA 4.0 sources (FrequencyWords, Wiktionary, wordfreq) are adapted
+under the one-way CC BY-SA 4.0 / GPLv3 compatibility and keep their attribution; Tatoeba (CC BY 2.0 FR), Common Voice
+(CC0) and SCOWL permit the combination with attribution. Up to 0.6.9 the data files were CC BY-SA 4.0, and releases up
+to 0.6.9 keep that licence.
+
+A licence/attribution text accompanies each data file (`LICENSE-<tag>.txt`, with the spelling dictionary's notice
+verbatim, and `SCOWL-Copyright.txt`); the engine exposes it through `Dictionary.bundledLicenseText(tag)` for the app's
+licences screen, which also shows the GPL 3, LGPL 3 and MPL 2.0 texts (`app/licenses/`) and the CC BY-SA 4.0 reference.
+The notices come from the pinned sources listed in [tools/notices.json](../tools/notices.json) (the README files of the
+LibreOffice dictionaries at the pinned commit; the French one from the Grammalecte archive).
+
+**Source form** (05b §2): `python3 tools/build_dictionaries.py source-form <version>` writes
+`build-data/release/metrokeys-<version>-dictionary-source.tar.gz` (deterministic) with, per language, the word list as
+text (`<tag>.forms.tsv.gz`: key, form, subtitle count, written-language frequency, combined count, class, flags, merged
+spellings), the pair table as text (`<tag>.pairs.tsv.gz`: previous word, follower, form, pair count, class), the prefix
+table (`<tag>.prefixes.tsv`), the spelling-dictionary input files exactly as used with their notices, the licence text,
+and the build report with every input hash. The archive is attached to the GitHub release (it is not committed).
 
 ## Sources
 
@@ -58,37 +72,40 @@ disappear from their servers; keep archived copies (with the hashes above) to re
 
 ## Attribution texts (shown in the app)
 
-- German word list: FrequencyWords © Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; spellings from Wiktionary
-  (de.wiktionary.org), authors see page histories, CC BY-SA 4.0. Modified (filtered, case, frequency classes).
-- German word pairs: counted from sentences of Tatoeba (tatoeba.org, authors see sentence pages, CC BY 2.0 FR) and
-  Mozilla Common Voice (CC0). Modified (pair counts, probability classes), CC BY-SA 4.0.
-- English word list: FrequencyWords © Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; SCOWL © Kevin Atkinson and
-  others (wordlist.aspell.net), see the notice; sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common
-  Voice (CC0). Modified (filtered, spelling, contractions, frequency classes), CC BY-SA 4.0 — followed by the
-  complete SCOWL `Copyright` file verbatim (`SCOWL-Copyright.txt`, also appended to `LICENSE-en-US.txt`).
-- English word pairs: as German word pairs.
-- Spanish word list: FrequencyWords © Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; spellings from Wiktionary
-  (es.wiktionary.org and the Spanish sections of en.wiktionary.org), authors see page histories, CC BY-SA 4.0;
-  sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, accents, case,
-  frequency classes), CC BY-SA 4.0 (`LICENSE-es-ES.txt`).
-- Spanish word pairs: as German word pairs.
-- Portuguese (Brazil) word list: FrequencyWords © Hermit Dave (OpenSubtitles 2018, Brazilian Portuguese), CC BY-SA
-  4.0; spellings from Wiktionary (pt.wiktionary.org and the Portuguese sections of en.wiktionary.org), authors see page
-  histories, CC BY-SA 4.0; sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified
-  (filtered, hyphen tokens split, accents, spelling reform, case, frequency classes), CC BY-SA 4.0
-  (`LICENSE-pt-BR.txt`).
-- Portuguese word pairs: as German word pairs.
-- Italian word list: FrequencyWords © Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; spellings from Wiktionary
-  (it.wiktionary.org and en.wiktionary.org), authors see page histories, CC BY-SA 4.0; sentence statistics from Tatoeba
-  (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered, accents restored, elisions separated, case,
-  frequency classes), CC BY-SA 4.0 (`LICENSE-it-IT.txt`).
-- Italian word pairs: as German word pairs.
-- French word list: FrequencyWords © Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; spellings from Wiktionary
-  (fr.wiktionary.org), authors see page histories, CC BY-SA 4.0; sentence statistics from Tatoeba (CC BY 2.0 FR) and
-  Mozilla Common Voice (CC0). Modified (filtered, accents and ligatures restored, elisions separated, hyphenated forms
-  split, compounds, case, frequency classes), CC BY-SA 4.0 (`LICENSE-fr-FR.txt`). The English Wiktionary is not
-  named because it is not used for the French data.
-- French word pairs: as German word pairs.
+From 0.7.0 (05b §2.5; generated by `tools/dictbuild/licenses.py`), every text ends with "Distributed under the GNU GPL
+version 3; the CC BY-SA 4.0 material is used under the CC BY-SA 4.0 / GPLv3 compatibility.":
+
+- Frequencies (every word list): FrequencyWords © Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0; written-language
+  frequencies from wordfreq © Robyn Speer, CC BY-SA 4.0, which contains data from Wikipedia, OPUS OpenSubtitles 2018,
+  SUBTLEX (Brysbaert et al.), Google Books Ngrams and the further sources named in its README.
+- German word list: frequencies; spellings from Wiktionary (de.wiktionary.org); spelling dictionary igerman98 ©
+  Björn Jacke with the frami additions © Franz Michael Baumann, GNU GPL version 2 or 3, used under GPL 3. Modified
+  (filtered, case, frequency classes).
+- English word list: frequencies; SCOWL © Kevin Atkinson and others, see the notice (complete `Copyright` file
+  verbatim); sentence statistics from Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0). Modified (filtered,
+  spelling, contractions, frequency classes).
+- Spanish word list: frequencies; Wiktionary (es.wiktionary.org and the Spanish sections of en.wiktionary.org);
+  spelling dictionaries RLA-ES © Santiago Bosio and contributors, GNU GPL version 3 or later (also LGPL 3+ / MPL 1.1+),
+  used under GPL 3; sentence statistics. Modified (filtered, accents, case, frequency classes).
+- Portuguese (Brazil) word list: frequencies (Brazilian Portuguese); Wiktionary (pt.wiktionary.org and the Portuguese
+  sections of en.wiktionary.org); spelling dictionary VERO © Raimundo Santos Moura and contributors, GNU LGPL version 3
+  (also MPL); sentence statistics. Modified (filtered, hyphenated forms split, spelling reform and accents, case,
+  frequency classes).
+- Italian word list: frequencies; Wiktionary (it.wiktionary.org and en.wiktionary.org); spelling dictionary
+  Dizionario italiano © Gianluca Turconi, Davide Prina, Andrea Pescetti, LibreItalia, GNU GPL version 3; sentence
+  statistics. Modified (filtered, accents restored, elisions separated, case, frequency classes).
+- French word list: frequencies; Wiktionary (fr.wiktionary.org); spelling dictionary Dicollecte (all-variants edition)
+  © Olivier R. and contributors (grammalecte.net), Mozilla Public License 2.0; sentence statistics. Modified
+  (filtered, accents and ligatures restored, elisions separated, hyphenated forms split, compounds, case, frequency
+  classes).
+- Word pairs (every language): counted from sentences of Tatoeba (CC BY 2.0 FR) and Mozilla Common Voice (CC0).
+  Modified (pair counts, probability classes). Distributed under the GNU GPL version 3.
+- Each text closes with the licence paragraph and where the source form is published.
+
+Up to 0.6.9: "German word list: FrequencyWords © Hermit Dave
+(OpenSubtitles 2018), CC BY-SA 4.0; spellings from Wiktionary (de.wiktionary.org), authors see page histories, CC BY-SA
+4.0. Modified (filtered, case, frequency classes)" and the pairs "Modified (pair counts, probability classes), CC BY-SA
+4.0"; the other languages correspondingly.
 
 ## Build result
 
@@ -732,7 +749,137 @@ German pairs: 54 866 → 54 865 previous words, 565 691 → 565 690 pairs. All f
 
 en-US unchanged. The German rebuild without the merge and the flags reproduced the 0.6.7 files byte for byte.
 
+### 0.7.0 build: spelling dictionaries, written-language frequencies, colloquial path (05b §12)
+
+Implementation (`tools/dictbuild/`): `spellcheck.py` (spelling-dictionary membership of 05b §12.1 item 2 through the
+reverse affix lookup of `tools/dicteval/hunspell.py`, never expanded, no compounding; the three casings per key; a
+parallel prefetch and a cache `build-data/cache/spelling-<tag>-<input hash>.tsv.gz` that holds only lookup results),
+`combined.py` (wordfreq, `pW` shares, the combined count of §12.2 with `WRITTEN_WEIGHT` 0.5, the colloquial path of
+§12.4 with `COLLOQ_MIN_WRITTEN` 1e-6 and `COLLOQ_MAX_RATIO` 4, classes), `names.py` (§12.5, the rule of the evaluation's
+generator computed from the same passes), `attested.py` (the rules shared by the de/es/pt/it/fr builders) and the
+changes in every `build_*.py`. English keeps its selection and only gets the combined classes (§4.6). Every builder:
+
+- **Forms** (§12.1): a Wiktionary form (with the abbreviation rule and the build's own derived forms: clitic,
+  pre-clitic, apocopic and truncated forms) or a spelling-dictionary form. The junk rules (plausibility, one-letter keys,
+  characters, OCR "l", missing-space artefacts, fused elisions, letters of elision prefixes, step 6a) exempt only
+  Wiktionary forms; step 6a is therefore also applied to short spelling-only forms. German compound parts (§3.5), the
+  derived forms and the coverage test that decides the English dump stay with Wiktionary.
+- **Merges** (§12.1 item 5): a spelling the spelling dictionary accepts as written (or only capitalised while running
+  text writes it capitalised) is itself a form and never merged; a key it knows only as a capitalised word while the
+  subtitles' key stands for a lower-case spelling is merged as before (the Colombian place name "Dificil" does not keep
+  "dificil" from "difícil"). Wiktionary's inflected-only forms still yield to a far more frequent accented form (pt
+  "amanha" → "amanhã" although VERO knows "amanha" as a form of "amanhar"). Merged spellings never come back as written
+  candidates.
+- **Admission** (§12.3): forms with count ≥ 2, or count 0–1 and a share of the written frequency of their fold (a key
+  without a subtitle count gets no share when another form of its fold has one: "gefaßter" next to "gefasster"). The
+  candidates without a subtitle count are the Wiktionary forms whose fold is in the written list and the written list's
+  words (with ß for ss in German) that the spelling dictionary knows.
+- **Colloquial path** (§12.4) instead of the count rule and the damping: count ≥ 40, not a foreign title, `pW` ≥ 1e-6,
+  `pS/pW` ≤ 4, no form of the language with the same fold, not a key of the en-US list (read from the built
+  `en-US.words.gz`; English is built first), and the amendments 6–8: no misspelling of a near form (a lower-case,
+  non-name form one substitution, insertion, deletion or adjacent swap away with `pW` ≥ 5 × the key's, unless a
+  lower-case non-name form differs from the key only at its end), no lower-case form of another language's list (the
+  lists in the output directory without their unattested keys, so the order of the builds does not matter; German is
+  built before the Romance languages), no apostrophe fragment (the part before an apostrophe of a form of the
+  language). Kept keys are flagged unattested (bit 7, 05 §10.1 step 5 stays off).
+- **German umlaut merge** (§3.6, 0.7.0): also the transliterated umlauts ae, oe, ue ("fuer" → "für", "natuerlich" →
+  "natürlich"); 4 090 keys merged, 1 438 of them only through the transliteration.
+- **Classes** (§12.2): combined count = `T_S` · 10^(0.5 · log10 max(pS, ½/T_S) + 0.5 · log10 max(pW, ½·10⁻⁸)); names
+  the lower of the two; apostrophe and hyphen keys, alias keys and elision prefixes the subtitles alone; `maxCount` the
+  largest combined count, `corpusTokens` unchanged; attested keys at least class 1, the class-0 spellings stay 0.
+- **German real-word typos**: a key without a subtitle occurrence is not tested (its dominance test against count 0
+  says nothing; spec/QUESTIONS.md).
+- **Pairs** (§12.6): the held-out sentences (Tatoeba id mod 20 = 7, Common Voice line number mod 20 = 7) are not
+  counted; no follower is damped.
+- **Report** (§12.7, `<tag>-extra` in dictionary-build.json): `keysWiktionaryOnly`, `keysSpellingDictionaryOnly`,
+  `keysBoth` with the top 100, `coverageTop20000Subtitles`, `writtenAdmitted`, `colloquialKept`/`Dropped` with the top
+  100 and the failed condition, `names` with the top 50, the 100 largest gaps between `pS` and `pW` in each direction,
+  `classChangedBy20`, keys lost and new against 0.6.9, `S`, `maxCount`; per language `heldOutSentences` and `sizes`
+  (with the growth against 0.6.9); `allDataFiles`.
+- **Size limits** (§6): the build fails above 2.0 MB per word list, 2.5 MB per pair table, 17 MB in total, or a word list
+  growth above 25 % against the previous release (`build-data/previous-<release>/`, the shipped files of that release)
+  unless the owner's approval is recorded in [tools/dictionary-approvals.json](../tools/dictionary-approvals.json)
+  (language, release, previous release, largest approved growth, where the decision is recorded; 0.7.0: de-DE up to
+  30 %, approved on 2026-10-16). `MK_GROWTH_APPROVED=<tag>` allows any growth for a trial build only.
+
+| | de-DE | en-US | es-ES | fr-FR | it-IT | pt-BR |
+|---|---:|---:|---:|---:|---:|---:|
+| keys 0.6.9 → 0.7.0 | 322 073 → 413 815 | 163 405 | 247 380 → 263 809 | 174 238 → 211 735 | 185 063 → 230 447 | 172 374 → 196 081 |
+| forms | 328 313 → 421 482 | 164 040 | 250 115 → 266 875 | 179 163 → 219 086 | 187 677 → 233 726 | 173 935 → 197 931 |
+| keys lost / new | 8 032 / 99 774 | 0 / 0 | 21 610 / 38 039 | 8 447 / 45 944 | 14 253 / 59 637 | 24 507 / 48 214 |
+| keys only Wiktionary / only spelling dict. / both | 160 810 / 46 943 / 172 781 | – | 62 862 / 7 520 / 193 335 | 55 300 / 2 491 / 153 435 | 23 570 / 25 378 / 181 360 | 10 981 / 39 703 / 145 194 |
+| top 20 000 subtitle keys: Wiktionary / spelling / union | 87.9 / 80.9 / 89.9 % | – | 89.9 / 86.6 / 90.4 % | 94.0 / 89.8 / 95.0 % | 85.3 / 84.6 / 86.3 % | 86.4 / 85.9 / 88.2 % |
+| admitted by the written frequency (count 0–1) | 120 288 (+ 53 150 class-1 lemmas) | – | 33 180 | 44 571 | 40 255 | 19 047 |
+| colloquial path kept / dropped | 132 / 7 993 | – | 92 / 21 557 | 23 / 8 434 | 130 / 14 236 | 203 / 24 080 |
+| of the dropped: items 6 / 7 / 8 | 16 / 20 / 0 | – | 11 / 15 / 0 | 5 / 3 / 1 | 17 / 29 / 0 | 18 / 31 / 0 |
+| unattested (flagged) keys | 132 | 0 | 92 | 23 | 130 | 203 |
+| names | 27 352 | 4 732 | 12 168 | 34 712 | 12 868 | 5 054 |
+| classes changed by more than 20 | 30 604 | 5 347 | 13 149 | 10 175 | 13 000 | 9 665 |
+| S / maxCount | 16.947886 / 3 423 329 | 14.835626 / 29 161 342 | 15.173835 / 19 880 389 | 15.682406 / 11 527 661 | 16.106291 / 7 514 334 | 15.463676 / 14 508 678 |
+| pair previous words / pairs | 55 366 / 553 032 | 41 276 / 574 921 | 36 826 / 369 515 | 41 037 / 478 291 | 35 797 / 390 318 | 20 339 / 270 118 |
+| held-out sentences (Tatoeba / Common Voice) | 39 170 / 85 327 | 101 689 / 79 337 | 22 141 / 59 267 | 36 460 / 85 418 | 49 267 / 50 011 | 22 034 / 2 053 |
+| words file, bytes | 1 342 081 → 1 696 370 (+26.4 %, approved) | 519 514 → 537 526 (+3.5 %) | 811 368 → 870 189 (+7.3 %) | 610 121 → 753 352 (+23.5 %) | 612 927 → 750 291 (+22.4 %) | 585 747 → 666 267 (+13.7 %) |
+| pairs file, bytes | 1 890 114 → 1 867 310 | 1 927 135 → 1 876 202 | 1 212 411 → 1 172 828 | 1 508 324 → 1 479 369 | 1 274 932 → 1 240 825 | 859 185 → 836 263 |
+
+The build stays deterministic (a second Portuguese run gave byte-identical files). All data files: 13 153 859 bytes
+(0.6.9) → 13 746 792 bytes (limit 17 MB). The release APK grows from 15 009 182 bytes (0.6.9) to 15 633 930 bytes. The German growth (+26.4 %) comes from the forms admitted by their written
+frequency (§12.3; spec estimate +40 000 keys, measured +91 742) and the spelling-only names; the owner approved it for
+0.7.0 (tools/dictionary-approvals.json).
+
+| File (0.7.0) | Bytes | SHA-256 |
+|---|---:|---|
+| `de-DE.words.gz` | 1 696 370 | `edafa980bab6ca902ddd7a77033b3c39b0dac5be4dc1d779b687666bcda9a4fa` |
+| `de-DE.pairs.gz` | 1 867 310 | `3f1a14ca38fa57304f3337df24b1d82f7cdf8c04aa96bc7f5268f2bd0024b17a` |
+| `en-US.words.gz` | 537 526 | `4ff727151da6837e934fd81e7b1360fc655d7d389cca5c5a39aff30015c78963` |
+| `en-US.pairs.gz` | 1 876 202 | `30db574b7fde0e3a3f91ddeda9e4490289be743574652ff47960d0e0d086d5d0` |
+| `es-ES.words.gz` | 870 189 | `95ec4093f230fb6f94d8872be918223bb618d78082316139a760178a4b2bfb73` |
+| `es-ES.pairs.gz` | 1 172 828 | `29db69ea97840151bbd232ed120b692ec2f59a84d47139e9ac7760061a6f9504` |
+| `fr-FR.words.gz` | 753 352 | `33a81d77e6964f68ed1bc61213706a78be26b69418d94b4aefdbf145e57abf07` |
+| `fr-FR.pairs.gz` | 1 479 369 | `3091985164cf5c18184ca07eacce5ea310f4151a36ddf7c2d7eba0a775b34750` |
+| `it-IT.words.gz` | 750 291 | `5a52a806a34c4d6ca385ade1522e66e5e5d049a759f153ad8daf6d53abb81d3d` |
+| `it-IT.pairs.gz` | 1 240 825 | `eab6ee2d10beb0bfb3caa3a5b32c2e2aa8206f94ca29577b6844caca516ac6a6` |
+| `pt-BR.words.gz` | 666 267 | `7789b8694bf8b5a6c40144f5868c6f07c70f44aa92fdf9823d4993338a54d921` |
+| `pt-BR.pairs.gz` | 836 263 | `8d53d71037954e0cad256c9affd52d4ec232a8794043ba963f2afa7e952d5dd2` |
+
+What changed, by kind (most frequent first; the full lists are in the build report): keys lost are almost all the
+0.6.9 count-rule keys (names and English words of the dubbed films: de Dad, the, Captain; es Joe, Michael, Tom; it Sam,
+Charlie, Mike; pt Sam, Charlie, Mary; fr Neal, McGee, Benny); new keys are forms admitted by their written frequency,
+names that a spelling dictionary knows (es John, Alex, Frank; de Girl, Pierre, Santa; fr, it and pt also English words
+the dictionaries list: fr "new", "shirt"; it "time", "love", "professor"; pt "here", "doctor") and accent-less spellings
+the spelling dictionary knows as words of their own (es "futbol", "tenes"; pt "ha", "apos", "historia"), which are no
+longer merged (§12.1 item 5). The amendments drop misspellings of near forms (de "hälst", "warscheinlich", "nciht"; fr
+"mourrir", "apparement", "rapelle"; es "dijieron"), lower-case forms of other lists (pt "primera", it "comme", "todos")
+and the fragment "aujourd"; colloquial keys kept include German "wär", "gibts", "würd", "hätt", "kanns", "siehste" (and
+"gesehn", spec/QUESTIONS.md).
+
+Memory (`MemoryBudgetTest.eachLanguageAlone`, retained JVM heap after loading one language with pairs, a query and a
+swipe; 0.6.9 → 0.7.0): de-DE 28.3 → 32.8 MB, en-US 14.5 → 14.4, es-ES 16.6 → 17.3, fr-FR 16.7 → 18.6, it-IT 15.5 →
+17.6, pt-BR 12.5 → 13.7 MB. All two- and three-language sets load within the test heaps of 56 and 68 MB (largest:
+fr+de+it 64.1 MB; 0.6.9: 59.7 MB).
+
 # App data sources
+
+## Spelling dictionaries and written-language frequencies (0.7.0)
+
+The spelling dictionaries (05b §2.14) and the written-language frequencies (05b §2.15) are in
+[tools/sources.json](../tools/sources.json) since the 0.7.0 evaluation (all hashes equal the specification). The
+dictionary evaluation of [EVALUATION.md](EVALUATION.md) uses them for its trusted words, and the 0.7.0 build for the
+data (above). The spelling dictionaries' notices are pinned in [tools/notices.json](../tools/notices.json).
+
+| Source | Version | Files | Licence | Used for |
+|---|---|---|---|---|
+| wordfreq (https://github.com/rspeer/wordfreq) | tag v3.2, commit `42233e6c36ce792031bcccfa17cdd0cec9af5fa7` | `wordfreq/data/large_{de,en,es,pt,it,fr}.msgpack.gz` (634 502, 321 180, 342 072, 267 979, 322 796, 311 419 words, as in 05b §2.15) | CC BY-SA 4.0 | written-language frequency `pW` (05b §12.2–§12.4) of every list; trusted words of the evaluation |
+| LibreOffice dictionaries (https://github.com/LibreOffice/dictionaries) | commit `67032ee957631908098a72edf48dc81cac27e369` | `de/de_DE_frami.{aff,dic}`, the 42 files of `es/` (Spain and twenty American variants), `pt_BR/pt_BR.{aff,dic}`, `it_IT/it_IT.{aff,dic}` | GPL-2.0/GPL-3.0, GPL-3.0+, LGPL-3.0, GPL-3.0 | spelling-dictionary membership (05b §12.1) of the build and of the evaluation's trusted words and names |
+| Dicollecte (https://grammalecte.net) | 7.7 | `hunspell-french-dictionaries-v7.7.zip`, read in place (`fr-toutesvariantes.{aff,dic}`) | MPL-2.0 | as above |
+
+The real-error lists of 05c §2.3 (Wikipedia, CC BY-SA 4.0) are pinned in
+[tools/dicteval/sources.json](../tools/dicteval/sources.json) with the SHA-256 of each revision's wikitext.
+
+**Source-form export.** Every dictionary build also writes `build-data/export/<tag>.forms.tsv.gz` (05b §2 "Source
+form", item 1: key, form, subtitle count, written-language frequency, combined count, class, flags, merged spellings;
+not packaged), since 0.7.0 also `<tag>.pairs.tsv.gz` and `<tag>.prefixes.tsv`; flags of 0.7.0: spelling, wiktionary,
+abbreviation, name, colloquial, merged, class0-typo, class0-dominated, lemma-only, alias. (The 0.6.9 export, still in
+use up to 0.6.9, had the flag `countrule` for the keys kept by the count rule.)
 
 ## Selawik font
 

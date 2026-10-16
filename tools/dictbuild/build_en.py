@@ -4,6 +4,7 @@ import math
 import os
 import re
 
+import combined
 from common import freq_class, jlower
 
 US_SPELLINGS = {"english", "american"}
@@ -120,8 +121,11 @@ def read_scowl(final_dir):
 
 
 class EnglishBuilder:
-    def __init__(self, freq_path, scowl_final, stats):
+    def __init__(self, freq_path, scowl_final, stats, written=None):
+        """[written]: the written-language list of 05b §2.15; with it the classes come from the combined frequency of
+        §4.6 / §12.2 (0.7.0), without it from the subtitle counts alone (up to 0.6.9)."""
         self.stats = stats
+        self.written = written
         self.us, self.non_us = read_scowl(scowl_final)
         self.us_lower_forms = set(self.us)
         self.main_forms = {}   # key -> {form: (size, cat)}
@@ -328,12 +332,45 @@ class EnglishBuilder:
 
         self._aliases(selected)
         self.selected = selected
+        if self.written is not None:
+            return self._combined_entries(selected)
         max_count = max(sum(c for _, c in forms) for forms in selected.values())
         self.max_count = max_count
         self.scale = 255.0 / math.log(max_count)
         entries = {}
         for key in sorted(selected):
             forms = [(f, freq_class(c, self.scale)) for f, c in selected[key]]
+            forms.sort(key=lambda fc: -fc[1])
+            entries[key] = forms
+        return entries
+
+    # §4.6 (0.7.0)
+    def is_name(self, key):
+        """05b §12.5 English: a key whose only SCOWL category is proper-names."""
+        cats = {c for _, c in self.main_forms.get(key, {}).values()} | {c for _, c in self.large_forms.get(key, {}).values()}
+        return cats == {"proper-names"}
+
+    def _combined_entries(self, selected):
+        """Classes from the combined count of 05b §12.2 with the English subtitle count (after the apostrophe split)
+        as countS; contractions, possessives and alias keys use countS alone; names the lower of the two; every key is
+        attested (at least class 1)."""
+        key_count = {k: sum(c for _, c in forms) for k, forms in selected.items()}
+        weight0 = {k for k, forms in selected.items() if "'" in k or any(jlower(f) != k for f, _ in forms)}
+        self.weight0 = weight0
+        self.pw = combined.shared_written(self.written, list(selected), lambda k: key_count[k], weight0)
+        self.names = {k for k in selected if k not in weight0 and self.is_name(k)}
+        cc = {k: combined.combined_count(key_count[k], self.corpus_tokens, self.pw.get(k, 0.0), k in self.names,
+                                         k not in weight0) for k in selected}
+        self.combined_counts = cc
+        self.max_count = max(cc.values())
+        self.scale = 255.0 / math.log(self.max_count)
+        entries = {}
+        for key in sorted(selected):
+            total = key_count[key]
+            forms = []
+            for f, c in selected[key]:
+                share = c / total if total > 0 else 1.0 / len(selected[key])
+                forms.append((f, max(1, freq_class(cc[key] * share, self.scale))))
             forms.sort(key=lambda fc: -fc[1])
             entries[key] = forms
         return entries

@@ -1,0 +1,50 @@
+{
+ "comment": "Real-error lists of the dictionary evaluation (spec/05c-dictionary-evaluation.md section 2.3): one Wikipedia revision per language, fetched through the MediaWiki API (downloaded 2026-10-16). contentSha256 is the SHA-256 of the revision's wikitext (UTF-8), which the generator verifies; responseSha256 that of the API response as downloaded. Paths are relative to build-data/src.",
+ "sources": [
+  {
+   "language": "en-US",
+   "page": "Wikipedia:Lists of common misspellings/For machines",
+   "revid": 1199637275,
+   "path": "realerrors/en-1199637275.json",
+   "url": "https://en.wikipedia.org/w/api.php?action=query&prop=revisions&revids=1199637275&rvprop=content&rvslots=main&format=json&formatversion=2",
+   "contentSha256": "3b6a9290e5aaad968da7ec769a5174adb45247688ef7ae097fd2dd80237a3050",
+   "responseSha256": "5e7337cd287cd8790edf600c9b794129ed20b149ea9719b63e017f4ab4f35cee"
+  },
+  {
+   "language": "es-ES",
+   "page": "Wikipedia:Corrector ortográfico/Listado",
+   "revid": 175669831,
+   "path": "realerrors/es-175669831.json",
+   "url": "https://es.wikipedia.org/w/api.php?action=query&prop=revisions&revids=175669831&rvprop=content&rvslots=main&format=json&formatversion=2",
+   "contentSha256": "8f786c0046518012c11125cd3b96ecbebe43952de436567d18e3ab4a3a0db605",
+   "responseSha256": "ad574bddc394b6ef4edd4498e05e1cae5a90b1796c91bbe94072820213935b53"
+  },
+  {
+   "language": "fr-FR",
+   "page": "Wikipédia:Liste de fautes d'orthographe courantes",
+   "revid": 229968367,
+   "path": "realerrors/fr-229968367.json",
+   "url": "https://fr.wikipedia.org/w/api.php?action=query&prop=revisions&revids=229968367&rvprop=content&rvslots=main&format=json&formatversion=2",
+   "contentSha256": "b26fbcffe6cf8bb988eb26e27be187a07df7c48fba0a61cef8f40416c7b04d23",
+   "responseSha256": "a184e92ac8862ae83b82cb808b1036a03637abc4ed2a9c5a8516fa1fc04bb9c0"
+  },
+  {
+   "language": "pt-BR",
+   "page": "Wikipédia:Lista de erros comuns/Máquinas",
+   "revid": 62178396,
+   "path": "realerrors/pt-62178396.json",
+   "url": "https://pt.wikipedia.org/w/api.php?action=query&prop=revisions&revids=62178396&rvprop=content&rvslots=main&format=json&formatversion=2",
+   "contentSha256": "bc06133111473fda9d1a85d33f00ffd8c30978dcad627c749906b38ce86d4183",
+   "responseSha256": "67bde6e44138aed19eb54901211a859cbf554e59a2c1dafacca969e4c909e624"
+  },
+  {
+   "language": "de-DE",
+   "page": "Wikipedia:Häufige Falschschreibungen",
+   "revid": 260871597,
+   "path": "realerrors/de-260871597.json",
+   "url": "https://de.wikipedia.org/w/api.php?action=query&prop=revisions&revids=260871597&rvprop=content&rvslots=main&format=json&formatversion=2",
+   "contentSha256": "7772fbffa2c586d20b7e70568a6619cd860f2b17ec3c10f86eac5d88e6691ddb",
+   "responseSha256": "bd68c60fa1a170426924d4416efc49ee15383c99d8e03647baa854975d653a48"
+  }
+ ]
+}

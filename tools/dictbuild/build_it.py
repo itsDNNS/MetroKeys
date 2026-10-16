@@ -11,7 +11,8 @@ import math
 import re
 
 import casing
-from common import DAMPING, damped_max, freq_class, jlower, short_key_dropped
+from attested import AttestedRules
+from common import freq_class, jlower, short_key_dropped
 from wiktionary_pt import strip_diacritics
 
 # 05 §1.1 ELISION_PREFIXES (notes on it-IT), in order of their frequency in the frequency source
@@ -224,9 +225,11 @@ class SentenceStats:
         return sum(self.rt_all.get(f, 0) for f in self.forms_by_key.get(key, ()))
 
 
-class ItalianBuilder:
-    def __init__(self, freq_path, it_pages, en_pages, abbreviations=None):
-        """[it_pages], [en_pages]: (titles, {title: kinds}) of the classified Wiktionary passes."""
+class ItalianBuilder(AttestedRules):
+    def __init__(self, freq_path, it_pages, en_pages, abbreviations=None, spelling=None, written=None, english_keys=()):
+        """[it_pages], [en_pages]: (titles, {title: kinds}) of the classified Wiktionary passes; [spelling], [written],
+        [english_keys]: the inputs of the 0.7.0 rules (05b §12)."""
+        self.setup_attested(spelling, written, frozenset(english_keys))
         self.report = {}
         self.dumps = [("it", it_pages), ("en", en_pages)]
         self.titles = set()
@@ -501,6 +504,9 @@ class ItalianBuilder:
         })
         before_merge = dict(self.counts)
         self.before_merge = before_merge
+        # the spelling dictionary is asked for every key that could be kept (05b §12.1); parallel, cached
+        self.prefetch_spelling(k for k, c in self.counts.items() if not self.is_form(k) and "'" not in k
+                               and (c >= 2 or self.written(k) > 0))
         self._loss_rate(before_merge)
         self._merge_accents()
         self._dominated()
@@ -513,9 +519,10 @@ class ItalianBuilder:
         return index
 
     def _class_forms(self, members):
+        """The Italian forms of an accent class (0.7.0: also those of the spelling dictionary, 05b §10.4)."""
         out = []
         for t in members:
-            if not self.is_form(t):
+            if not self.language_form(t):
                 continue
             if len(letters_of(t)) == 1 and t not in ONE_LETTER_WORDS:
                 continue
@@ -529,7 +536,7 @@ class ItalianBuilder:
         kept_running = []
         kept_foreign = []
         for key in sorted(self.counts):
-            if self.is_form(key):
+            if self.wiktionary_form(key) or self.spelling_protects(key):
                 continue
             options = [t for t in self._class_forms(index.get(accent_class(key), ())) if t != key]
             if not options:
@@ -575,7 +582,7 @@ class ItalianBuilder:
         guarded = []
         for key in sorted(self.counts):
             c = self.counts[key]
-            if c <= 0 or not self.is_form(key) or "'" in key:
+            if c <= 0 or not self.language_form(key) or "'" in key:
                 continue
             counterparts = []   # (target key that receives the count, sentence count, label)
             if not has_diacritics(key):
@@ -593,7 +600,7 @@ class ItalianBuilder:
             for letters, prefix in PREFIX_LETTERS.items():
                 if key.startswith(letters) and len(key) > len(letters):
                     r = key[len(letters):]
-                    if self.is_form(r) and starts_vowel_or_h(r) and (len(r) > 1 or r in ONE_LETTER_WORDS):
+                    if self.language_form(r) and starts_vowel_or_h(r) and (len(r) > 1 or r in ONE_LETTER_WORDS):
                         counterparts.append((r, el.get((prefix, r), 0), prefix + r))
             if not counterparts:
                 continue
@@ -623,7 +630,7 @@ class ItalianBuilder:
             index.setdefault(accent_class(k), set()).add(k)
         plain_sum = acc_sum = classes = 0
         for cls, members in index.items():
-            if self.is_form(cls) or len(cls) < 2:
+            if self.language_form(cls) or len(cls) < 2:
                 continue
             accented = [t for t in self._class_forms(members) if has_diacritics(t)]
             if len(accented) != 1:
@@ -647,7 +654,7 @@ class ItalianBuilder:
         rows = []
         for cls in sorted(index):
             p = cls
-            if p not in self.counts or not self.is_form(p) or p in self.zero_forms or self.counts[p] <= 0:
+            if p not in self.counts or not self.language_form(p) or p in self.zero_forms or self.counts[p] <= 0:
                 continue
             accented = sorted(t for t in self._class_forms(index[cls]) if has_diacritics(t))
             if not accented:
@@ -683,6 +690,8 @@ class ItalianBuilder:
         dict_forms = self.forms_by_key.get(key, set())
         if not dict_forms and key in self.accepted:
             dict_forms = {key}
+        if not dict_forms and "'" not in key:
+            dict_forms = self.dictionary_forms(key)  # the spelling dictionary's casings (05b §12.1 item 6)
         return casing.decide(key, variants, dict_forms)
 
     # ------------------------------------------------------------------ §10.5 step 5 candidates
@@ -716,6 +725,9 @@ class ItalianBuilder:
         self.scale = 255.0 / math.log(self.max_count)
 
     def select(self, key, dropped):
+        """§10.5 with the 0.7.0 rules (05b §12): the junk rules exempt only forms of the Wiktionary passes, the
+        abbreviation rule and the build's own forms (is_form); a form of the spelling dictionary is kept like them; the
+        count rule is the colloquial path."""
         count = self.count(key)
         form = self.is_form(key)
         zero = key in self.zero_forms
@@ -729,40 +741,42 @@ class ItalianBuilder:
         if not form and any(c not in ITALIAN_PLAIN for c in key):
             dropped["nonItalianCharacters"] += 1
             return None
-        if form:
-            if count >= 2 or zero:
-                return self.case_decision(key) or [(key, 1.0)]
-            dropped["formBelowCount2"] += 1
-            return None
-        if key in PREFIX_LETTERS:
+        if not form and key in PREFIX_LETTERS:
             # the letters of an elision prefix without its apostrophe ("dov", "quest", "nell"): a tokeniser fragment
             dropped["elisionFragment"] += 1
             return None
-        if key in self.fused:
+        if not form and key in self.fused:
             dropped["missingSpace"] += 1
             return None
-        if key in self.fused_elisions:
+        if not form and key in self.fused_elisions:
             dropped["fusedElision"] += 1
             return None
-        if count >= KEEP_MIN_COUNT:
-            sel = self._count_rule(key, count, dropped)
-            if sel and short_key_dropped(n, count):
-                # 05b §3.6 step 6a (0.6.7): a non-form of at most 3 letters needs count >= 20 000
-                dropped["shortKeyStep6a"] += 1
+        if not form and short_key_dropped(n, count):
+            # 05b §3.6 step 6a: a key of at most 3 letters that is no form needs count >= 20 000
+            dropped["shortKeyStep6a"] += 1
+            if count >= KEEP_MIN_COUNT:
                 self.short_dropped.append(key)
-                return None
-            if sel:
-                self.damped.add(key)  # 05b §3.6 damping (0.6.7): kept only by the count rule
-            return sel
+            return None
+        if form or zero or self.spelling_form(key):
+            if zero or self.admitted(key, count):
+                return self.case_decision(key) or [(key, 1.0)]
+            dropped["formBelowCount2"] += 1
+            return None
+        if count >= KEEP_MIN_COUNT:
+            return self._count_rule(key, count, dropped)
         dropped["rare"] += 1
         return None
 
     def _count_rule(self, key, count, dropped):
-        """§10.5 count rule (German §3.6 step 7) for a non-form counted at least KEEP_MIN_COUNT times."""
+        """§10.5 count rule (German §3.6 step 7) for a non-form counted at least KEEP_MIN_COUNT times: after the
+        foreign-word clause only the colloquial path keeps it (0.7.0)."""
         if key in self.foreign_titles and count < FOREIGN_MAX:
             dropped["foreign"] += 1
             if len(dropped["foreignExamples"]) < 40 and count >= 2000:
                 dropped["foreignExamples"].append(key)
+            return None
+        if not self.colloquial_path(key, count):
+            dropped["colloquialPath"] += 1
             return None
         dec = self.case_decision(key)
         if dec:
@@ -772,11 +786,6 @@ class ItalianBuilder:
             return [(key, 1.0)]
         best = sorted(titles, key=lambda f: (casing.case_kind_rank(f), f))[0]
         return [(best, 1.0)]
-
-    def effective_count(self, key):
-        """The count used for classes and pairs: damped for keys kept only by the count rule (05b §3.6, 0.6.7)."""
-        c = self.counts.get(key, 0)
-        return c * DAMPING if key in self.damped else c
 
     def artefacts(self):
         """§10.5 steps 5 and 6: missing-space artefacts and fused elisions (non-forms only)."""
@@ -824,48 +833,42 @@ class ItalianBuilder:
             "fusedElisionsDroppedList": frows[:150],
         })
 
-    def build(self):
+    def build(self, name_rule=None):
+        self.name_rule = name_rule
         self.titles_by_key = {}
         for t in self.titles:
             self.titles_by_key.setdefault(jlower(t), set()).add(t)
         dropped = {k: 0 for k in ("implausible", "oneLetter", "nonItalianCharacters", "formBelowCount2",
-                                  "elisionFragment", "missingSpace", "fusedElision", "foreign", "shortKeyStep6a",
-                                  "rare")}
+                                  "elisionFragment", "missingSpace", "fusedElision", "foreign", "colloquialPath",
+                                  "shortKeyStep6a", "rare")}
         dropped["foreignExamples"] = []
-        self.damped = set()
         self.short_dropped = []
+        self.colloquial = set()
+        self.colloquial_dropped = {}
+        self.written_admitted = set()
         selected = {}
         kept_unknown = 0
-        for key in sorted(self.counts):
+        candidates = set(self.counts)
+        if self.freq is not None:
+            key_ok = lambda k: 2 <= len(k) <= 27 and key_chars_ok(k)
+            candidates |= self.written_candidates(key_ok, self.accepted)
+        for key in sorted(candidates):
             n = len(letters_of(key))
             if not (2 <= n <= 27 or n == 1):
                 continue
             sel = self.select(key, dropped)
             if not sel:
                 continue
-            if not self.is_form(key):
+            if not self.language_form(key):
                 kept_unknown += 1
             selected[key] = sel
-        # S and the class formula after the damping (05b §3.6)
-        self.max_count = damped_max(self.counts, self.damped)
-        self.scale = 255.0 / math.log(self.max_count)
-        entries = {}
-        for key, sel in selected.items():
-            count = self.effective_count(key)
-            forms = []
-            seen = set()
-            for f, share in sel:
-                if f in seen or jlower(f) != key:
-                    continue
-                seen.add(f)
-                forms.append((f, 0 if key in self.zero_forms else freq_class(count * share, self.scale)))
-            forms.sort(key=lambda fc: -fc[1])
-            if forms:
-                entries[key] = forms
+        weight0 = {k for k in selected if "'" in k}
+        entries = self.combined_entries(selected, zero=self.zero_forms, weight0=weight0, names=name_rule)
         self.report["dropped"] = dropped
         self.report["keptNotAForm"] = kept_unknown
         self.report["keysClass0Dominated"] = sorted(k for k in entries if k in self.zero_forms)
-        self.prefix_table = [(p, freq_class(self.prefix_counts[p], self.scale)) for p in PREFIXES]
+        # the prefixes: their own counts (subtitles alone, 05b §12.2 item 2) on the scale of the word list
+        self.prefix_table = [(p, freq_class(max(self.prefix_counts[p], 0.5), self.scale)) for p in PREFIXES]
         self.report["prefixTable"] = [[p, self.prefix_counts[p], c] for p, c in self.prefix_table]
         return entries
 

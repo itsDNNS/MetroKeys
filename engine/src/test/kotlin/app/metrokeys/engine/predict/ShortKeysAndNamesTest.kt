@@ -45,10 +45,12 @@ class ShortKeysAndNamesTest {
 
     @Test
     fun step6aDropsShortNonGermanKeys() {
-        // dropped (count < 20 000): "joe", "you", "and"; kept (≥ 20 000), but damped: "dad", "the". The prefix title
-        // "of-" does not make "of" a form (05b §3.6, 0.6.7: prefixes are compound parts only).
-        for (k in listOf("joe", "you", "and", "of", "ähm")) assertTrue(de.lexicon.forms(k).isEmpty(), k)
-        for (k in listOf("dad", "the", "wär")) assertTrue(de.lexicon.forms(k).isNotEmpty(), k)
+        // dropped (count < 20 000): "joe", "you", "and". The prefix title "of-" does not make "of" a form (05b §3.6,
+        // 0.6.7: prefixes are compound parts only). 0.7.0 (05b §12.4): of the keys of at least 20 000 the colloquial
+        // path drops "dad" (subtitles 45 times as frequent as written text) and "the" (an en-US key) and keeps "wär"
+        for (k in listOf("joe", "you", "and", "of", "ähm", "dad", "the")) assertTrue(de.lexicon.forms(k).isEmpty(), k)
+        assertTrue(de.lexicon.forms("wär").isNotEmpty())
+        assertTrue(de.lexicon.isUnattestedWord("wär"))
     }
 
     /**
@@ -58,40 +60,42 @@ class ShortKeysAndNamesTest {
      */
     @Test
     fun abbreviationTitlesAreForms() {
-        for ((k, cls) in listOf("usw" to 63, "bzw" to 38, "etc" to 64, "evtl" to 26, "vgl" to 11, "ggf" to 1)) {
-            assertEquals(cls, de.lexicon.exactClass(k), k)
+        // classes informative from 0.7.0 (combined frequency, 05b §12.2; 0.6.9: 63, 38, 64, 26, 11, 1)
+        for (k in listOf("usw", "bzw", "etc", "evtl", "vgl", "ggf")) {
+            println("abbreviation $k class ${de.lexicon.exactClass(k)}")
+            assertTrue(de.lexicon.exactClass(k) >= 1, k)
             assertTrue(de.query(k).validity.valid, k)
         }
         assertEquals(null, engine.query(Query("Äpfel, Birnen usw")).autoCorrection)
         val es = TestDictionaries.spanish()
-        assertEquals(107, es.lexicon.exactClass("etc"))
+        assertEquals(137, es.lexicon.exactClass("etc")) // 0.7.0 (05b §12.2); 0.6.9: 107
         assertTrue(es.query("etc").validity.valid)
     }
 
     /**
-     * 05b §3.6 "Other languages" (0.6.7): step 6a and the damping of non-forms in the Spanish, Portuguese, Italian and
-     * French builds. Dropped (no form of the language, at most 3 letters, count < 20 000) and kept (count ≥ 20 000) keys
-     * as listed by the build report (tools/dictionary-build.json); a damped key's class is that of count / 100.
+     * 05b §3.6 "Other languages" and §12.4 (0.7.0): step 6a and the colloquial path in the Spanish, Portuguese, Italian
+     * and French builds. Short non-forms counted below 20 000 times stay dropped by step 6a; the names and foreign words
+     * that the 0.6.7–0.6.9 count rule kept with the damping are now dropped by the colloquial path (subtitles more than
+     * 4 times as frequent as written text, or an en-US key), unless a spelling source knows them: then they are names
+     * (05b §12.5), valid and not flagged unattested (tools/dictionary-build.json).
      */
     @Test
-    fun step6aAndDampingInOtherLanguages() {
+    fun step6aAndColloquialPathInOtherLanguages() {
         val cases = listOf(
-            // engine, dropped by step 6a, kept short non-forms, (damped key, class of count / 100)
-            Triple(TestDictionaries.spanish(), listOf("amy", "ted", "tim", "roy"), listOf("joe", "tom", "jim")) to
-                listOf("Michael" to 95, "Joe" to 95),
-            Triple(TestDictionaries.portuguese(), listOf("huh", "ed", "ted", "ooh"), listOf("sam", "max", "fbi")) to
-                listOf("Sam" to 99, "Michael" to 96),
-            Triple(TestDictionaries.italian(), listOf("jim", "amy", "ted", "huh"), listOf("sam", "joe")) to
-                listOf("Sam" to 94, "Percy" to 49),
-            Triple(TestDictionaries.french(), listOf("ooh", "ohh", "jae", "axl"), listOf<String>()) to
-                listOf("Tess" to 51),
+            // engine, dropped (step 6a or the colloquial path), names kept through a spelling source
+            Triple(TestDictionaries.spanish(), listOf("amy", "ted", "tim", "roy", "joe", "tom", "jim", "michael"), listOf()),
+            Triple(TestDictionaries.portuguese(), listOf("huh", "ed", "ted", "ooh", "sam"), listOf("Max", "FBI", "Michael")),
+            Triple(TestDictionaries.italian(), listOf("jim", "amy", "ted", "huh", "sam", "joe", "percy"), listOf()),
+            Triple(TestDictionaries.french(), listOf("ooh", "ohh", "jae", "axl"), listOf("Tess")),
         )
-        for ((t, damped) in cases) {
-            val (e, dropped, kept) = t
+        for ((e, dropped, names) in cases) {
             val tag = e.params.languageTag
             for (k in dropped) assertTrue(e.lexicon.forms(k).isEmpty(), "$tag $k")
-            for (k in kept) assertTrue(e.lexicon.forms(k).isNotEmpty(), "$tag $k")
-            for ((k, cls) in damped) assertEquals(cls, e.lexicon.exactClass(k), "$tag $k")
+            for (n in names) {
+                assertEquals(n, e.lexicon.forms(n.lowercase()).first().text, "$tag $n")
+                assertTrue(!e.lexicon.isUnattestedWord(n), "$tag $n")
+            }
+            assertTrue(e.lexicon.unattestedCount in 1..1000, "$tag ${e.lexicon.unattestedCount}")
         }
     }
 
@@ -99,8 +103,9 @@ class ShortKeysAndNamesTest {
     @Test
     fun performanzOffersPerformant() {
         show("Die App ist nicht performanz")
-        // no subtitle occurrence: added from the German Wiktionary with class 1, the lowest offered class
-        assertEquals(1, de.lexicon.exactClass("performant"))
+        // no subtitle occurrence: 0.7.0 admitted by its written frequency (05b §12.3), class from the combined count
+        // (05b §12.2; 0.6.6–0.6.9: the lemma class 1)
+        assertEquals(12, de.lexicon.exactClass("performant")) // 0.7.0 German list (0.6.9: 1)
         val r = engine.query(Query("Die App ist nicht performanz"))
         val top3 = r.suggestions.take(3).map { it.text }
         println("performanz: ac=${r.autoCorrection} bar=${r.suggestions.map { it.text }}")
@@ -132,10 +137,13 @@ class ShortKeysAndNamesTest {
         show("Cursos")
         val names = listOf("Curtis", "Crusoe", "Cursor").associateWith { de.lexicon.exactClass(it) }
         println("classes: $names")
+        // 05 §17.7a (0.7.0): "Cursor" among the first three, "Curtis" (no spelling source knows it) not offered at all;
+        // whether "Cursor" or "Crusoe" comes first is left to the frequencies (up to 0.6.9 "Cursor" was first)
         val r = engine.query(Query("Cursos"))
-        assertEquals("Cursor", r.suggestions.first().text, bar("Cursos").toString())
-        // also in the correction search of a resumed or caret word (no taps)
-        assertEquals("Cursor", engine.resumeCorrections("Cursos").first().text)
+        val top3 = r.suggestions.take(3).map { it.text }
+        assertTrue("Cursor" in top3, bar("Cursos").toString())
+        assertTrue(r.suggestions.none { it.text == "Curtis" }, bar("Cursos").toString())
+        assertTrue("Cursor" in engine.resumeCorrections("Cursos").take(3).map { it.text })
     }
 
     @Test
@@ -153,6 +161,9 @@ class ShortKeysAndNamesTest {
 
     @Test
     fun namesStayValid() {
-        for (n in listOf("Curtis", "Crusoe", "Jack", "Captain")) assertTrue(de.query(n).validity.valid, n)
+        // 0.7.0 (05b §12.5): names a spelling source knows stay valid; film names and words that only the subtitles
+        // know are no keys any more (colloquial path, §12.4)
+        for (n in listOf("Crusoe", "Jack")) assertTrue(de.query(n).validity.valid, n)
+        for (n in listOf("Curtis", "Captain")) assertTrue(de.lexicon.forms(n).isEmpty(), n)
     }
 }

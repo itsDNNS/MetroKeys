@@ -103,7 +103,7 @@ class LexiconTest {
     fun bundledWordsAndAllForms() {
         val lex = TestDictionaries.de.lexicon
         assertEquals(lex.formCount, lex.words().count())
-        assertTrue(lex.keyCount in 315_000..325_000) // 0.6.6: with the dictionary-only lemmas (05b §3.7)
+        assertTrue(lex.keyCount in 405_000..420_000) // 0.7.0 (05b §12); 0.6.6–0.6.9: 315 000–325 000
         assertTrue(lex.forms("haus").single().text == "Haus")
         val en = TestDictionaries.en.lexicon
         assertEquals(listOf("I'm"), en.forms("im").map { it.text }.take(1))
@@ -145,7 +145,14 @@ class LicenseTextTest {
     @Test
     fun attributionTextsAreBundled() {
         val de = Dictionary.bundledLicenseText("de-DE")!!
-        assertTrue("FrequencyWords" in de && "Wiktionary" in de && "Tatoeba" in de && "CC BY-SA 4.0" in de)
+        assertTrue("FrequencyWords" in de && "Wiktionary" in de && "Tatoeba" in de)
+        // 0.7.0 (05b §2): the rebuilt data files are GPL-3.0-only; the CC BY-SA 4.0 sources keep their attribution and
+        // the spelling dictionaries their notices
+        for (tag in listOf("en-US", "es-ES", "pt-BR", "it-IT", "fr-FR")) {
+            val t = Dictionary.bundledLicenseText(tag)!!
+            assertTrue("GNU General Public License, version 3 only" in t && "CC BY-SA 4.0 / GPLv3" in t && "wordfreq" in t, tag)
+            if (tag != "en-US") assertTrue("--- Spelling dictionary" in t, tag)
+        }
         val en = Dictionary.bundledLicenseText("en-US")!!
         val notice = Dictionary::class.java.getResourceAsStream("/app/metrokeys/engine/dict/SCOWL-Copyright.txt")!!
             .readBytes().toString(Charsets.ISO_8859_1)

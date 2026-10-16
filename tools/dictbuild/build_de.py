@@ -5,8 +5,9 @@ import math
 import unicodedata
 
 import casing
+from attested import AttestedRules
 from casing import case_kind_rank
-from common import capitalize_first, freq_class, jlower
+from common import capitalize_first, jlower
 
 EXCLUDED_LETTERS = set("İıŉſĸ")
 
@@ -36,8 +37,6 @@ COMPOUND_LINKS = ["", "s", "es", "n", "en", "e", "er", "ens"]
 # §3.6 step 6a (0.6.4): a key of at most 3 letters that is not a German form needs this count, as in the English build
 SHORT_KEY_LEN = 3
 SHORT_KEY_MIN = 20000
-# §3.6 "Damping of non-German keys" (0.6.4): keys kept by step 7 count with count / 100
-DAMPING = 0.01
 # §3.6 real-word typos (0.6.4): a German form counted fewer than TYPO_MAX_COUNT times, whose most frequent form is lower
 # case, and whose one-key-aside substitution or swap is a German form at least TYPO_RATIO times as frequent gets class 0
 TYPO_MAX_COUNT = 100
@@ -64,32 +63,48 @@ def fold_umlauts(s):
 
 
 def lacks_umlauts(key, form):
-    """True if [key] is [form] with one or more of its umlauts written without the dots or ß written as ss (any number
-    of positions), and nothing else changed."""
+    """True if [key] is [form] with one or more of its umlauts written without the dots or transliterated (ä → a or ae,
+    ö → o or oe, ü → u or ue; 0.7.0) or ß written as ss (any number of positions), and nothing else changed."""
     if key == form:
         return False
-    i = j = 0
-    while i < len(form):
-        c = form[i]
-        if j >= len(key):
-            return False
-        if c in UMLAUT_BASE:
-            if key[j] != c and key[j] != UMLAUT_BASE[c]:
-                return False
-            j += 1
-        elif c == "ß":
-            if key[j] == "ß":
-                j += 1
-            elif key.startswith("ss", j):
-                j += 2
-            else:
-                return False
-        elif key[j] != c:
-            return False
+    memo = {}
+
+    def match(i, j):
+        if (i, j) in memo:
+            return memo[(i, j)]
+        if i == len(form):
+            r = j == len(key)
+        elif j >= len(key):
+            r = False
         else:
-            j += 1
-        i += 1
-    return j == len(key)
+            c = form[i]
+            if c in UMLAUT_BASE:
+                b = UMLAUT_BASE[c]
+                r = ((key[j] == c and match(i + 1, j + 1)) or (key[j] == b and match(i + 1, j + 1))
+                     or (key.startswith(b + "e", j) and match(i + 1, j + 2)))
+            elif c == "ß":
+                r = (key[j] == "ß" and match(i + 1, j + 1)) or (key.startswith("ss", j) and match(i + 1, j + 2))
+            else:
+                r = key[j] == c and match(i + 1, j + 1)
+        memo[(i, j)] = r
+        return r
+
+    return match(0, 0)
+
+
+def untransliterated(key):
+    """The spellings of [key] with each "ae", "oe", "ue" kept or written as "a", "o", "u" (the index lookup of the
+    transliteration merge; at most 64)."""
+    out = [""]
+    i = 0
+    while i < len(key):
+        if key[i] in "aou" and i + 1 < len(key) and key[i + 1] == "e" and len(out) <= 32:
+            out = [o + key[i] + "e" for o in out] + [o + key[i] for o in out]
+            i += 2
+        else:
+            out = [o + key[i] for o in out]
+            i += 1
+    return out
 
 
 def key_letter(ch):
@@ -148,10 +163,13 @@ def has_noun_suffix(key):
     return False
 
 
-class GermanBuilder:
-    def __init__(self, freq_path, wikt, abbreviations=(), prefixes=()):
+class GermanBuilder(AttestedRules):
+    def __init__(self, freq_path, wikt, abbreviations=(), prefixes=(), spelling=None, written=None, english_keys=()):
         """[abbreviations]: forms of the abbreviation titles ("usw" of "usw.", §3.6, 0.6.7); [prefixes]: the prefix titles
-        without the hyphen ("anti" of "anti-"), which are no forms but may be the first part of a compound (§3.5)."""
+        without the hyphen ("anti" of "anti-"), which are no forms but may be the first part of a compound (§3.5);
+        [spelling], [written], [english_keys]: the spelling dictionary, the written-language list and the en-US keys
+        of the 0.7.0 rules (05b §12)."""
+        self.setup_attested(spelling, written, frozenset(english_keys))
         self.prefix_parts = {jlower(p) for p in prefixes}
         self.titles, self.de_forms, counts = wikt
         before = {jlower(f) for f in self.de_forms}
@@ -182,24 +200,32 @@ class GermanBuilder:
                 if key != tok or not all(ch in ALLOWED for ch in key):
                     continue
                 self.counts[key] = self.counts.get(key, 0) + c
+        # the spelling dictionary is asked for every key that could be kept (05b §12.1); parallel, cached
+        self.prefetch_spelling(k for k, c in self.counts.items() if k not in self.forms_by_key and 2 <= len(k) <= 27
+                               and (c >= 2 or self.written(k) > 0))
         self._merge_umlauts()
-        self.max_count = max(self.counts.values())
-        self.scale = 255.0 / math.log(self.max_count)
         self._case_cache = {}
-        # filled by build(): keys kept by step 7 (damped), short keys dropped by step 6a that step 7 would keep,
-        # real-word typos (key -> dominating key)
-        self.damped = set()
+        # filled by build(): short keys dropped by step 6a, real-word typos (key -> dominating key)
         self.short_dropped = []
         self.typos = {}
         self.prefix_compounds = set()  # keys kept by step 5 only through a prefix as first part (report)
 
+    def has_sharp_s(self):
+        return True
+
+    def case_evidence(self, key):
+        return self.variants.get(key, {})
+
     # §3.6 umlaut merge (0.6.9)
     def _merge_umlauts(self):
-        """Keys that are no German form and differ from a German form only by missing umlauts or ß, counted at most a
+        """Keys that are no German form and differ from a German form only by missing or transliterated umlauts (0.7.0)
+        or ß, counted at most a
         tenth as often as that form, are removed and their count is added to the form (the most frequent one if
-        several qualify). German forms are never merged."""
+        several qualify). German forms are never merged; from 0.7.0 the spelling dictionary's forms count as German
+        forms (05b §12.1 item 5), also as targets (those with a subtitle count)."""
         index = {}
-        for f in self.forms_by_key:
+        targets = set(self.forms_by_key) | {k for k in self.counts if any(c in k for c in "äöüß") and self.spelling_form(k)}
+        for f in targets:
             if any(c in f for c in "äöüß"):
                 index.setdefault(fold_umlauts(f), []).append(f)
         merged = {}
@@ -207,8 +233,10 @@ class GermanBuilder:
             if key in self.forms_by_key:
                 continue
             c = self.counts[key]
-            options = [f for f in index.get(fold_umlauts(key), ())
-                       if lacks_umlauts(key, f) and self.counts.get(f, 0) >= UMLAUT_MERGE_RATIO * c]
+            pool = {f for v in untransliterated(key) for f in index.get(fold_umlauts(v), ())}
+            options = sorted(f for f in pool if lacks_umlauts(key, f) and self.counts.get(f, 0) >= UMLAUT_MERGE_RATIO * c)
+            if options and not self.wiktionary_form(key) and self.spelling_protects(key):
+                continue
             if options:
                 merged[key] = max(options, key=lambda f: (self.counts.get(f, 0), f))
         self.merged_counts = {k: self.counts[k] for k in merged}
@@ -220,7 +248,9 @@ class GermanBuilder:
         self.umlaut_merged = merged
 
     def is_german_form(self, key):
-        return key in self.forms_by_key
+        """A German form (0.7.0, 05b §3.6): of the Wiktionary pass, of the abbreviation rule or of the spelling
+        dictionary."""
+        return self.language_form(key)
 
     def count(self, key):
         return self.counts.get(key, 0)
@@ -229,7 +259,7 @@ class GermanBuilder:
     def case_decision(self, key):
         if key in self._case_cache:
             return self._case_cache[key]
-        result = casing.decide(key, self.variants.get(key, {}), self.forms_by_key.get(key, set()))
+        result = casing.decide(key, self.variants.get(key, {}), self.dictionary_forms(key))
         self._case_cache[key] = result
         return result
 
@@ -242,8 +272,10 @@ class GermanBuilder:
         return any(f[0].isupper() for f, _ in dec) or any(f[0].isupper() for f in self.forms_by_key.get(key, ()))
 
     def _compound_part_ok(self, part, first=False):
-        """A German form counted ≥ 20 times and no function word; the first part may also be a prefix title (0.6.7)."""
-        known = self.is_german_form(part) or (first and part in self.prefix_parts)
+        """A German form counted ≥ 20 times and no function word; the first part may also be a prefix title (0.6.7).
+        The parts are forms of the Wiktionary pass and the abbreviation rule (05b §12.1 items 2 and 4: compounds stay
+        with §3.5 and Wiktionary)."""
+        known = self.wiktionary_form(part) or (first and part in self.prefix_parts)
         return known and self.count(part) >= 20 and part not in FUNCTION_WORDS
 
     # §3.5
@@ -259,7 +291,7 @@ class GermanBuilder:
                 stem = modifier[:len(modifier) - len(link)] if link else modifier
                 if len(stem) < 3 or not self._compound_part_ok(stem, first=True):
                     continue
-                if not self.is_german_form(stem):
+                if not self.wiktionary_form(stem):
                     self._prefix_hit = True
                 head_primary = self.primary_form(head)
                 stem_primary = self.primary_form(stem)
@@ -277,17 +309,21 @@ class GermanBuilder:
         return self.select_step(key)[0]
 
     def select_step(self, key):
-        """Returns (list of (form, share) or None, the step of §3.6 that decided)."""
+        """Returns (list of (form, share) or None, the step of §3.6 that decided). The junk rules (steps 1–3 and 6a)
+        exempt only forms of the Wiktionary pass and the abbreviation rule (05b §12.1 item 4)."""
         count = self.count(key)
-        german = self.is_german_form(key)
-        if not plausible(key) and not (german and 2 <= len(key) <= 27):
+        wform = self.wiktionary_form(key)
+        german = wform or self.spelling_form(key)
+        if not plausible(key) and not (wform and 2 <= len(key) <= 27):
             return None, 1
-        if not german and any(c not in GERMAN_PLAIN for c in key):
+        if not wform and any(c not in GERMAN_PLAIN for c in key):
             return None, 2
-        if not german and key.startswith("l") and self.is_german_form("i" + key[1:]):
+        if not wform and key.startswith("l") and self.is_german_form("i" + key[1:]):
             return None, 3
+        if not wform and len(key) <= SHORT_KEY_LEN and count < SHORT_KEY_MIN:
+            return None, "6a"
         if german:
-            if count >= 2:
+            if self.admitted(key, count):
                 return self.case_decision(key) or [(key, 1.0)], 4
             return None, 4
         if len(key) >= 6 and count >= 4:
@@ -297,15 +333,17 @@ class GermanBuilder:
                 if self._prefix_hit:
                     self.prefix_compounds.add(key)
                 return self.case_decision(key) or [(comp, 1.0)], 5
-        # step 6 (glued German forms) is not applied, see spec/QUESTIONS.md (0.6.4)
-        if len(key) <= SHORT_KEY_LEN and count < SHORT_KEY_MIN:
-            return None, "6a"
+        # step 6 (glued German forms) is not applied, see spec/QUESTIONS.md (0.6.4); step 6a is checked above
         return self.step7(key, count)
 
     def step7(self, key, count):
+        """Step 7: a non-form counted at least 40 times is kept only by the colloquial path (0.7.0, 05b §12.4), after
+        the foreign-title clause."""
         if count >= 40:
             titles = self.titles_by_key.get(key, set())
             if key in self.titles and count < 3000:
+                return None, 7
+            if not self.colloquial_path(key, count):
                 return None, 7
             dec = self.case_decision(key)
             if dec:
@@ -315,11 +353,6 @@ class GermanBuilder:
             best = sorted(titles, key=lambda f: (case_kind_rank(f), f))[0]
             return [(best, 1.0)], 7
         return None, 8
-
-    def effective_count(self, key):
-        """The count used for classes and pairs: damped for keys kept by step 7."""
-        c = self.counts.get(key, 0)
-        return c * DAMPING if key in self.damped else c
 
     def real_word_typos(self, german_keys, near, selected):
         """§3.6 real-word typos (0.6.4): German-form keys counted fewer than TYPO_MAX_COUNT times whose most frequent form
@@ -333,7 +366,9 @@ class GermanBuilder:
         out = {}
         for key in sorted(german_keys):
             c = self.count(key)
-            if c >= TYPO_MAX_COUNT:
+            # a key without a subtitle occurrence (admitted by its written frequency, 05b §12.3) is no subtitle typo:
+            # the dominance test count(w') ≥ 5000 × 0 says nothing (spec/QUESTIONS.md, 0.7.0)
+            if c >= TYPO_MAX_COUNT or c == 0:
                 continue
             main = max(selected[key], key=lambda fs: fs[1])[0]  # largest share; ties: case-decision order
             if main != jlower(main):
@@ -359,44 +394,32 @@ class GermanBuilder:
                 out[key] = best
         return out
 
-    def build(self, layout_path=None):
+    def build(self, layout_path=None, name_rule=None):
+        """Selection of §3.6 over the subtitle keys and the forms without a subtitle count that the written-language
+        list has (05b §12.3), real-word typos, classes from the combined frequency (05b §12.2)."""
+        self.name_rule = name_rule
         selected = {}
-        self.damped = set()
         self.short_dropped = []
         self.typos = {}
         self.prefix_compounds = set()
-        for key in sorted(self.counts):
+        self.colloquial = set()
+        self.colloquial_dropped = {}
+        self.written_admitted = set()
+        key_ok = lambda k: 2 <= len(k) <= 27 and all(ch in ALLOWED for ch in k)
+        candidates = set(self.counts) | self.written_candidates(key_ok)
+        for key in sorted(candidates):
             if not 2 <= len(key) <= 27:
                 continue
             sel, step = self.select_step(key)
-            # report: the short keys that step 7 would have kept
-            if step == "6a" and self.step7(key, self.count(key))[0]:
+            if step == "6a" and self.count(key) >= 40:
                 self.short_dropped.append(key)
             if not sel:
                 continue
-            if step == 7:
-                self.damped.add(key)
             selected[key] = sel
         if layout_path:
             german = {k for k in selected if self.is_german_form(k)}
             self.typos = self.real_word_typos(german, neighbour_keys(layout_path), selected)
-        # S and the class formula after the damping (§3.6)
-        self.max_count = max(self.effective_count(k) for k in self.counts)
-        self.scale = 255.0 / math.log(self.max_count)
-        entries = {}
-        for key, sel in selected.items():
-            count = self.effective_count(key)
-            forms = []
-            seen = set()
-            for form, share in sel:
-                if form in seen or jlower(form) != key:
-                    continue
-                seen.add(form)
-                forms.append((form, 0 if key in self.typos else freq_class(count * share, self.scale)))
-            # stable sort by class descending (case-decision order on ties)
-            forms.sort(key=lambda fc: -fc[1])
-            entries[key] = forms
-        return entries
+        return self.combined_entries(selected, zero=set(self.typos), names=name_rule)
 
     # §3.7 (0.6.5)
     def dictionary_only_keys(self, entries, lemma_keys=None):
@@ -414,10 +437,12 @@ class GermanBuilder:
         return out
 
     def add_dictionary_only(self, entries, lemma_keys=None):
-        """Adds the dictionary-only German forms with class DICT_ONLY_CLASS, case from §3.4, no damping; returns the
-        added keys."""
+        """Adds the dictionary-only German lemmas without a written-language frequency (0.7.0: a lemma that has one is
+        admitted by step 4, 05b §12.3) with class DICT_ONLY_CLASS, case from §3.4; returns the added keys."""
         added = []
         for key in self.dictionary_only_keys(entries, lemma_keys):
+            if self.has_written(key, self.count(key)):
+                continue
             dec = self.case_decision(key) or [(key, 1.0)]
             forms = []
             seen = set()

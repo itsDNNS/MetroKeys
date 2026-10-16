@@ -4,6 +4,7 @@
 Usage (from the repository root):
     python3 tools/build_dictionaries.py download            # fetch missing sources into build-data/src, verify hashes
     python3 tools/build_dictionaries.py build [TAG ...]     # verify hashes, build the languages (default: all)
+    python3 tools/build_dictionaries.py source-form VERSION # the source form of the data files for a release (05b §2)
 
 Every language has a build profile (05b §7) in PROFILES: its sources, its word-list builder and its pair sources.
 
@@ -27,9 +28,13 @@ import build_es  # noqa: E402
 import build_fr  # noqa: E402
 import build_it  # noqa: E402
 import build_pt  # noqa: E402
+import combined  # noqa: E402
 import common  # noqa: E402
 import licenses  # noqa: E402
 import pairs  # noqa: E402
+import names  # noqa: E402
+import provenance  # noqa: E402
+import spellcheck  # noqa: E402
 import wiktionary_affix  # noqa: E402
 import wiktionary_de  # noqa: E402
 import wiktionary_es  # noqa: E402
@@ -41,6 +46,8 @@ ROOT = os.path.dirname(HERE)
 SRC = os.path.join(ROOT, "build-data", "src")
 CACHE = os.path.join(ROOT, "build-data", "cache")
 OUT = os.path.join(ROOT, "engine", "src", "main", "resources", "app", "metrokeys", "engine", "dict")
+# source-form text export of every build (05b §2 "Source form", used by the evaluation of 05c); not packaged
+EXPORT = os.path.join(ROOT, "build-data", "export")
 WIKT_DUMP = "wiktionary/dewiktionary-20261001-pages-articles.xml.bz2"
 ES_WIKT_DUMP = "wiktionary/eswiktionary-20261001-pages-articles.xml.bz2"
 EN_WIKT_DUMP = "wiktionary/enwiktionary-20261001-pages-articles.xml.bz2"
@@ -49,7 +56,7 @@ IT_WIKT_DUMP = "wiktionary/itwiktionary-20261001-pages-articles.xml.bz2"
 FR_WIKT_DUMP = "wiktionary/frwiktionary-20261001-pages-articles.xml.bz2"
 SCOWL = "scowl/scowl-2020.12.07.tar.gz"
 # generic, carries no personal data
-USER_AGENT = "MetroKeys-dictionary-build/0.6 (+https://github.com/itsDNNS/MetroKeys)"
+USER_AGENT = "MetroKeys-dictionary-build/0.7 (+https://github.com/itsDNNS/MetroKeys)"
 
 
 def manifest():
@@ -57,8 +64,15 @@ def manifest():
         return json.load(f)["sources"]
 
 
+def notices():
+    """The copyright notices of the spelling dictionaries (05b §2.14), shipped with the licence texts (tools/notices.json;
+    not build inputs of the data, so not part of the evaluation's input hashes)."""
+    with open(os.path.join(HERE, "notices.json"), encoding="utf-8") as f:
+        return json.load(f)["sources"]
+
+
 def download():
-    for s in manifest():
+    for s in manifest() + notices():
         path = os.path.join(SRC, s["path"])
         if os.path.exists(path):
             continue
@@ -77,7 +91,7 @@ def download():
 
 def verify():
     bad = []
-    for s in manifest():
+    for s in manifest() + notices():
         path = os.path.join(SRC, s["path"])
         if not os.path.exists(path):
             bad.append(f"missing: {s['path']}")
@@ -88,12 +102,25 @@ def verify():
     print("all source hashes verified")
 
 
-def tatoeba_sentences(name, lang):
+# 05b §12.6 (0.7.0): the held-out sentences are the evaluation's context pool and are not counted for pairs
+EVAL_HOLDOUT_MOD = 20
+EVAL_HOLDOUT_REM = 7
+
+
+def held_out_number(n):
+    return n % EVAL_HOLDOUT_MOD == EVAL_HOLDOUT_REM
+
+
+def tatoeba_sentences(name, lang, with_held=False):
+    """The sentences of a Tatoeba export; with [with_held] (text, held out) pairs (05b §12.6: id mod 20 = 7)."""
     with bz2.open(os.path.join(SRC, "tatoeba", name), "rt", encoding="utf-8") as f:
         for line in f:
             parts = line.rstrip("\n").split("\t")
             if len(parts) >= 3 and parts[1] == lang:
-                yield parts[2]
+                if with_held:
+                    yield parts[2], parts[0].isdigit() and held_out_number(int(parts[0]))
+                else:
+                    yield parts[2]
 
 
 # Common Voice files of the pair sources with their weights (05b §2.2, §2.4, §2.7); None = every *.txt file of the
@@ -110,7 +137,9 @@ CV_FILES = {
 }
 
 
-def cv_files(lang):
+def cv_files(lang, with_held=False):
+    """(file, weight, lines) of the Common Voice pair sources; with [with_held] the lines are (text, held out) pairs
+    (05b §12.6: the 1-based line number in its file mod 20 = 7)."""
     d = os.path.join(SRC, "cv", lang)
     chosen = CV_FILES[lang]
     for fn in sorted(os.listdir(d)):
@@ -123,7 +152,10 @@ def cv_files(lang):
                 continue
             weight = 1 if fn.startswith("wiki.") else 3
         with open(os.path.join(d, fn), encoding="utf-8") as f:
-            yield fn, weight, [line.strip() for line in f if line.strip()]
+            if with_held:
+                yield fn, weight, [(line.strip(), held_out_number(i)) for i, line in enumerate(f, start=1) if line.strip()]
+            else:
+                yield fn, weight, [line.strip() for line in f if line.strip()]
 
 
 def scowl_final():
@@ -148,29 +180,94 @@ def scowl_final():
     return final, os.path.join(target, "Copyright")
 
 
-def build_pairs(lang, entries, keys, tatoeba_name, tatoeba_lang, cv_lang, stock=None, damped=None, damping=1.0):
-    counter = pairs.PairCounter(lang, entries, stock, damped, damping)
-    for text in tatoeba_sentences(tatoeba_name, tatoeba_lang):
+HELD_OUT = {}  # language tag -> {"tatoeba": n, "commonVoice": n} held-out sentences left out of the pair count
+
+
+def count_held(tag, source):
+    d = HELD_OUT.setdefault(tag, {"tatoeba": 0, "commonVoice": 0})
+    d[source] += 1
+
+
+def build_pairs(tag, lang, entries, keys, tatoeba_name, tatoeba_lang, cv_lang, stock=None):
+    """Pair table of 05b §5 without the held-out sentences of §12.6."""
+    counter = pairs.PairCounter(lang, entries, stock)
+    for text, held in tatoeba_sentences(tatoeba_name, tatoeba_lang, with_held=True):
+        if held:
+            count_held(tag, "tatoeba")
+            continue
         counter.add(text, 3, True)
-    for _, weight, lines in cv_files(cv_lang):
-        for text in lines:
+    for _, weight, lines in cv_files(cv_lang, with_held=True):
+        for text, held in lines:
+            if held:
+                count_held(tag, "commonVoice")
+                continue
             counter.add(text, weight, False)
     order = {k: i for i, k in enumerate(keys)}
-    return counter.table(order)
+    return counter.table(order), counter
+
+
+# 05b §6 size limits (0.7.0); MB = 10^6 bytes, as the reference sizes of §6
+WORDS_LIMIT = 2_000_000
+PAIRS_LIMIT = 2_500_000
+TOTAL_LIMIT = 17_000_000
+GROWTH_LIMIT = 0.25
+# the data files of the previous release (copied there before the first build of a release; 05b §6, §12.7)
+PREVIOUS_RELEASE = "0.6.9"
+PREVIOUS = os.path.join(ROOT, "build-data", f"previous-{PREVIOUS_RELEASE}")
+SIZE_PROBLEMS = []
+
+
+def growth_limit(tag):
+    """05b §6: 25 %, or the growth the owner approved for this language and release (tools/dictionary-approvals.json;
+    a one-off MK_GROWTH_APPROVED=<tag,...> allows any growth for a trial build)."""
+    if tag in set(filter(None, os.environ.get("MK_GROWTH_APPROVED", "").split(","))):
+        return float("inf")
+    with open(os.path.join(HERE, "dictionary-approvals.json"), encoding="utf-8") as f:
+        a = json.load(f)["growth"].get(tag)
+    if a and a["previous"] == PREVIOUS_RELEASE:
+        return max(GROWTH_LIMIT, a["maxGrowth"])
+    return GROWTH_LIMIT
+
+
+def previous_list(tag):
+    path = os.path.join(PREVIOUS, f"{tag}.words.gz")
+    if not os.path.exists(path):
+        return None
+    return common.read_word_list(path)
 
 
 def write_outputs(tag, scale, max_count, corpus_tokens, entries, table, stats, prefixes=None, unattested=None):
-    """[unattested]: the keys kept by the count rule without being a form (the damped keys, 05 §10.1 step 5, 0.6.9);
-    only those that are in [entries] are flagged."""
+    """[unattested]: the keys kept by the colloquial path (05b §12.4; flagged, used by the evaluation of 05c); only
+    those in [entries] are flagged. Checks the size limits of 05b §6 against the previous release."""
     os.makedirs(OUT, exist_ok=True)
     words_path = os.path.join(OUT, f"{tag}.words.gz")
     pairs_path = os.path.join(OUT, f"{tag}.pairs.gz")
     flagged = {k for k in (unattested or ()) if k in entries}
     digest, keys = common.write_word_list(words_path, tag, scale, max_count, corpus_tokens, entries, prefixes, flagged)
     common.write_pair_table(pairs_path, tag, digest, keys, entries, table, [p for p, _ in prefixes] if prefixes else None)
+    words_bytes = os.path.getsize(words_path)
+    pairs_bytes = os.path.getsize(pairs_path)
+    sizes = {"wordsBytes": words_bytes, "pairsBytes": pairs_bytes, "wordsLimit": WORDS_LIMIT, "pairsLimit": PAIRS_LIMIT}
+    prev_words = os.path.join(PREVIOUS, f"{tag}.words.gz")
+    prev_pairs = os.path.join(PREVIOUS, f"{tag}.pairs.gz")
+    if os.path.exists(prev_words):
+        pw, pp = os.path.getsize(prev_words), os.path.getsize(prev_pairs)
+        sizes.update({"previousRelease": PREVIOUS_RELEASE, "previousWordsBytes": pw, "previousPairsBytes": pp,
+                      "wordsGrowth": round(words_bytes / pw - 1, 4), "pairsGrowth": round(pairs_bytes / pp - 1, 4)})
+        growth = words_bytes / pw - 1
+        limit = growth_limit(tag)
+        sizes["wordsGrowthLimit"] = None if limit == float("inf") else limit
+        if growth > limit:
+            SIZE_PROBLEMS.append(f"{tag} word list grows by {100 * growth:.1f} % against {PREVIOUS_RELEASE} (limit "
+                                 f"{100 * limit:.0f} %; above 25 % the owner's approval is recorded in "
+                                 f"tools/dictionary-approvals.json)")
+    if words_bytes > WORDS_LIMIT:
+        SIZE_PROBLEMS.append(f"{tag} word list {words_bytes} bytes > {WORDS_LIMIT}")
+    if pairs_bytes > PAIRS_LIMIT:
+        SIZE_PROBLEMS.append(f"{tag} pair table {pairs_bytes} bytes > {PAIRS_LIMIT}")
     stats[tag] = {
         "S": scale,
-        "maxCount": int(max_count),
+        "maxCount": int(round(max_count)),
         "corpusTokens": int(corpus_tokens),
         "keys": len(keys),
         "unattestedKeys": len(flagged),
@@ -178,10 +275,21 @@ def write_outputs(tag, scale, max_count, corpus_tokens, entries, table, stats, p
         "pairPrevWords": len(table),
         "pairs": sum(len(v) for v in table.values()),
         "wordsPayloadSha256": digest.hex(),
-        "wordsFile": {"bytes": os.path.getsize(words_path), "sha256": common.sha256_file(words_path)},
-        "pairsFile": {"bytes": os.path.getsize(pairs_path), "sha256": common.sha256_file(pairs_path)},
+        "wordsFile": {"bytes": words_bytes, "sha256": common.sha256_file(words_path)},
+        "pairsFile": {"bytes": pairs_bytes, "sha256": common.sha256_file(pairs_path)},
+        "sizes": sizes,
+        "heldOutSentences": HELD_OUT.get(tag, {}),
     }
     print(tag, json.dumps(stats[tag], indent=1))
+    return keys
+
+
+def check_total_size():
+    """05b §6: all data files of all languages together at most 17 MB."""
+    total = sum(os.path.getsize(os.path.join(OUT, f)) for f in os.listdir(OUT) if f.endswith((".words.gz", ".pairs.gz")))
+    if total > TOTAL_LIMIT:
+        SIZE_PROBLEMS.append(f"all data files {total} bytes > {TOTAL_LIMIT}")
+    return total
 
 
 def forms_text(forms):
@@ -196,25 +304,117 @@ def short_nonforms(entries, is_form, count):
     return [f"{k} {int(count(k))} {forms_text(entries[k])}" for k in rows]
 
 
-def nonform_report(builder, entries, stock, stock_damped):
-    """05b §3.6 "Other languages" (0.6.7) build report: the short keys dropped by step 6a (that the count rule would have
-    kept) and the keys damped as kept only by the count rule, most frequent first; [stock_damped] is the stock-name list
-    the §5 step 3 rule would give with the damped subtitle counts (report only, not used)."""
+def short_key_report(builder):
+    """05b §3.6 step 6a: the short keys dropped (count ≥ 40, most frequent first)."""
     count = builder.count
-    top = sorted(builder.damped, key=lambda k: (-count(k), k))
     return {
         "shortKeysDroppedByStep6a": len(builder.short_dropped),
         "shortKeysDroppedByStep6aList": [f"{k} {count(k)}" for k in sorted(builder.short_dropped, key=lambda k: (-count(k), k))],
-        "dampedKeys": len(builder.damped),
-        "dampedKeysClass0": sum(1 for k in builder.damped if k in entries and all(c == 0 for _, c in entries[k])),
-        "dampedTop50": [f"{k} {count(k)} {forms_text(entries.get(k, []))}" for k in top[:50]],
-        "stockNamesWithDampedSubtitleCounts": sorted(stock_damped),
-        "stockNamesChangedByDampedCounts": sorted(set(stock) ^ set(stock_damped)),
     }
 
 
-def damped_counts(counts, builder):
-    return {k: c * common.DAMPING if k in builder.damped else c for k, c in counts.items()}
+_english_keys = None
+
+
+def english_keys():
+    """05b §12.4 condition 5: the keys of the en-US word list (English keys do not change in 0.7.0, 05b version note;
+    the list is built first when all languages are built)."""
+    global _english_keys
+    if _english_keys is None:
+        _english_keys = frozenset(common.read_word_list(os.path.join(OUT, "en-US.words.gz"))[1])
+    return _english_keys
+
+
+_foreign = {}
+
+
+def foreign_lower(tag):
+    """05b §12.4 item 7: the lower-case forms of the word lists of the other languages of §7 (the lists in the output
+    directory, without their unattested keys, so the result does not depend on the order of the builds)."""
+    if tag not in _foreign:
+        out = set()
+        for other in PROFILES:
+            path = os.path.join(OUT, f"{other}.words.gz")
+            if other == tag or not os.path.exists(path):
+                continue
+            _, entries, unattested, _ = common.read_word_list(path)
+            out.update(k for k, forms in entries.items() if k not in unattested and any(f == k for f, _ in forms))
+        _foreign[tag] = frozenset(out)
+    return _foreign[tag]
+
+
+def attested_inputs(tag):
+    """The spelling dictionary (05b §2.14) and the written-language list (§2.15) of a language."""
+    return spellcheck.SpellingIndex(tag, SRC, CACHE), combined.written_list(tag, SRC)
+
+
+def top_rows(keys, count, n, extra=None):
+    rows = sorted(keys, key=lambda k: (-count(k), k))[:n]
+    return [f"{k} {int(count(k))}" + (f" {extra(k)}" if extra else "") for k in rows]
+
+
+def report_070(tag, b, entries, raw_counts=None):
+    """05b §12.7 build report of a builder with the AttestedRules (German, Spanish, Portuguese, Italian, French)."""
+    count = b.count
+    total = b.corpus_tokens
+    keys = [k for k in entries if b.forms_by_key is not None]
+    plain = [k for k in keys if combined.letters_only(k)]
+    b.spelling.prefetch(k for k in plain if b.wiktionary_form(k))
+    wikt_only = [k for k in plain if b.wiktionary_form(k) and not b.spelling.knows(k)]
+    spell_only = [k for k in plain if b.spelling_form(k)]
+    both = [k for k in plain if b.wiktionary_form(k) and b.spelling.knows(k)]
+    src_counts = raw_counts or b.counts
+    top = sorted(src_counts, key=lambda k: (-src_counts[k], k))[:20000]
+    b.spelling.prefetch(top)
+    cov = {
+        "wiktionary": sum(1 for k in top if b.wiktionary_form(k)) / len(top),
+        "spellingDictionary": sum(1 for k in top if b.spelling.knows(k) and k not in b.spelling_excluded) / len(top),
+        "union": sum(1 for k in top if b.language_form(k)) / len(top),
+    }
+    coll_kept = sorted((k for k in b.colloquial if k in entries), key=lambda k: (-count(k), k))
+    coll_dropped = sorted(b.colloquial_dropped, key=lambda k: (-count(k), k))
+    reasons = {}
+    for k, r in b.colloquial_dropped.items():
+        reasons[r] = reasons.get(r, 0) + 1
+    names = sorted((k for k in b.names if k in entries), key=lambda k: (-count(k), k))
+    prev = previous_list(tag)
+    changed = None
+    lost = gained = None
+    if prev:
+        old = prev[1]
+        changed = sum(1 for k, fs in entries.items() if k in old and abs(fs[0][1] - old[k][0][1]) > 20)
+        lost = sorted(set(old) - set(entries))
+        gained = sorted(set(entries) - set(old))
+    out = {
+        "keysWiktionaryOnly": len(wikt_only),
+        "keysSpellingDictionaryOnly": len(spell_only),
+        "keysBoth": len(both),
+        "keysWiktionaryOnlyTop100": top_rows(wikt_only, count, 100),
+        "keysSpellingDictionaryOnlyTop100": top_rows(spell_only, count, 100),
+        "coverageTop20000Subtitles": {k: round(v, 4) for k, v in cov.items()},
+        "writtenAdmitted": sum(1 for k in b.written_admitted if k in entries),
+        "colloquialKept": len(coll_kept),
+        "colloquialKeptTop100": [combined.describe(k, count(k), total, b.written(k)) for k in coll_kept[:100]],
+        "colloquialDropped": len(coll_dropped),
+        "colloquialDroppedByCondition": reasons,
+        "colloquialDroppedTop100": [combined.describe(k, count(k), total, b.written(k)) + " " + b.colloquial_dropped[k]
+                                    for k in coll_dropped[:100]],
+        "colloquialDroppedNearFormTop100": [f"{k} {int(count(k))} -> {b.near_form[k]}" for k in coll_dropped
+                                            if b.colloquial_dropped[k] == "nearForm"][:100],
+        "colloquialDroppedOtherLanguageTop100": [f"{k} {int(count(k))}" for k in coll_dropped
+                                                 if b.colloquial_dropped[k] == "otherLanguage"][:100],
+        "colloquialDroppedApostropheFragmentTop100": [f"{k} {int(count(k))}" for k in coll_dropped
+                                                      if b.colloquial_dropped[k] == "apostropheFragment"][:100],
+        "names": len(names),
+        "namesTop50": [f"{k} {int(count(k))} {forms_text(entries[k])}" for k in names[:50]],
+        "S": b.scale,
+        "maxCount": round(b.max_count, 3),
+        "classChangedBy20": changed,
+        "keysLostAgainstPrevious": len(lost) if lost is not None else None,
+        "keysNewAgainstPrevious": len(gained) if gained is not None else None,
+    }
+    out.update(combined.gap_report(plain, count, b.pw, total))
+    return out
 
 
 ENGLISH_GUARD_RANK = 5000
@@ -298,23 +498,10 @@ def write_licenses(copyright_path=None, tags=None):
     for tag in tags:
         notice = scowl_notice.decode("latin-1") if tag == "en-US" else None
         with open(os.path.join(OUT, f"LICENSE-{tag}.txt"), "w", encoding="utf-8", newline="\n") as f:
-            f.write(licenses.text(tag, notice))
+            f.write(licenses.text(tag, notice, SRC))
 
 
-def trial_sizes(tag, builder, entries, table):
-    """Sizes of the word list and pair table of [entries] written to a scratch directory (§3.7 build report)."""
-    tmp = os.path.join(CACHE, "trial")
-    os.makedirs(tmp, exist_ok=True)
-    words_path = os.path.join(tmp, f"{tag}.words.gz")
-    pairs_path = os.path.join(tmp, f"{tag}.pairs.gz")
-    digest, keys = common.write_word_list(words_path, tag, builder.scale, builder.max_count, builder.corpus_tokens, entries)
-    common.write_pair_table(pairs_path, tag, digest, keys, entries, table)
-    return {"keys": len(keys), "forms": sum(len(v) for v in entries.values()),
-            "wordsBytes": os.path.getsize(words_path), "pairsBytes": os.path.getsize(pairs_path),
-            "pairs": sum(len(v) for v in table.values())}
-
-
-def build_german(stats):
+def build_german(stats, dry=False):
     wikt_cache = os.path.join(CACHE, "dewiktionary-20261001.tsv.gz")
     if not os.path.exists(wikt_cache):
         print("Wiktionary pass (a few minutes)")
@@ -325,37 +512,41 @@ def build_german(stats):
         wiktionary_de.pos_run(os.path.join(SRC, WIKT_DUMP), pos_cache)
     de_abbr = abbreviations("de", ["de"])["de"]
     de_prefixes = abbreviations("de", ["de"], "-")["de"]
+    spelling, written = attested_inputs("de-DE")
     de = build_de.GermanBuilder(os.path.join(SRC, "fw", "de_full.txt"), wiktionary_de.load(wikt_cache), de_abbr,
-                                de_prefixes)
-    de_entries = de.build(os.path.join(ROOT, "spec", "data", "layouts-de.json"))
+                                de_prefixes, spelling, written, english_keys())
+    de.setup_foreign(foreign_lower("de-DE"))
+    pos = wiktionary_de.load_pos(pos_cache)
+    rule = names.NameRule(names.german(pos), set(de.forms_by_key), de.abbreviation_keys, spelling)
+    de_entries = de.build(os.path.join(ROOT, "spec", "data", "layouts-de.json"), rule.is_name)
+    spelling.save()
+    if dry:
+        return {"builder": de, "entries": de_entries, "abbreviations": de_abbr, "stock": set(pairs.DE_STOCK)}
 
-    # §3.7 dictionary-only German lemmas (0.6.6): lemmas without a subtitle occurrence or with exactly one, class 1
-    base_size = trial_sizes("de-DE", de, de_entries, build_pairs("de", de_entries, sorted(de_entries), "deu_sentences.tsv.bz2",
-                                                                  "deu", "de", damped=de.damped, damping=build_de.DAMPING))
-    lemmas = build_de.lemma_keys(wiktionary_de.load_pos(pos_cache), de_abbr)
-    unseen = sum(1 for k in de.dictionary_only_keys(de_entries, lemmas) if de.count(k) == 0)
+    # §3.7 dictionary-only German lemmas (0.6.6; 0.7.0: only those without a written-language frequency), class 1
+    lemmas = build_de.lemma_keys(pos, de_abbr)
+    unseen = sum(1 for k in de.dictionary_only_keys(de_entries, lemmas) if de.count(k) == 0 and not de.has_written(k, 0))
     de_entries = dict(de_entries)
     added = de.add_dictionary_only(de_entries, lemmas)
     de_keys = sorted(de_entries)
-    de_table = build_pairs("de", de_entries, de_keys, "deu_sentences.tsv.bz2", "deu", "de",
-                           damped=de.damped, damping=build_de.DAMPING)
+    de_table, de_counter = build_pairs("de-DE", "de", de_entries, de_keys, "deu_sentences.tsv.bz2", "deu", "de")
     dict_only = {
-        "variantUsed": "lemmas",
-        "before": base_size,
-        "after": dict(trial_sizes("de-DE", de, de_entries, de_table), addedKeys=len(added),
-                      addedUnseen=unseen, addedSeenOnce=len(added) - unseen),
+        "variantUsed": "lemmas without subtitle evidence (count 0 or 1) and without a written-language frequency",
+        "addedKeys": len(added), "addedUnseen": unseen, "addedSeenOnce": len(added) - unseen,
         "addedSample": [f"{k} {de.count(k)} {forms_text(de_entries[k])}" for k in added[::max(1, len(added) // 100)][:100]],
     }
-    # 0.6.4 report: step 6a and the damping of non-German keys (§3.6)
-    top = sorted(de.damped, key=lambda k: (-de.count(k), k))
     stats["de-DE-extra"] = {
         "umlautMerged": len(de.umlaut_merged),
         "umlautMergedTop100": [f"{k} {de.merged_counts[k]} -> {t} {de.count(t) - de.merged_into[t]}"
                                for k, t in sorted(de.umlaut_merged.items(), key=lambda kt: (-de.merged_counts[kt[0]], kt[0]))[:100]],
+        # 0.7.0: the merges that need the transliteration ae/oe/ue (05b §3.6)
+        "umlautMergedTransliterated": sum(1 for k, t in de.umlaut_merged.items()
+                                          if build_de.fold_umlauts(k) != build_de.fold_umlauts(t)),
+        "umlautMergedTransliteratedTop100": [f"{k} {de.merged_counts[k]} -> {t}" for k, t in sorted(
+            ((k, t) for k, t in de.umlaut_merged.items() if build_de.fold_umlauts(k) != build_de.fold_umlauts(t)),
+            key=lambda kt: (-de.merged_counts[kt[0]], kt[0]))[:100]],
         "shortKeysDroppedByStep6a": len(de.short_dropped),
         "shortKeysDroppedByStep6aList": [f"{k} {de.count(k)}" for k in sorted(de.short_dropped, key=lambda k: (-de.count(k), k))],
-        "dampedKeys": len(de.damped),
-        "dampedTop50": [f"{k} {de.count(k)} {forms_text(de_entries[k])}" for k in top[:50]],
         "shortKeysNotForms": short_nonforms(de_entries, de.is_german_form, de.count),
         "realWordTypos": len(de.typos),
         "realWordTyposTop150": [f"{k} {de.count(k)} -> {w} {de.count(w)}"
@@ -367,12 +558,16 @@ def build_german(stats):
         "keysByPrefixCompounds": len(de.prefix_compounds),
         "keysByPrefixCompoundsTop60": [f"{k} {de.count(k)} {forms_text(de_entries[k])}"
                                        for k in sorted(de.prefix_compounds, key=lambda k: (-de.count(k), k))[:60]],
+        **report_070("de-DE", de, de_entries),
     }
-    write_outputs("de-DE", de.scale, de.max_count, de.corpus_tokens, de_entries, de_table, stats, unattested=de.damped)
+    spelling.save()
+    write_outputs("de-DE", de.scale, de.max_count, de.corpus_tokens, de_entries, de_table, stats, unattested=de.colloquial)
+    provenance.write(EXPORT, "de-DE", de, de_entries, SRC, lemma_keys=set(added))
+    provenance.write_pairs(EXPORT, "de-DE", de_entries, de_table, de_counter)
     write_licenses(tags=["de-DE"])
 
 
-def build_english(stats):
+def build_english(stats, dry=False):
     final, copyright_path = scowl_final()
     st = build_en.SentenceStats()
     for text in tatoeba_sentences("eng_sentences.tsv.bz2", "eng"):
@@ -381,22 +576,41 @@ def build_english(stats):
         for text in lines:
             st.add_sentence(text, weight, weight == 3)
     st.finish()
-    en = build_en.EnglishBuilder(os.path.join(SRC, "fw", "en_full.txt"), final, st)
+    en = build_en.EnglishBuilder(os.path.join(SRC, "fw", "en_full.txt"), final, st, combined.written_list("en-US", SRC))
     en_entries = en.build()
+    if dry:
+        return {"builder": en, "entries": en_entries, "scowl": final, "stock": set(pairs.EN_STOCK_BASE)}
     en_keys = sorted(en_entries)
-    en_table = build_pairs("en", en_entries, en_keys, "eng_sentences.tsv.bz2", "eng", "en")
+    en_table, en_counter = build_pairs("en-US", "en", en_entries, en_keys, "eng_sentences.tsv.bz2", "eng", "en")
     stats["en-US-extra"] = {
         "aliasKeys": getattr(en, "alias_added", 0),
         "aliasKeysReplacingAWord": getattr(en, "alias_replaced", 0),
         "possessiveForms": sum(1 for k in en_entries if k.endswith("'s") and k not in build_en.PRONOUN_S),
         # 05b §3.6 (0.6.4): a form of English = a SCOWL key
         "shortKeysNotForms": short_nonforms(en_entries, lambda k: k in en.main_keys or k in en.large_forms, en.count),
+        # 05b §12.7 for English (§4.6: classes only)
+        "names": len(en.names),
+        "namesTop50": [f"{k} {forms_text(en_entries[k])}" for k in sorted(en.names, key=lambda k: (-en.combined_counts[k], k))[:50]],
+        "writtenFrequencyKeys": sum(1 for k in en_entries if en.pw.get(k, 0) > 0),
+        "S": en.scale,
+        "maxCount": round(en.max_count, 3),
     }
+    en_count = lambda k: sum(c for _, c in en.selected[k])
+    stats["en-US-extra"].update(combined.gap_report([k for k in en_entries if k not in en.weight0], en_count, en.pw,
+                                                    en.corpus_tokens))
+    prev = previous_list("en-US")
+    if prev:
+        stats["en-US-extra"]["classChangedBy20"] = sum(1 for k, fs in en_entries.items()
+                                                       if k in prev[1] and abs(fs[0][1] - prev[1][k][0][1]) > 20)
+        stats["en-US-extra"]["keysLostAgainstPrevious"] = len(set(prev[1]) - set(en_entries))
+        stats["en-US-extra"]["keysNewAgainstPrevious"] = len(set(en_entries) - set(prev[1]))
     write_outputs("en-US", en.scale, en.max_count, en.corpus_tokens, en_entries, en_table, stats)
+    provenance.write(EXPORT, "en-US", en, en_entries, SRC)
+    provenance.write_pairs(EXPORT, "en-US", en_entries, en_table, en_counter)
     write_licenses(copyright_path, tags=["en-US"])
 
 
-def build_spanish(stats):
+def build_spanish(stats, dry=False):
     es_cache = os.path.join(CACHE, "eswiktionary-20261001.tsv.gz")
     en_cache = os.path.join(CACHE, "enwiktionary-20261001-spanish.tsv.gz")
     if not os.path.exists(es_cache):
@@ -409,14 +623,14 @@ def build_spanish(stats):
     en_pass = wiktionary_es.load(en_cache)
 
     def sentences():
-        for text in tatoeba_sentences("spa_sentences.tsv.bz2", "spa"):
-            yield text, True, True
-        for _, weight, lines in cv_files("es"):
-            for text in lines:
-                yield text, weight == 3, False
+        for text, held in tatoeba_sentences("spa_sentences.tsv.bz2", "spa", with_held=True):
+            yield text, True, True, held
+        for _, weight, lines in cv_files("es", with_held=True):
+            for text, held in lines:
+                yield text, weight == 3, False, held
 
     st = build_es.SentenceStats()
-    for text, conversational, tatoeba in sentences():
+    for text, conversational, tatoeba, _ in sentences():
         st.add_sentence(text, conversational, tatoeba)
     st.finish()
     cv_used = [[fn, weight] for fn, weight, _ in cv_files("es")]
@@ -426,17 +640,32 @@ def build_spanish(stats):
     es_alone = build_es.SpanishBuilder(freq, es_pass, None, st, es_abbr["es"]).coverage()
     use_en = es_alone < 0.95
     es_abbr_used = set(es_abbr["es"]) | (set(es_abbr["en"]) if use_en else set())
-    es = build_es.SpanishBuilder(freq, es_pass, en_pass if use_en else None, st, es_abbr_used)
+    spelling, written = attested_inputs("es-ES")
+    es = build_es.SpanishBuilder(freq, es_pass, en_pass if use_en else None, st, es_abbr_used, spelling, written,
+                                 english_keys())
+    es.setup_foreign(foreign_lower("es-ES"))
     with_en = es.coverage()
     phrases = build_es.PhraseCounter(p for _, p in es.fused_candidates())
-    for text, _, _ in sentences():
+    for text, _, _, _ in sentences():
         phrases.add(text)
     es.set_phrase_counts(phrases.tokens, phrases.pairs, phrases.total)
-    es_entries = es.build()
+    dumps = ["es", "en"] if use_en else ["es"]
+    if not names.spanish_cache_ready(CACHE, dumps):
+        import wiktionary_pos
+        for d in dumps:
+            if not os.path.exists(wiktionary_pos.cache_path(CACHE, d)):
+                print(f"{d} Wiktionary pass, Spanish part-of-speech headings")
+                wiktionary_pos.run_spanish(os.path.join(SRC, ES_WIKT_DUMP if d == "es" else EN_WIKT_DUMP),
+                                           wiktionary_pos.cache_path(CACHE, d), d)
+    rule = names.NameRule(names.from_headings(names.spanish_headings(CACHE, dumps)), set(es.forms_by_key),
+                          es.abbreviation_keys, spelling)
+    es_entries = es.build(rule.is_name)
+    spelling.save()
     es_keys = sorted(es_entries)
     stock, top30, added = build_es.stock_names(st, es.counts)
-    es_table = build_pairs("es", es_entries, es_keys, "spa_sentences.tsv.bz2", "spa", "es", stock,
-                           damped=es.damped, damping=common.DAMPING)
+    if dry:
+        return {"builder": es, "entries": es_entries, "stock": set(stock), "englishDump": use_en}
+    es_table, es_counter = build_pairs("es-ES", "es", es_entries, es_keys, "spa_sentences.tsv.bz2", "spa", "es", stock)
     report = dict(es.report)
     report.update({
         "coverageTop20000SpanishDumpOnly": round(es_alone, 4),
@@ -451,16 +680,20 @@ def build_spanish(stats):
         "formsKeptWithTwoCases": sum(1 for v in es_entries.values() if len(v) > 1),
         "properNounKeys": sum(1 for v in es_entries.values() if v[0][0][0].isupper()),
     })
-    report["shortKeysNotForms"] = short_nonforms(es_entries, es.is_form, es.count)  # 05b §3.6 (0.6.4)
-    report.update(nonform_report(es, es_entries, stock, build_es.stock_names(st, damped_counts(es.counts, es))[0]))
+    report["shortKeysNotForms"] = short_nonforms(es_entries, es.language_form, es.count)  # 05b §3.6 (0.6.4)
+    report.update(short_key_report(es))
     report.update(abbreviation_report(es.abbreviation_keys, es_entries, es.count, len(es_abbr_used), "es", es.is_form,
-                                      ["es", "en"] if use_en else ["es"]))
+                                      dumps))
+    report.update(report_070("es-ES", es, es_entries))
+    spelling.save()
     stats["es-ES-extra"] = report
-    write_outputs("es-ES", es.scale, es.max_count, es.corpus_tokens, es_entries, es_table, stats, unattested=es.damped)
+    write_outputs("es-ES", es.scale, es.max_count, es.corpus_tokens, es_entries, es_table, stats, unattested=es.colloquial)
+    provenance.write(EXPORT, "es-ES", es, es_entries, SRC)
+    provenance.write_pairs(EXPORT, "es-ES", es_entries, es_table, es_counter)
     write_licenses(tags=["es-ES"])
 
 
-def build_portuguese(stats):
+def build_portuguese(stats, dry=False):
     pt_cache = os.path.join(CACHE, "ptwiktionary-20261001-pt.tsv.gz")
     en_cache = os.path.join(CACHE, "enwiktionary-20261001-pt.tsv.gz")
     if not os.path.exists(pt_cache):
@@ -473,42 +706,52 @@ def build_portuguese(stats):
     en_titles, en_secs = wiktionary_pt.load_extract(en_cache)
     pt_pages = (pt_titles, {t: wiktionary_pt.classify_pt(t, s) for t, s in pt_secs.items()})
     en_pages = (en_titles, {t: wiktionary_pt.classify_en(t, s) for t, s in en_secs.items()})
+    proper = names.from_headings([("pt", names.headings_of(pt_secs)), ("en", names.headings_of(en_secs))])
     del pt_secs, en_secs
     pt_abbr = abbreviations("pt", ["pt", "en"])
+    spelling, written = attested_inputs("pt-BR")
     pt = build_pt.PortugueseBuilder(os.path.join(SRC, "fw", "pt_br_full.txt"), os.path.join(SRC, "fw", "pt_br_ignored.txt"),
-                                    pt_pages, en_pages, pt_abbr)
+                                    pt_pages, en_pages, pt_abbr, spelling, written, english_keys())
+    pt.setup_foreign(foreign_lower("pt-BR"))
 
     # §9.7: the Brazilian filter of the sentence sources (pairs and running-text case evidence)
     markers = pt.european_marker_keys()
     dropped_sentences = {"tatoeba": 0, "commonVoice": 0}
     kept = []
-    for text in tatoeba_sentences("por_sentences.tsv.bz2", "por"):
+    for text, held in tatoeba_sentences("por_sentences.tsv.bz2", "por", with_held=True):
         if pt.european_sentence(text, markers):
             dropped_sentences["tatoeba"] += 1
         else:
-            kept.append((text, 3, True))
+            kept.append((text, 3, True, held))
     cv_used = []
-    for fn, weight, lines in cv_files("pt"):
+    for fn, weight, lines in cv_files("pt", with_held=True):
         cv_used.append([fn, weight])
-        for text in lines:
+        for text, held in lines:
             if pt.european_sentence(text, markers):
                 dropped_sentences["commonVoice"] += 1
             else:
-                kept.append((text, weight, False))
+                kept.append((text, weight, False, held))
     st = build_pt.SentenceStats()
-    for text, weight, tatoeba in kept:
+    for text, weight, tatoeba, _ in kept:
         st.add_sentence(text, weight == 3, tatoeba)
     st.finish()
     pt.finish_spellings(st)
     phrases = build_pt.PhraseCounter(p for _, p in pt.phrase_candidates())
-    for text, weight, _ in kept:
+    for text, weight, _, _ in kept:
         phrases.add(text, weight)
     pt.set_phrase_counts(phrases)
-    pt_entries = pt.build()
+    rule = names.NameRule(proper, set(pt.forms_by_key), pt.abbreviation_keys, spelling)
+    pt_entries = pt.build(rule.is_name)
+    spelling.save()
     pt_keys = sorted(pt_entries)
     stock, top30, added = build_es.stock_names(st, pt.counts)
-    counter = pairs.PairCounter("pt", pt_entries, stock, pt.damped, common.DAMPING)
-    for text, weight, tatoeba in kept:
+    if dry:
+        return {"builder": pt, "entries": pt_entries, "stock": set(stock), "markers": markers}
+    counter = pairs.PairCounter("pt", pt_entries, stock)
+    for text, weight, tatoeba, held in kept:
+        if held:
+            count_held("pt-BR", "tatoeba" if tatoeba else "commonVoice")
+            continue
         counter.add(text, weight, tatoeba)
     order = {k: i for i, k in enumerate(pt_keys)}
     pt_table = counter.table(order)
@@ -531,16 +774,20 @@ def build_portuguese(stats):
         "formsKeptWithTwoCases": sum(1 for v in pt_entries.values() if len(v) > 1),
         "properNounKeys": sum(1 for v in pt_entries.values() if v[0][0][0].isupper()),
     })
-    report["shortKeysNotForms"] = short_nonforms(pt_entries, pt.is_form, pt.count)  # 05b §3.6 (0.6.4)
-    report.update(nonform_report(pt, pt_entries, stock, build_es.stock_names(st, damped_counts(pt.counts, pt))[0]))
+    report["shortKeysNotForms"] = short_nonforms(pt_entries, pt.language_form, pt.count)  # 05b §3.6 (0.6.4)
+    report.update(short_key_report(pt))
     report.update(abbreviation_report(pt.abbreviation_keys, pt_entries, pt.count, len(set(pt_abbr["pt"]) | set(pt_abbr["en"])), "pt",
                                       pt.is_form))
+    report.update(report_070("pt-BR", pt, pt_entries))
+    spelling.save()
     stats["pt-BR-extra"] = report
-    write_outputs("pt-BR", pt.scale, pt.max_count, pt.corpus_tokens, pt_entries, pt_table, stats, unattested=pt.damped)
+    write_outputs("pt-BR", pt.scale, pt.max_count, pt.corpus_tokens, pt_entries, pt_table, stats, unattested=pt.colloquial)
+    provenance.write(EXPORT, "pt-BR", pt, pt_entries, SRC)
+    provenance.write_pairs(EXPORT, "pt-BR", pt_entries, pt_table, counter)
     write_licenses(tags=["pt-BR"])
 
 
-def build_italian(stats):
+def build_italian(stats, dry=False):
     it_cache = os.path.join(CACHE, "itwiktionary-20261001-it.tsv.gz")
     en_cache = os.path.join(CACHE, "enwiktionary-20261001-it.tsv.gz")
     if not os.path.exists(it_cache):
@@ -553,17 +800,21 @@ def build_italian(stats):
     en_titles, en_secs = wiktionary_it.load_extract(en_cache)
     it_pages = (it_titles, {t: wiktionary_it.classify_it(t, s) for t, s in it_secs.items()})
     en_pages = (en_titles, {t: wiktionary_it.classify_en(t, s) for t, s in en_secs.items()})
+    proper = names.from_headings([("it", names.headings_of(it_secs)), ("en", names.headings_of(en_secs))])
     del it_secs, en_secs
     it_abbr = abbreviations("it", ["it", "en"])
-    it = build_it.ItalianBuilder(os.path.join(SRC, "fw", "it_full.txt"), it_pages, en_pages, it_abbr)
+    spelling, written = attested_inputs("it-IT")
+    it = build_it.ItalianBuilder(os.path.join(SRC, "fw", "it_full.txt"), it_pages, en_pages, it_abbr, spelling, written,
+                                 english_keys())
+    it.setup_foreign(foreign_lower("it-IT"))
     cov_before = it.coverage(it.counts)
 
     def sentences():
-        for text in tatoeba_sentences("ita_sentences.tsv.bz2", "ita"):
-            yield text, 3, True, True
-        for _, weight, lines in cv_files("it"):
-            for text in lines:
-                yield text, weight, weight == 3, False
+        for text, held in tatoeba_sentences("ita_sentences.tsv.bz2", "ita", with_held=True):
+            yield text, 3, True, True, held
+        for _, weight, lines in cv_files("it", with_held=True):
+            for text, held in lines:
+                yield text, weight, weight == 3, False, held
 
     # §5 step 3: stock names from the capitalised Tatoeba tokens
     capitalised = {}
@@ -579,17 +830,24 @@ def build_italian(stats):
     subtitle = dict(it.counts)
     # sentence counts and running-text evidence (§10.3, §10.4); phrase candidates of §10.5 step 5
     st = build_it.SentenceStats(stock, it.phrase_candidates())
-    for text, weight, conversational, tatoeba in sentences():
+    for text, weight, conversational, tatoeba, _ in sentences():
         st.add(text, weight, conversational, tatoeba)
     st.finish()
     it.apostrophe_rules(st)
     it.spellings(st)
     it.artefacts()
     it.finish_header()
-    it_entries = it.build()
+    rule = names.NameRule(proper, set(it.forms_by_key), it.abbreviation_keys, spelling)
+    it_entries = it.build(rule.is_name)
+    spelling.save()
+    if dry:
+        return {"builder": it, "entries": it_entries, "stock": set(stock)}
     it_keys = sorted(it_entries)
-    counter = pairs.ItalianPairCounter(it_entries, build_it.PREFIXES, stock, damped=it.damped, damping=common.DAMPING)
-    for text, weight, _, tatoeba in sentences():
+    counter = pairs.ItalianPairCounter(it_entries, build_it.PREFIXES, stock)
+    for text, weight, _, tatoeba, held in sentences():
+        if held:
+            count_held("it-IT", "tatoeba" if tatoeba else "commonVoice")
+            continue
         counter.add(text, weight, tatoeba)
     it_table = counter.table({k: i for i, k in enumerate(it_keys)})
     cov = it.coverage(it.counts)
@@ -617,18 +875,22 @@ def build_italian(stats):
         "elidedPairsDroppedList": counter.dropped_elided[:150],
         "prefixesAsFollowers": sum(1 for v in it_table.values() for k, _, _ in v if k in build_it.PREFIX_SET),
     })
-    report["shortKeysNotForms"] = short_nonforms(it_entries, it.is_form, it.count)  # 05b §3.6 (0.6.4)
-    report.update(nonform_report(it, it_entries, stock,
-                                 build_it.stock_names(capitalised, tatoeba_tokens, damped_counts(subtitle, it))[0]))
+    report["shortKeysNotForms"] = short_nonforms(it_entries, it.language_form, it.count)  # 05b §3.6 (0.6.4)
+    report.update(short_key_report(it))
     report.update(abbreviation_report(it.abbreviation_keys, it_entries, it.count, len(set(it_abbr["it"]) | set(it_abbr["en"])), "it",
                                       it.is_form))
+    report.update(report_070("it-IT", it, it_entries, subtitle))
+    spelling.save()
     stats["it-IT-extra"] = report
     write_outputs("it-IT", it.scale, it.max_count, it.corpus_tokens, it_entries, it_table, stats, it.prefix_table,
-                  unattested=it.damped)
+                  unattested=it.colloquial)
+    provenance.write(EXPORT, "it-IT", it, it_entries, SRC)
+    provenance.write_pairs(EXPORT, "it-IT", it_entries, it_table, counter)
+    provenance.write_prefixes(EXPORT, "it-IT", it.prefix_table, it.prefix_counts)
     write_licenses(tags=["it-IT"])
 
 
-def build_french(stats):
+def build_french(stats, dry=False):
     fr_cache = os.path.join(CACHE, "frwiktionary-20261001-fr.tsv.gz")
     en_cache = os.path.join(CACHE, "enwiktionary-20261001-fr.tsv.gz")
     if not os.path.exists(fr_cache):
@@ -640,16 +902,19 @@ def build_french(stats):
     freq = os.path.join(SRC, "fw", "fr_full.txt")
 
     def sentences():
-        for text in tatoeba_sentences("fra_sentences.tsv.bz2", "fra"):
-            yield text, 3, True, True
-        for _, weight, lines in cv_files("fr"):
-            for text in lines:
-                yield text, weight, weight == 3, False
+        for text, held in tatoeba_sentences("fra_sentences.tsv.bz2", "fra", with_held=True):
+            yield text, 3, True, True, held
+        for _, weight, lines in cv_files("fr", with_held=True):
+            for text, held in lines:
+                yield text, weight, weight == 3, False, held
 
     fr_abbr = abbreviations("fr", ["fr", "en"])
 
+    spelling, written = attested_inputs("fr-FR")
+
     def run(en_pages):
-        fr = build_fr.FrenchBuilder(freq, fr_pages, en_pages, fr_abbr)
+        fr = build_fr.FrenchBuilder(freq, fr_pages, en_pages, fr_abbr, spelling, written, english_keys())
+        fr.setup_foreign(foreign_lower("fr-FR"))
         cov_before = fr.coverage(fr.counts)
         capitalised = {}
         tatoeba_tokens = 0
@@ -671,7 +936,7 @@ def build_french(stats):
                 subtitle[w] = subtitle.get(w, 0) + c
         stock, top30, added = build_fr.stock_names(capitalised, tatoeba_tokens, subtitle)
         st = build_fr.SentenceStats(stock, fr.phrase_candidates(), fr.apostrophe_word_candidates())
-        for text, weight, conversational, tatoeba in sentences():
+        for text, weight, conversational, tatoeba, _ in sentences():
             st.add(text, weight, conversational, tatoeba)
         st.finish(fr.forms_by_key)
         fr.stats = st
@@ -700,11 +965,17 @@ def build_french(stats):
     fr.compounds()
     fr.artefacts()
     fr.finish_header()
-    fr_entries = fr.build()
+    rule = names.NameRule(names.french(fr.fr_kinds), set(fr.forms_by_key), fr.abbreviation_keys, spelling)
+    fr_entries = fr.build(rule.is_name)
+    spelling.save()
+    if dry:
+        return {"builder": fr, "entries": fr_entries, "stock": set(stock)}
     fr_keys = sorted(fr_entries)
-    counter = pairs.FrenchPairCounter(fr_entries, build_fr.PREFIXES, build_fr.UNELIDED, set(fr.apostrophe_words), stock,
-                                      damped=fr.damped, damping=common.DAMPING)
-    for text, weight, _, tatoeba in sentences():
+    counter = pairs.FrenchPairCounter(fr_entries, build_fr.PREFIXES, build_fr.UNELIDED, set(fr.apostrophe_words), stock)
+    for text, weight, _, tatoeba, held in sentences():
+        if held:
+            count_held("fr-FR", "tatoeba" if tatoeba else "commonVoice")
+            continue
         counter.add(text, weight, tatoeba)
     fr_table = counter.table({k: i for i, k in enumerate(fr_keys)})
     cov = fr.coverage(fr.counts)
@@ -735,16 +1006,20 @@ def build_french(stats):
         "elidedPairsDroppedRule2List": counter.dropped_by_rule[2][:200],
         "prefixesAsFollowers": sum(1 for v in fr_table.values() for k, _, _ in v if k in build_fr.PREFIX_SET),
     })
-    report["shortKeysNotForms"] = short_nonforms(fr_entries, fr.is_form, fr.count)  # 05b §3.6 (0.6.4)
+    report["shortKeysNotForms"] = short_nonforms(fr_entries, fr.language_form, fr.count)  # 05b §3.6 (0.6.4)
     capitalised, tatoeba_tokens, subtitle = fr.stock_inputs
-    report.update(nonform_report(fr, fr_entries, stock,
-                                 build_fr.stock_names(capitalised, tatoeba_tokens, damped_counts(subtitle, fr))[0]))
+    report.update(short_key_report(fr))
     report.update(abbreviation_report(fr.abbreviation_keys, fr_entries, fr.count,
                                       len(set(fr_abbr["fr"]) | (set(fr_abbr["en"]) if use_en else set())), "fr", fr.is_form,
                                       ["fr", "en"] if use_en else ["fr"]))
+    report.update(report_070("fr-FR", fr, fr_entries, subtitle))
+    spelling.save()
     stats["fr-FR-extra"] = report
     write_outputs("fr-FR", fr.scale, fr.max_count, fr.corpus_tokens, fr_entries, fr_table, stats, fr.prefix_table,
-                  unattested=fr.damped)
+                  unattested=fr.colloquial)
+    provenance.write(EXPORT, "fr-FR", fr, fr_entries, SRC)
+    provenance.write_pairs(EXPORT, "fr-FR", fr_entries, fr_table, counter)
+    provenance.write_prefixes(EXPORT, "fr-FR", fr.prefix_table, fr.prefix_counts)
     write_licenses(tags=["fr-FR"])
 
 
@@ -762,18 +1037,112 @@ PROFILES = {
 def build(tags=None):
     verify()
     os.makedirs(CACHE, exist_ok=True)
-    stats_path = os.path.join(HERE, "dictionary-build.json")
+    # MK_STATS_PATH: a separate report file (languages built in parallel processes; merged afterwards)
+    stats_path = os.environ.get("MK_STATS_PATH") or os.path.join(HERE, "dictionary-build.json")
     stats = {}
     if os.path.exists(stats_path):
         with open(stats_path, encoding="utf-8") as f:
             stats = json.load(f)
-    for tag in tags or list(PROFILES):
+    tags = list(tags or PROFILES)
+    for tag in tags:
         if tag not in PROFILES:
             sys.exit(f"unknown language {tag}; known: {', '.join(PROFILES)}")
+    # the other languages read the keys of the en-US word list (05b §12.4 condition 5)
+    tags.sort(key=lambda t: (t != "en-US", t))
+    for tag in tags:
         PROFILES[tag](stats)
+    total = check_total_size()
+    stats["allDataFiles"] = {"bytes": total, "limit": TOTAL_LIMIT,
+                             "files": {f: os.path.getsize(os.path.join(OUT, f)) for f in sorted(os.listdir(OUT))
+                                       if f.endswith((".words.gz", ".pairs.gz"))}}
     with open(stats_path, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=1, sort_keys=True, ensure_ascii=False)
         f.write("\n")
+    if SIZE_PROBLEMS:
+        sys.exit("size limits of 05b §6 exceeded:\n  " + "\n  ".join(SIZE_PROBLEMS))
+    lint(tags)
+
+
+RELEASE = os.path.join(ROOT, "build-data", "release")
+
+
+def decoded_pairs(tag):
+    """The text form of a shipped pair table decoded from the data files (previous, follower, form, pair count "-",
+    class), for a language whose files come from an earlier build."""
+    _, entries, _, prefixes = common.read_word_list(os.path.join(OUT, f"{tag}.words.gz"))
+    keys = sorted(entries)
+    table = common.read_pair_table(os.path.join(OUT, f"{tag}.pairs.gz"), keys, [p for p, _ in prefixes or ()])
+    lines = []
+    for prev in sorted(table):
+        for key, cls, fi in table[prev]:
+            form = key if key not in entries else entries[key][fi][0]
+            lines.append("\t".join([prev, key, form, "-", str(cls)]))
+    return common.deterministic_gzip(("\n".join(lines) + "\n").encode("utf-8"))
+
+
+def source_form(version):
+    """05b §2 "Source form": the files to publish next to a release, per language: the word list and pair table as
+    text (the exports of the last build), the prefix table, the spelling-dictionary input files exactly as used with
+    their notices, and the build report with the input hashes. Writes build-data/release/
+    metrokeys-<version>-dictionary-source.tar.gz (deterministic: sorted members, fixed time stamps)."""
+    import hashlib
+    import io
+    name = f"metrokeys-{version}-dictionary-source"
+    files = []  # (archive path, bytes)
+    for tag in sorted(PROFILES):
+        for suffix in (".forms.tsv.gz", ".pairs.tsv.gz", ".prefixes.tsv"):
+            path = os.path.join(EXPORT, tag + suffix)
+            if os.path.exists(path):
+                with open(path, "rb") as f:
+                    files.append((f"{name}/{tag}/{tag}{suffix}", f.read()))
+            elif suffix == ".pairs.tsv.gz":
+                # a pair table shipped from an earlier build (no export): decoded, without the pair counts
+                files.append((f"{name}/{tag}/{tag}{suffix}", decoded_pairs(tag)))
+            elif suffix != ".prefixes.tsv":
+                sys.exit(f"missing export {path}: build the dictionaries first")
+        for rel in spellcheck.input_files(tag) + [s["path"] for s in notices() if s["language"] == tag]:
+            with open(os.path.join(SRC, rel), "rb") as f:
+                files.append((f"{name}/{tag}/spelling/{os.path.basename(rel)}", f.read()))
+        with open(os.path.join(OUT, f"LICENSE-{tag}.txt"), "rb") as f:
+            files.append((f"{name}/{tag}/LICENSE-{tag}.txt", f.read()))
+    for rel in ("tools/dictionary-build.json", "tools/sources.json", "tools/notices.json"):
+        with open(os.path.join(ROOT, rel), "rb") as f:
+            files.append((f"{name}/build-report/{os.path.basename(rel)}", f.read()))
+    readme = (f"MetroKeys {version}: source form of the dictionary data files (spec 05b §2).\n\n"
+              "Per language: <tag>.forms.tsv.gz (key, form, subtitle count, written-language frequency, combined count, "
+              "class, flags, merged spellings), <tag>.pairs.tsv.gz (previous word, follower, form, pair count, class), "
+              "<tag>.prefixes.tsv (elision prefix, count, class; it-IT and fr-FR), spelling/ (the spelling-dictionary "
+              "files exactly as used, with their notices) and the licence text. build-report/ holds the build report "
+              "with the SHA-256 of every input. The build tools are in the source repository "
+              "(tools/build_dictionaries.py); the data files are distributed under the GNU GPL version 3.\n")
+    files.append((f"{name}/README.txt", readme.encode("utf-8")))
+    files.append((f"{name}/SHA256SUMS", "".join(f"{hashlib.sha256(b).hexdigest()}  {p[len(name) + 1:]}\n"
+                                                  for p, b in sorted(files)).encode("utf-8")))
+    os.makedirs(RELEASE, exist_ok=True)
+    out = os.path.join(RELEASE, name + ".tar.gz")
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w", format=tarfile.PAX_FORMAT) as tar:
+        for path, data in sorted(files):
+            info = tarfile.TarInfo(path)
+            info.size = len(data)
+            info.mtime = 0
+            info.mode = 0o644
+            info.uname = info.gname = ""
+            tar.addfile(info, io.BytesIO(data))
+    with open(out, "wb") as f:
+        f.write(common.deterministic_gzip(buf.getvalue()))
+    print(out, os.path.getsize(out), common.sha256_file(out))
+
+
+def lint(tags):
+    """Tier T0 of the dictionary evaluation (05c §10): the lint of every built language, run through Gradle
+    (engine/build/evaluation/lint/report.md). Skipped with MK_EVAL_LINT=0 or when no JDK is configured."""
+    import subprocess
+    if os.environ.get("MK_EVAL_LINT") == "0" or not os.environ.get("JAVA_HOME"):
+        print("dictionary lint skipped (set JAVA_HOME, or run ./gradlew :engine:evalLint)")
+        return
+    subprocess.run([os.path.join(ROOT, "gradlew"), "-q", ":engine:evalLint", "-PevalLanguages=" + ",".join(tags)],
+                   cwd=ROOT, check=False)
 
 
 if __name__ == "__main__":
@@ -786,5 +1155,7 @@ if __name__ == "__main__":
         build(sys.argv[2:])
     elif cmd == "licenses":
         write_licenses(scowl_final()[1])
+    elif cmd == "source-form":
+        source_form(sys.argv[2] if len(sys.argv) > 2 else "unreleased")
     else:
         sys.exit(__doc__)

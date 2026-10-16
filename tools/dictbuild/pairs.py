@@ -41,12 +41,10 @@ PROFILES = {
 
 
 class PairCounter:
-    def __init__(self, lang, entries, stock=None, damped=None, damping=1.0):
+    def __init__(self, lang, entries, stock=None):
+        # 0.7.0 (05b §12.2 item 7): pair counts come from the sentences alone; no follower is weighted down (the damping
+        # of 0.6.4–0.6.9 is withdrawn)
         self.lang = lang
-        # 05b §3.6 (de 0.6.4; es, pt, it, fr 0.6.7): the pair count c(prev, w) of a damped follower w counts with
-        # weight × damping; the total c(prev, ·) is a count of prev and stays undamped (spec/QUESTIONS.md)
-        self.damped = damped or set()
-        self.damping = damping
         self.entries = entries
         profile = PROFILES[lang]
         self.word_re = profile.word_re
@@ -75,7 +73,7 @@ class PairCounter:
                     continue
                 if prev is not None:
                     pk = (prev, key)
-                    w = weight * self.damping if key in self.damped else weight
+                    w = weight
                     self.pairs[pk] = self.pairs.get(pk, 0) + w
                     self.totals[prev] = self.totals.get(prev, 0) + weight
                     forms = self.entries[key]
@@ -125,9 +123,9 @@ class ItalianPairCounter(PairCounter):
     them), truncated words with a final apostrophe are tokens of their own, any other apostrophe clears the context.
     The table keeps up to [prefix_limit] followers per prefix after the elided-pair filter of §10.6."""
 
-    def __init__(self, entries, prefixes, stock, prefix_limit=4000, elided_ratio=10, damped=None, damping=1.0):
-        # es profile: openers « “ " ‘ ( [, no ¿ ¡ (see below); damped followers as in PairCounter (05b §3.6, 0.6.7)
-        super().__init__("es", entries, stock, damped, damping)
+    def __init__(self, entries, prefixes, stock, prefix_limit=4000, elided_ratio=10):
+        # es profile: openers « “ " ‘ ( [, no ¿ ¡ (see below)
+        super().__init__("es", entries, stock)
         self.sentence_end = set(".!?:")
         self.prefixes = list(prefixes)
         self.prefix_set = set(prefixes)
@@ -163,7 +161,7 @@ class ItalianPairCounter(PairCounter):
 
     def _count(self, prev, key, tok, weight):
         pk = (prev, key)
-        w = weight * self.damping if key in self.damped else weight
+        w = weight
         self.pairs[pk] = self.pairs.get(pk, 0) + w
         self.totals[prev] = self.totals.get(prev, 0) + weight
         if key in self.prefix_set:
@@ -220,9 +218,8 @@ class FrenchPairCounter(ItalianPairCounter):
     phrase is at least 10 times as frequent (rule 1) or another follower of the prefix with the same letters apart from
     diacritics is at least 10 times as frequent after it (rule 2)."""
 
-    def __init__(self, entries, prefixes, unelided, apostrophe_words, stock, prefix_limit=4000, elided_ratio=10,
-                 damped=None, damping=1.0):
-        super().__init__(entries, prefixes, stock, prefix_limit, elided_ratio, damped, damping)
+    def __init__(self, entries, prefixes, unelided, apostrophe_words, stock, prefix_limit=4000, elided_ratio=10):
+        super().__init__(entries, prefixes, stock, prefix_limit, elided_ratio)
         self.unelided = unelided
         self.apostrophe_words = apostrophe_words
         self.truncated = set()

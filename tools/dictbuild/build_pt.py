@@ -10,7 +10,8 @@ import math
 import re
 
 import casing
-from common import DAMPING, damped_max, freq_class, jlower, short_key_dropped
+from attested import AttestedRules
+from common import jlower, short_key_dropped
 from wiktionary_pt import strip_diacritics
 
 EXCLUDED_LETTERS = set("İıŉſĸªº")
@@ -181,10 +182,13 @@ class PhraseCounter:
             last_end = m.end()
 
 
-class PortugueseBuilder:
-    def __init__(self, freq_path, ignored_path, pt_pages, en_pages, abbreviations=None):
+class PortugueseBuilder(AttestedRules):
+    def __init__(self, freq_path, ignored_path, pt_pages, en_pages, abbreviations=None, spelling=None, written=None,
+                 english_keys=()):
         """[pt_pages], [en_pages]: (titles, {title: kinds}) of the classified Wiktionary passes
-        (wiktionary_pt.classify_pt / classify_en); [en_pages] None = Portuguese dump alone."""
+        (wiktionary_pt.classify_pt / classify_en); [en_pages] None = Portuguese dump alone. [spelling], [written],
+        [english_keys]: the inputs of the 0.7.0 rules (05b §12)."""
+        self.setup_attested(spelling, written, frozenset(english_keys))
         self.report = {}
         self.dumps = [("pt", pt_pages)] + ([("en", en_pages)] if en_pages else [])
         self.titles = set()
@@ -200,6 +204,10 @@ class PortugueseBuilder:
         self._preclitic()
         self._reform()
         self._european()
+        # 05b §9.4 (0.7.0): the spelling dictionary never keeps a former spelling (step 2) or a European form that
+        # step 3 drops; the European-only pages without a subtitle count follow step 3 in build()
+        self.spelling_excluded = (set(self.european_spellings) | set(self.european_dropped) | set(self.zero_forms)
+                                  | {jlower(t) for _, t, _ in self.prereform})
         self._case_cache = {}
         self.fused = set()
         self.stats = None
@@ -208,6 +216,8 @@ class PortugueseBuilder:
     def finish_spellings(self, stats):
         """§9.4 step 4 with the running-text statistics of the filtered sentences, then the header values."""
         self.set_stats(stats)
+        # the spelling dictionary is asked for every key that could be kept (05b §12.1); parallel, cached
+        self.prefetch_spelling(k for k, c in self.counts.items() if not self.is_form(k) and (c >= 2 or self.written(k) > 0))
         self._merge_accents()
         self.max_count = max(self.counts.values())
         self.scale = 255.0 / math.log(self.max_count)
@@ -401,11 +411,9 @@ class PortugueseBuilder:
             self.euro_only_keys.add(key)
             if key not in self.counts:
                 continue
-            targets = sorted({jlower(k["euro_target"]) for k in pages if k.get("euro_target")})
-            targets = [t for t in targets if t != key]
             c = self.counts[key]
-            best = max(targets, key=lambda t: (self.counts.get(t, 0), t), default=None)
-            if best is None or self.counts.get(best, 0) < EURO_RATIO * max(c, 1):
+            best = self.european_target(key, c)
+            if best is None:
                 continue
             if diacritics_only(key, best):
                 self.counts[best] += c
@@ -421,6 +429,17 @@ class PortugueseBuilder:
         self.report["europeanFormsKeptExamples"] = sorted(
             (k for k in self.euro_only_keys - self.european_dropped if k in self.counts),
             key=lambda k: -self.counts[k])[:40]
+
+    def european_target(self, key, c):
+        """§9.4 step 3: the Brazilian counterpart of a European-only key counted [c] times if it is at least EURO_RATIO
+        times as frequent (the key is then dropped), else None."""
+        pages = [k for ks in self.form_dumps.get(key, {}).values() for k in ks]
+        targets = sorted({jlower(k["euro_target"]) for k in pages if k.get("euro_target")})
+        targets = [t for t in targets if t != key]
+        best = max(targets, key=lambda t: (self.counts.get(t, 0), t), default=None)
+        if best is None or self.counts.get(best, 0) < EURO_RATIO * max(c, 1):
+            return None
+        return best
 
     # ------------------------------------------------------------------ §9.4 step 4
 
@@ -454,9 +473,14 @@ class PortugueseBuilder:
             inflected = form and self._inflected_only(key)
             if form and not inflected:
                 continue
-            options = [t for t in index.get(strip_diacritics(key), ()) if t != key and self.is_form(t)
+            options = [t for t in index.get(strip_diacritics(key), ()) if t != key and self.language_form(t)
                        and t not in self.zero_forms]
             if not options:
+                continue
+            # 0.7.0 (05b §9.4, §12.1 item 5): a spelling the spelling dictionary knows (also the title of a pointer
+            # page) is itself a form and never merged; Wiktionary's inflected-only forms still yield to a far more
+            # frequent form of their class
+            if not form and self.spelling_protects(key):
                 continue
             if form:
                 # an inflected-only page without a lemma of its own yields to a far more frequent form of its class
@@ -553,6 +577,8 @@ class PortugueseBuilder:
         dict_forms = self.forms_by_key.get(key, set())
         if not dict_forms and key in self.accepted:
             dict_forms = {key}
+        if not dict_forms:
+            dict_forms = self.dictionary_forms(key)  # the spelling dictionary's casings (05b §12.1 item 6)
         result = casing.decide(key, variants, dict_forms)
         self._case_cache[key] = result
         return result
@@ -622,6 +648,9 @@ class PortugueseBuilder:
     # ------------------------------------------------------------------ §9.5 selection
 
     def select(self, key, dropped):
+        """§9.5 with the 0.7.0 rules (05b §12): the junk rules exempt only forms of the Wiktionary passes, the
+        abbreviation rule and the pre-clitic forms (is_form); a form of the spelling dictionary is kept like them; the
+        count rule is the colloquial path."""
         count = self.count(key)
         form = self.is_form(key)
         zero = key in self.zero_forms
@@ -641,26 +670,28 @@ class PortugueseBuilder:
         if key in self.fused:
             dropped["missingSpace"] += 1
             return None
-        if form:
-            if count >= 2 or zero:
+        if not form and short_key_dropped(len(key), count):
+            # 05b §3.6 step 6a: a key of at most 3 letters that is no form needs count >= 20 000
+            dropped["shortKeyStep6a"] += 1
+            if count >= KEEP_MIN_COUNT:
+                self.short_dropped.append(key)
+            return None
+        if form and key not in self.counts and key in self.euro_only_keys and self.european_target(key, 0):
+            dropped["europeanForm"] += 1  # §9.4 step 3 for a European-only page without a subtitle count
+            return None
+        if form or self.spelling_form(key):
+            if zero or self.admitted(key, count):
                 return self.case_decision(key) or [(key, 1.0)]
             dropped["formBelowCount2"] += 1
             return None
         if count >= KEEP_MIN_COUNT:
-            sel = self._count_rule(key, count, dropped)
-            if sel and short_key_dropped(len(key), count):
-                # 05b §3.6 step 6a (0.6.7): a non-form of at most 3 letters needs count >= 20 000
-                dropped["shortKeyStep6a"] += 1
-                self.short_dropped.append(key)
-                return None
-            if sel:
-                self.damped.add(key)  # 05b §3.6 damping (0.6.7): kept only by the count rule
-            return sel
+            return self._count_rule(key, count, dropped)
         dropped["rare"] += 1
         return None
 
     def _count_rule(self, key, count, dropped):
-        """§9.5 count rule (German §3.6 step 7) for a non-form counted at least KEEP_MIN_COUNT times."""
+        """§9.5 count rule (German §3.6 step 7) for a non-form counted at least KEEP_MIN_COUNT times: after the
+        foreign-word clause only the colloquial path keeps it (0.7.0)."""
         if key in self.en_titles_lower and key not in self.foreign_titles and count < FOREIGN_MAX:
             dropped["foreignEnglishDumpOnly"] += 1
             if len(dropped["foreignEnglishDumpOnlyExamples"]) < 40 and count >= 2000:
@@ -669,6 +700,9 @@ class PortugueseBuilder:
             dropped["foreign"] += 1
             if len(dropped["foreignExamples"]) < 40 and count >= 2000:
                 dropped["foreignExamples"].append(key)
+            return None
+        if not self.colloquial_path(key, count):
+            dropped["colloquialPath"] += 1
             return None
         dec = self.case_decision(key)
         if dec:
@@ -679,49 +713,36 @@ class PortugueseBuilder:
         best = sorted(titles, key=lambda f: (casing.case_kind_rank(f), f))[0]
         return [(best, 1.0)]
 
-    def effective_count(self, key):
-        """The count used for classes and pairs: damped for keys kept only by the count rule (05b §3.6, 0.6.7)."""
-        c = self.counts.get(key, 0)
-        return c * DAMPING if key in self.damped else c
-
-    def build(self):
+    def build(self, name_rule=None):
+        self.name_rule = name_rule
         self.titles_by_key = {}
         for t in self.titles:
             self.titles_by_key.setdefault(jlower(t), set()).add(t)
         dropped = {k: 0 for k in ("implausible", "oneLetter", "nonPortugueseCharacters", "misplacedCedilla", "formBelowCount2",
-                                  "missingSpace", "foreign", "shortKeyStep6a", "rare")}
+                                  "missingSpace", "europeanForm", "foreign", "colloquialPath", "shortKeyStep6a", "rare")}
         dropped["foreignExamples"] = []
         dropped["foreignEnglishDumpOnly"] = 0  # not dropped: would be foreign with the English dump's titles
         dropped["foreignEnglishDumpOnlyExamples"] = []
-        self.damped = set()
         self.short_dropped = []
+        self.colloquial = set()
+        self.colloquial_dropped = {}
+        self.written_admitted = set()
         selected = {}
         kept_unknown = 0
-        for key in sorted(self.counts):
+        candidates = set(self.counts)
+        if self.freq is not None:
+            key_ok = lambda k: 2 <= len(k) <= 27 and all(c in ALLOWED for c in k) and k not in self.spelling_excluded
+            candidates |= self.written_candidates(key_ok, self.accepted)
+        for key in sorted(candidates):
             if not (2 <= len(key) <= 27 or len(key) == 1):
                 continue
             sel = self.select(key, dropped)
             if not sel:
                 continue
-            if not self.is_form(key):
+            if not self.language_form(key):
                 kept_unknown += 1
             selected[key] = sel
-        # S and the class formula after the damping (05b §3.6)
-        self.max_count = damped_max(self.counts, self.damped)
-        self.scale = 255.0 / math.log(self.max_count)
-        entries = {}
-        for key, sel in selected.items():
-            count = self.effective_count(key)
-            forms = []
-            seen = set()
-            for f, share in sel:
-                if f in seen or jlower(f) != key:
-                    continue
-                seen.add(f)
-                forms.append((f, 0 if key in self.zero_forms else freq_class(count * share, self.scale)))
-            forms.sort(key=lambda fc: -fc[1])
-            if forms:
-                entries[key] = forms
+        entries = self.combined_entries(selected, zero=self.zero_forms, names=name_rule)
         self.report["dropped"] = dropped
         self.report["keptNotAForm"] = kept_unknown
         self.report["precliticKeys"] = sum(1 for k in entries if k in self.accepted)

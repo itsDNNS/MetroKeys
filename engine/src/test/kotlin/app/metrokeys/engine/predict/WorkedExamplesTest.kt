@@ -21,22 +21,22 @@ class WorkedExamplesTest {
     @Test
     fun haus171() {
         // classes the example relies on
-        assertEquals(183, de.lexicon.exactClass("Haus"))
+        assertEquals(184, de.lexicon.exactClass("Haus")) // 0.7.0 German list (0.6.9: 183)
         assertEquals(listOf("Haus"), de.lexicon.forms("haus").map { it.text })
-        assertEquals(150, de.dictionary.pairs!!.bigram("das", "Haus"))
-        assertEquals(-3.331, de.unigramLog10(183), 0.0005)
+        assertEquals(149, de.dictionary.pairs!!.bigram("das", "Haus")) // 0.7.0 German list (0.6.9: 150)
+        assertEquals(-3.4997, de.unigramLog10(183), 0.0005) // 0.7.0 German list (0.6.9: -3.331)
         val r = de.query("Das ist das haus")
         assertFalse(r.validity.valid)
         assertEquals(255, r.validity.cost)
         val haus = r.corr("Haus")
-        assertEquals(57, haus.lm)
+        assertEquals(58, haus.lm) // 0.7.0 German list (0.6.9: 57)
         assertEquals(44, haus.ed)
-        assertEquals(101, haus.correctionCost)
-        assertEquals(112, de.acScore(haus, 4))
+        assertEquals(102, haus.correctionCost) // 0.7.0 German list (0.6.9: 101)
+        assertEquals(113, de.acScore(haus, 4)) // 0.7.0 German list (0.6.9: 112)
         val raus = r.corr("raus")
-        assertEquals(73, raus.lm)
+        assertEquals(78, raus.lm) // 0.7.0 German list (0.6.9: 73)
         assertEquals(100, raus.ed)
-        assertEquals(198, de.acScore(raus, 4))
+        assertEquals(203, de.acScore(raus, 4)) // 0.7.0 German list (0.6.9: 198)
         assertEquals("Haus", r.autoCorrection?.display)
     }
 
@@ -44,10 +44,10 @@ class WorkedExamplesTest {
     fun nikolaus171() {
         val r = de.query("Das ist das Haus vom nikolaus")
         val n = r.corr("Nikolaus")
-        assertEquals(115, n.lm)
+        assertEquals(110, n.lm) // 0.7.0 German list (0.6.9: 115)
         assertEquals(44, n.ed)
-        assertEquals(142, de.acScore(n, 8))
-        assertEquals(192, de.acScore(r.corr("Nikolais"), 8))
+        assertEquals(137, de.acScore(n, 8)) // 0.7.0 German list (0.6.9: 142)
+        assertEquals(193, de.acScore(r.corr("Nikolais"), 8)) // 0.7.0 German list (0.6.9: 192)
         assertEquals("Nikolaus", r.autoCorrection?.display)
         // not a compound "Niko" + "Laus" (case error)
         assertFalse(de.validity("nikolaus", CaseMode.AS_TYPED).valid)
@@ -57,14 +57,14 @@ class WorkedExamplesTest {
     fun dnan172() {
         val r = de.query("Dnan")
         val dann = r.corr("Dann")
-        assertEquals(212, de.lexicon.exactClass("dann"))
-        assertEquals(61, dann.lm)
+        assertEquals(218, de.lexicon.exactClass("dann")) // 0.7.0 German list (0.6.9: 212)
+        assertEquals(62, dann.lm) // 0.7.0 German list (0.6.9: 61)
         assertEquals(50, dann.ed)
-        assertEquals(123, de.acScore(dann, 4))
+        assertEquals(124, de.acScore(dann, 4)) // 0.7.0 German list (0.6.9: 123)
         val dran = r.corr("Dran")
-        assertEquals(80, dran.lm)
+        assertEquals(84, dran.lm) // 0.7.0 German list (0.6.9: 80)
         assertEquals(100, dran.ed)
-        assertEquals(205, de.acScore(dran, 4))
+        assertEquals(209, de.acScore(dran, 4)) // 0.7.0 German list (0.6.9: 205)
         assertEquals("Dann", r.autoCorrection?.display)
         val r2 = de.query("Und dnan")
         assertEquals("dann", r2.autoCorrection?.display)
@@ -84,7 +84,7 @@ class WorkedExamplesTest {
     @Test
     fun fur173() {
         val r = de.query("Vielen Dank fur")
-        assertEquals(221, de.lexicon.exactClass("für"))
+        assertEquals(233, de.lexicon.exactClass("für")) // 0.7.0 German list (0.6.9: 221)
         assertEquals(229, de.dictionary.pairs!!.bigram("dank", "für"))
         val f = r.corr("für")
         assertEquals(29, f.lm)
@@ -95,7 +95,7 @@ class WorkedExamplesTest {
         assertEquals(225, de.acScore(nur, 3))
         assertEquals("für", r.autoCorrection?.display)
         assertEquals(131, en.lexicon.exactClass("fur"))
-        assertEquals(-5.041, en.unigramLog10(131), 0.0005)
+        assertEquals(-5.006, en.unigramLog10(131), 0.0005) // 0.7.0 English header (0.6.9: -5.041)
     }
 
     @Test
@@ -106,7 +106,7 @@ class WorkedExamplesTest {
         // 05 §17.3 gives 236 (best candidate "Reilly"); since the damping of non-German keys (0.6.4, 05b §3.6) "Reilly"
         // costs more and "reales" is best with 242, still above AC_LIMIT 212 (spec/QUESTIONS.md)
         assertEquals("reales", r.corrections.first().display)
-        assertEquals(242, de.acScore(r.corrections.first(), 6))
+        assertEquals(239, de.acScore(r.corrections.first(), 6)) // 0.7.0 German list (0.6.9: 242)
         assertEquals(listOf("Meeting"), de.lexicon.forms("meeting").map { it.text })
         assertEquals("Meeting", de.query("Ich habe heute ein meeting").autoCorrection?.display)
         assertNull(en.query("I have a meeting").autoCorrection)
@@ -116,18 +116,18 @@ class WorkedExamplesTest {
     fun hsus174() {
         val r = de.query("Hsus")
         val h = r.corr("Haus")
-        assertEquals(75, h.lm)
+        assertEquals(78, h.lm) // 0.7.0 German list (0.6.9: 75)
         assertEquals(30, h.ed)
-        assertEquals(105, h.correctionCost)
-        assertEquals(112, de.acScore(h, 4))
+        assertEquals(108, h.correctionCost) // 0.7.0 German list (0.6.9: 105)
+        assertEquals(115, de.acScore(h, 4)) // 0.7.0 German list (0.6.9: 112)
         val huss = r.corr("Huss")
-        assertEquals(130, huss.lm)
+        assertEquals(129, huss.lm) // 0.7.0 German list (0.6.9: 130)
         assertEquals(50, huss.ed)
-        assertEquals(192, de.acScore(huss, 4))
+        assertEquals(191, de.acScore(huss, 4)) // 0.7.0 German list (0.6.9: 192)
         assertEquals("Haus", r.autoCorrection?.display)
         val after = de.query("das Hsus").corr("Haus")
-        assertEquals(57, after.lm)
-        assertEquals(94, de.acScore(after, 4))
+        assertEquals(58, after.lm) // 0.7.0 German list (0.6.9: 57)
+        assertEquals(95, de.acScore(after, 4)) // 0.7.0 German list (0.6.9: 94)
     }
 
     @Test
@@ -145,7 +145,7 @@ class WorkedExamplesTest {
         val h = r.corr("Haus")
         assertEquals(10, h.ed)
         // 05 §17.4 states score 77; lm 75 + 5 · 10 / 4 = 87 by the formula of §10.1 (see spec/QUESTIONS.md)
-        assertEquals(87, de.acScore(h, 4))
+        assertEquals(90, de.acScore(h, 4)) // 0.7.0 German list (0.6.9: 87)
     }
 
     @Test
@@ -159,24 +159,29 @@ class WorkedExamplesTest {
 
         val d = en.query("I dont")
         assertEquals(listOf("don't"), en.lexicon.forms("dont").map { it.text })
-        assertEquals(228, en.lexicon.exactClass("don't"))
+        assertEquals(226, en.lexicon.exactClass("don't")) // 0.7.0 (0.6.9: 228)
         assertEquals(0, d.corr("don't").ed)
         assertEquals(38, d.corr("don't").lm)
         assertEquals(38, en.acScore(d.corr("don't"), 4))
         assertEquals("don't", d.autoCorrection?.display)
 
+        // 0.7.0: the English classes come from the combined frequency (05b §12.2, §4.6), so the lm values and scores
+        // are informative (05 §17); the edit costs and the outcomes are unchanged. 0.6.9: lm(receive) 97, score 137,
+        // deceive 198; lm(the) 36, score 129, yeh 199
         val rc = en.query("I did not recieve")
-        assertEquals(97, rc.corr("receive").lm)
-        assertEquals(56, rc.corr("receive").ed)
-        assertEquals(137, en.acScore(rc.corr("receive"), 7))
-        assertEquals(198, en.acScore(rc.corr("deceive"), 7))
+        val receive = rc.corr("receive")
+        println("en 17.5: lm(receive) ${receive.lm}, score ${en.acScore(receive, 7)}, deceive ${en.acScore(rc.corr("deceive"), 7)}")
+        assertEquals(56, receive.ed)
+        assertEquals(receive.lm + 40, en.acScore(receive, 7))
+        assertTrue(en.acScore(rc.corr("deceive"), 7) - en.acScore(receive, 7) > en.params.acMargin)
         assertEquals("receive", rc.autoCorrection?.display)
 
         val t = en.query("teh")
-        assertEquals(36, t.corr("the").lm)
-        assertEquals(56, t.corr("the").ed)
-        assertEquals(129, en.acScore(t.corr("the"), 3))
-        assertEquals(199, en.acScore(t.corr("yeh"), 3))
+        val the = t.corr("the")
+        println("en 17.5: lm(the) ${the.lm}, score ${en.acScore(the, 3)}, yeh ${en.acScore(t.corr("yeh"), 3)}")
+        assertEquals(56, the.ed)
+        assertEquals(the.lm + 93, en.acScore(the, 3))
+        assertTrue(en.acScore(t.corr("yeh"), 3) - en.acScore(the, 3) > en.params.acMargin)
         assertEquals("the", t.autoCorrection?.display)
 
         assertEquals("I", en.query("i").autoCorrection?.display)
@@ -184,19 +189,19 @@ class WorkedExamplesTest {
 
         val goin = en.query("I am goin")
         assertTrue(goin.validity.valid)
-        assertEquals(45, goin.validity.cost)
+        assertTrue(goin.validity.cost <= en.params.acValidRare, "cost ${goin.validity.cost}") // 0.6.9: 45
         assertNull(goin.autoCorrection)
         assertEquals("going", goin.ranked.first().display)
     }
 
     @Test
     fun compound176() {
-        assertEquals(127, de.lm("Kaffeetasse"))
-        assertEquals(110, de.lm("Regal"))
+        assertEquals(126, de.lm("Kaffeetasse")) // 0.7.0 German list (0.6.9: 127)
+        assertEquals(108, de.lm("Regal")) // 0.7.0 German list (0.6.9: 110)
         val v = de.validity("Kaffeetassenregal", CaseMode.FIRST_UPPER)
         assertTrue(v.valid)
         assertEquals(6, v.rule)
-        assertEquals(127, v.cost)
+        assertEquals(126, v.cost) // 0.7.0 German list (0.6.9: 127)
         val r = de.query("Kaffeetassenregal")
         assertNull(r.autoCorrection)
         assertTrue(de.isKnown("Kaffeetassenregal"))
@@ -216,7 +221,8 @@ class WorkedExamplesTest {
         val next = de.predictNext("Vielen ")
         // 0.6.5 with all dictionary-only forms gave anderen 53 and Fällen 55; with the lemmas of 0.6.6 the values of
         // 05 §17.7 hold again
-        assertEquals(listOf("Dank" to 41, "Jahren" to 46, "Ländern" to 51, "anderen" to 52, "Fällen" to 54),
+        // 0.7.0 (held-out sentences out of the pair count, 05b §12.6): Ländern 52 and anderen 53 (0.6.9: 51, 52); order unchanged
+        assertEquals(listOf("Dank" to 41, "Jahren" to 46, "Ländern" to 52, "anderen" to 53, "Fällen" to 54),
             next.take(5).map { it.text to it.cost })
         assertEquals(211, de.dictionary.pairs!!.bigram("vielen", "Dank"))
 
@@ -228,7 +234,7 @@ class WorkedExamplesTest {
         assertEquals(49, start["Sie"])
         // 0.6.5 and 0.6.6: 50 (05 §17.7 and 0.6.4: 49); the dictionary-only lemmas are counted in the pair sources too
         // (spec/QUESTIONS.md)
-        assertEquals(50, start["Das"])
+        assertEquals(49, start["Das"]) // 0.7.0 German list (0.6.9: 50)
         assertEquals(50, start["Der"])
         assertEquals(52, start["Es"])
         assertEquals(55, start["In"])
@@ -242,8 +248,8 @@ class WorkedExamplesTest {
         // a pair can only help
         val withPair = de.lm("Haus", PrevContext.Word("das"))
         val without = de.lm("Haus")
-        assertEquals(57, withPair)
-        assertEquals(75, without)
+        assertEquals(58, withPair) // 0.7.0 German list (0.6.9: 57)
+        assertEquals(78, without) // 0.7.0 German list (0.6.9: 75)
         assertNotNull(de.dictionary.pairs)
     }
 }
