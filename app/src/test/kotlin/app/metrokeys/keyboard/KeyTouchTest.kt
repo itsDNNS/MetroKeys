@@ -66,7 +66,23 @@ class KeyTouchTest {
 
         override fun keyChoiceAllowed() = false
         override fun prefixClass(k: Key) = 0
+        /** Key-sound events with their sound class (03 §1.4), in order. */
+        val sounds = ArrayList<SoundKind>()
+        var shiftHolds = 0
+
+        val order = ArrayList<String>()
+
+        override fun keySound(k: Key) {
+            sounds.add(SoundKind.forKey(k, page))
+            order.add("sound")
+        }
+
+        override fun shiftHold() {
+            shiftHolds++
+        }
+
         override fun touchDown(k: Key) {
+            order.add("down")
             downs.add(name(k))
             if (k.role == KeyRole.PAGE || k.role == KeyRole.EMOJI) k.target?.let { page = layout.page(it) }
         }
@@ -702,5 +718,142 @@ class KeyTouchTest {
         up(sx, sy)
         assertEquals(listOf("SPACE"), host.commits)
         assertEquals(listOf("PAGE"), host.downs)
+    }
+
+    // ---------------------------------------------------------------- key sounds (03 §1.4, §4 item 2a, §5 item 1a)
+
+    @Test
+    fun keySoundClassesFollowTheKeysLook() {
+        host.shapeWriting = false
+        for (k in listOf("a", "SHIFT", "BACKSPACE", "SPACE", "ENTER", ",", ".")) {
+            tap(k)
+            clock.advance(600)
+        }
+        val expected = listOf(
+            SoundKind.LETTER, SoundKind.FUNCTION, SoundKind.DELETE, SoundKind.SPACE, SoundKind.RETURN,
+            SoundKind.FUNCTION, SoundKind.FUNCTION,
+        )
+        assertEquals(expected, host.sounds)
+        // the sound comes first, before anything else of the key press
+        assertEquals(List(7) { listOf("sound", "down") }.flatten(), host.order)
+    }
+
+    @Test
+    fun spaceSoundOnLetterAndSymbolPagesFunctionSoundOnTheDialPad() {
+        host.shapeWriting = false
+        val symbols = host.page.keys.first { it.role == KeyRole.PAGE }.target!!
+        host.page = layout.page(symbols)
+        tap("SPACE")
+        tap("1")
+        host.page = layout.page("phone.dialpad")
+        tap("SPACE")
+        tap("5")
+        tap("*")
+        assertEquals(listOf(SoundKind.SPACE, SoundKind.LETTER, SoundKind.FUNCTION, SoundKind.LETTER, SoundKind.FUNCTION), host.sounds)
+    }
+
+    @Test
+    fun pageKeysSoundOnTouchDownTheHandedOverKeyIsSilent() {
+        val (x, y) = centre("PAGE")
+        down(x, y)
+        assertEquals(listOf(SoundKind.FUNCTION), host.sounds)
+        move(x + 300f, y - 200f)
+        up(x + 300f, y - 200f)
+        assertEquals(1, host.commits.size)
+        assertEquals(listOf(SoundKind.FUNCTION), host.sounds)
+    }
+
+    @Test
+    fun keysReachedBySlidingAndReleasesPlayNothing() {
+        host.page = layout.page(host.page.keys.first { it.role == KeyRole.PAGE }.target!!)
+        val (x5, y5) = centre("5")
+        val (x6, _) = centre("6")
+        down(x5, y5)
+        move(x6, y5)
+        up(x6, y5)
+        assertEquals(listOf("6"), host.commits)
+        assertEquals(listOf(SoundKind.LETTER), host.sounds)
+    }
+
+    @Test
+    fun aSecondFingerPlaysTheSoundOfItsKey() {
+        host.shapeWriting = false
+        val (ax, ay) = centre("a")
+        val (sx, sy) = centre("s")
+        down(ax, ay)
+        touch.up(ax, ay, clock.time, secondFinger = true)
+        down(sx, sy)
+        up(sx, sy)
+        assertEquals(listOf("a", "s"), host.commits)
+        assertEquals(listOf(SoundKind.LETTER, SoundKind.LETTER), host.sounds)
+    }
+
+    @Test
+    fun everyRepeatedActionPlaysTheKeysSoundAlsoWordDeletion() {
+        val (x, y) = centre("BACKSPACE")
+        down(x, y)
+        clock.advance(450 + 83 * 2)
+        assertEquals(3, host.repeats.size)
+        assertEquals(List(4) { SoundKind.DELETE }, host.sounds)
+        // word-wise deletion after 3 s of repeating, one step every 200 ms
+        clock.advance(3000 - 83 * 2 + 400)
+        assertTrue(host.repeats.count { it == "word" } >= 2)
+        assertEquals(1 + host.repeats.size, host.sounds.size)
+        assertTrue(host.sounds.all { it == SoundKind.DELETE })
+        up(x, y)
+        assertEquals(1 + host.repeats.size, host.sounds.size)
+    }
+
+    @Test
+    fun aHeldSpaceRepeatsWithTheSpaceSound() {
+        host.shapeWriting = false
+        val (x, y) = centre("SPACE")
+        down(x, y)
+        clock.advance(450 + 83)
+        up(x, y)
+        assertEquals(listOf("SPACE", "SPACE"), host.repeats)
+        assertEquals(List(3) { SoundKind.SPACE }, host.sounds)
+    }
+
+    @Test
+    fun holdingShiftFiresItsHoldOnceAndTheReleaseDoesNothing() {
+        val (x, y) = centre("SHIFT")
+        down(x, y)
+        clock.advance(449)
+        assertEquals(0, host.shiftHolds)
+        clock.advance(1)
+        assertEquals(1, host.shiftHolds)
+        clock.advance(1000)
+        up(x, y)
+        assertEquals(1, host.shiftHolds)
+        assertTrue(host.commits.isEmpty())
+        assertTrue(host.repeats.isEmpty())
+        assertEquals(0, host.pickers)
+        assertEquals(listOf(SoundKind.FUNCTION), host.sounds)
+    }
+
+    @Test
+    fun aShiftTapOrLeavingTheKeyGivesNoHold() {
+        tap("SHIFT")
+        clock.advance(1000)
+        assertEquals(0, host.shiftHolds)
+        val (x, y) = centre("SHIFT")
+        down(x, y)
+        move(x + 200f, y) // leaves the hysteresis area
+        clock.advance(1000)
+        up(x + 200f, y)
+        assertEquals(0, host.shiftHolds)
+    }
+
+    @Test
+    fun aShiftTouchThatBecameATraceNeverHolds() {
+        // Shift 0–162 × 378–567: (80, 372) is outside the cell but inside its hysteresis area (10 px), and
+        // |dy| = 128 > 112.5 from (80, 500) starts the trace
+        down(80f, 500f)
+        move(80f, 372f)
+        assertTrue(host.tracing)
+        clock.advance(1000)
+        assertEquals(0, host.shiftHolds)
+        up(80f, 372f)
     }
 }

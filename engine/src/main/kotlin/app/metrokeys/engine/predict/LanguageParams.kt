@@ -46,8 +46,20 @@ public data class LanguageParams(
     val acMargin: Int,
     val acValidRare: Int,
     val acValidTarget: Int,
-    /** `PREFIX_ACCENTS`: lower-case base letter → accented letters in list order, tried for completions (§8.4). */
-    val prefixAccents: Map<Char, List<Char>>,
+    /** `AC_INSERT`, `AC_DELETE`, `AC_SPACE`, `AC_SWAP`: the edit weights of the autocorrection decision (§10.1, 0.7.1). */
+    val acInsert: Int,
+    val acDelete: Int,
+    val acSpace: Int,
+    val acSwap: Int,
+    /** `SLIP_NEAR`, `SLIP_ACCENT`, `SLIP_FILLER`: slips of the key-slip search (§8.1, 0.7.1). */
+    val slipNear: Int,
+    val slipAccent: Int,
+    val slipFiller: Int,
+    /**
+     * `SLIP_ACCENTS` (up to 0.7.0 `PREFIX_ACCENTS`): lower-case base letter → the accented key letters a typed base
+     * letter may stand for in the key-slip search (§8.1; one direction only).
+     */
+    val slipAccents: Map<Char, List<Char>>,
     /** `ONE_LETTER_WORDS`: the only one-letter dictionary keys, also the only one-letter parts of a split (§8.2). */
     val oneLetterWords: Set<String>,
     /** `SINGLE_LETTER_FIX`: one-letter words that are autocorrected (§10.1). */
@@ -69,10 +81,16 @@ public data class LanguageParams(
      */
     val accentSwap: Boolean,
     /**
-     * Dictionary forms with class 0 are valid but never offered as candidates (05 §1.1 notes on it-IT: the dominated
-     * accent-less spellings of 05b §10.4 step 5).
+     * Shape writing (06 §4.1) leaves out dictionary forms with class 0 (the dominated spellings and real-word typos of
+     * 05b; they are valid but never a swipe result). The candidate bar never offers class-0 forms in any language
+     * (05 §8 "Offered forms", 0.7.1).
      */
     val hideClassZero: Boolean = false,
+    /**
+     * The full words of the elision prefixes (05b §10.6, §11.7): the unelided phrase "full word + F" in the pair table
+     * keeps the unpaired elision candidate of 05 §8.2.1 item 1a away ("un altro" for `un'` + "altro").
+     */
+    val elisionFullWords: Map<String, List<String>> = emptyMap(),
     /**
      * `ELISION_VALID_SLACK` (extension, §8.2.1 item 1): an elision split of a valid typed word is kept only if its
      * correction cost is at most the typed word's validity cost plus this value; null = no limit.
@@ -111,8 +129,10 @@ public data class LanguageParams(
             languageTag = "de-DE",
             edInsert = 210, edDelete = 175, edSubstitute = 100, edSwap = 50, edSpace = 225, edCase = 44,
             edDiacritic = 4, edFiller = 0, edNearDiv = 13, edNearBase = 1,
-            acLimit = 212, acEditFactor = 5, acMargin = 33, acValidRare = 157, acValidTarget = 168,
-            prefixAccents = mapOf('a' to listOf('ä'), 'o' to listOf('ö'), 'u' to listOf('ü'), 's' to listOf('ß')),
+            acLimit = 255, acEditFactor = 5, acMargin = 33, acValidRare = 157, acValidTarget = 168,
+            acInsert = 60, acDelete = 60, acSpace = 60, acSwap = 30,
+            slipNear = 34, slipAccent = 24, slipFiller = 0,
+            slipAccents = mapOf('a' to listOf('ä'), 'o' to listOf('ö'), 'u' to listOf('ü'), 's' to listOf('ß'), 'e' to listOf('é')),
             oneLetterWords = emptySet(),
             singleLetterFix = emptyMap(),
             compoundLinks = listOf("", "s", "es", "n", "en", "er"),
@@ -135,8 +155,10 @@ public data class LanguageParams(
             languageTag = "en-US",
             edInsert = 119, edDelete = 119, edSubstitute = 140, edSwap = 56, edSpace = 131, edCase = 11,
             edDiacritic = 0, edFiller = 0, edNearDiv = 13, edNearBase = 20,
-            acLimit = 260, acEditFactor = 5, acMargin = 16, acValidRare = 202, acValidTarget = 150,
-            prefixAccents = mapOf('e' to listOf('é')),
+            acLimit = 303, acEditFactor = 5, acMargin = 16, acValidRare = 202, acValidTarget = 150,
+            acInsert = 79, acDelete = 79, acSpace = 79, acSwap = 49,
+            slipNear = 30, slipAccent = 1, slipFiller = 5,
+            slipAccents = mapOf('e' to listOf('é')),
             oneLetterWords = setOf("a", "i"),
             singleLetterFix = mapOf("i" to "I"),
             compoundLinks = null,
@@ -155,8 +177,10 @@ public data class LanguageParams(
             languageTag = "es-ES",
             edInsert = 225, edDelete = 240, edSubstitute = 185, edSwap = 65, edSpace = 208, edCase = 44,
             edDiacritic = 0, edFiller = 0, edNearDiv = 13, edNearBase = 20,
-            acLimit = 217, acEditFactor = 4, acMargin = 33, acValidRare = 157, acValidTarget = 137,
-            prefixAccents = mapOf(
+            acLimit = 260, acEditFactor = 4, acMargin = 33, acValidRare = 157, acValidTarget = 137,
+            acInsert = 79, acDelete = 79, acSpace = 79, acSwap = 49,
+            slipNear = 20, slipAccent = 24, slipFiller = 0,
+            slipAccents = mapOf(
                 'a' to listOf('á'), 'e' to listOf('é'), 'i' to listOf('í'), 'o' to listOf('ó'),
                 'u' to listOf('ú', 'ü'), 'n' to listOf('ñ'),
             ),
@@ -178,8 +202,10 @@ public data class LanguageParams(
             languageTag = "pt-BR",
             edInsert = 165, edDelete = 240, edSubstitute = 155, edSwap = 65, edSpace = 213, edCase = 44,
             edDiacritic = 30, edFiller = 0, edNearDiv = 13, edNearBase = 15,
-            acLimit = 250, acEditFactor = 5, acMargin = 33, acValidRare = 201, acValidTarget = 130,
-            prefixAccents = mapOf(
+            acLimit = 293, acEditFactor = 5, acMargin = 33, acValidRare = 201, acValidTarget = 130,
+            acInsert = 74, acDelete = 74, acSpace = 74, acSwap = 44,
+            slipNear = 48, slipAccent = 16, slipFiller = 0,
+            slipAccents = mapOf(
                 'a' to listOf('á', 'à', 'ã', 'â'), 'c' to listOf('ç'), 'e' to listOf('é', 'ê'), 'i' to listOf('í'),
                 'o' to listOf('ó', 'õ', 'ô'), 'u' to listOf('ú', 'ü'),
             ),
@@ -209,8 +235,10 @@ public data class LanguageParams(
             languageTag = "it-IT",
             edInsert = 200, edDelete = 240, edSubstitute = 160, edSwap = 65, edSpace = 225, edCase = 44,
             edDiacritic = 2, edFiller = 0, edNearDiv = 11, edNearBase = 16,
-            acLimit = 247, acEditFactor = 5, acMargin = 28, acValidRare = 157, acValidTarget = 130,
-            prefixAccents = mapOf(
+            acLimit = 290, acEditFactor = 5, acMargin = 28, acValidRare = 157, acValidTarget = 130,
+            acInsert = 81, acDelete = 81, acSpace = 81, acSwap = 51,
+            slipNear = 41, slipAccent = 16, slipFiller = 0,
+            slipAccents = mapOf(
                 'e' to listOf('é', 'è'), 'i' to listOf('ì'), 'o' to listOf('ò', 'ó'), 'u' to listOf('ù'), 'a' to listOf('à'),
             ),
             oneLetterWords = setOf("a", "e", "è", "i", "o"),
@@ -221,6 +249,8 @@ public data class LanguageParams(
             elisionPrefixes = ITALIAN_ELISION_PREFIXES,
             accentSwap = true,
             hideClassZero = true,
+            // 05b §10.6: the prefix's letters as a word of their own
+            elisionFullWords = ITALIAN_ELISION_PREFIXES.associateWith { listOf(it.dropLast(1)) },
             fallbackRows = listOf("qwertyuiop", "asdfghjkl", "zxcvbnm"),
             fallbackRow2Start = 0.05f,
             shape = ShapeParams(unusedKeyCost = 8.0, neighbourFactor = 0.083, doubleLetterCost = 14.0, accentFactor = 0.16, cornerAngle = 45f),
@@ -237,8 +267,10 @@ public data class LanguageParams(
             languageTag = "fr-FR",
             edInsert = 125, edDelete = 215, edSubstitute = 125, edSwap = 60, edSpace = 156, edCase = 44,
             edDiacritic = 14, edFiller = 0, edNearDiv = 13, edNearBase = 5,
-            acLimit = 239, acEditFactor = 5, acMargin = 32, acValidRare = 163, acValidTarget = 136,
-            prefixAccents = mapOf(
+            acLimit = 282, acEditFactor = 5, acMargin = 32, acValidRare = 163, acValidTarget = 136,
+            acInsert = 64, acDelete = 64, acSpace = 64, acSwap = 34,
+            slipNear = 48, slipAccent = 16, slipFiller = 0,
+            slipAccents = mapOf(
                 'a' to listOf('à', 'â', 'æ'), 'e' to listOf('é', 'è', 'ê', 'ë'), 'y' to listOf('ÿ'),
                 'u' to listOf('ù', 'û', 'ü'), 'i' to listOf('ï', 'î'), 'o' to listOf('ô', 'œ'), 'c' to listOf('ç'),
             ),
@@ -250,6 +282,13 @@ public data class LanguageParams(
             elisionPrefixes = FRENCH_ELISION_PREFIXES,
             accentSwap = true,
             hideClassZero = true,
+            // 05b §11.7 item 1
+            elisionFullWords = mapOf(
+                "c'" to listOf("ce"), "l'" to listOf("le", "la"), "j'" to listOf("je"), "d'" to listOf("de"),
+                "qu'" to listOf("que"), "n'" to listOf("ne"), "s'" to listOf("se", "si"), "m'" to listOf("me"),
+                "t'" to listOf("te"), "jusqu'" to listOf("jusque"), "lorsqu'" to listOf("lorsque"),
+                "puisqu'" to listOf("puisque"), "quoiqu'" to listOf("quoique"), "ç'" to listOf("ça"),
+            ),
             elisionValidSlack = 30,
             capsUnaccented = true,
             fallbackRows = listOf("azertyuiop", "qsdfghjklm", "wxcvbn"),
@@ -284,8 +323,6 @@ public object Params {
     public const val WORD_MAX_LEN: Int = 27
     public const val ED_MAX_LEN: Int = 18
     public const val ED_OVERFLOW: Int = 128000
-    public const val CORR_KEEP: Int = 5
-    public const val FUZZY_POOL: Int = 48
     public const val UNIT_FLOOR: Int = 3
     public const val UNIT_SLOPE: Double = 0.60
     public const val COMP_SURCHARGE: Int = 10
@@ -295,14 +332,31 @@ public object Params {
     /** Missing-space split (05 §8.2): surcharge on the mean part cost, cost of a part missing from the word list. */
     public const val SPLIT_SURCHARGE: Int = 80
     public const val SPLIT_UNKNOWN: Int = 300
-    public const val COMPLETIONS_TYPED: Int = 24
-    public const val COMPLETIONS_VARIANT: Int = 6
-    public const val PREFIX_VARIANTS_MAX: Int = 24
-    public const val VARIANT_NEIGHBOURS: Int = 6
-    public const val VARIANT_NEAR_MAX: Int = 700
-    public const val VARIANT_MAX_LEN: Int = 12
-    public const val LM_COST_AT_P1: Double = 15.0
-    public const val LM_COST_PER_DECADE: Double = 18.0
+
+    /** Key-slip search (§8.1): same-length entries kept, completions kept, entries handed over. */
+    public const val SLIP_SAME_KEEP: Int = 5
+    public const val SLIP_COMP_KEEP: Int = 12
+    public const val SLIP_HANDOVER: Int = 12
+
+    /** Spelling source (§8.1b): words taken, lm of a spelling suggestion that is no offered form. */
+    public const val SPELL_SLOTS: Int = 5
+    public const val SPELL_UNKNOWN_LM: Int = 300
+
+    /** Forms beyond this frequency rank are valid but not offered (§8, 05b §1.1). */
+    public const val SUGGEST_MAX_RANK: Int = 90000
+
+    /** Omission guard (§10.1 step 7a). */
+    public const val AC_OMISSION_MARGIN: Int = 20
+
+    /** Missing-space guard: frequency rank limit of both parts (§10.1 step 7a; the header's guard class). */
+    public const val AC_SPLIT_RANK: Int = 5000
+
+    /** Anchored cost scale (§3.2): cost per decade above the first anchor, cost at the lowest class ≥ 1. */
+    public const val LM_HEAD_SLOPE: Double = 23.0
+    public const val LM_TAIL_COST: Int = 254
+
+    /** Multilingual cost penalty per decade of language weight (§14.2). */
+    public const val LANG_DECADE_COST: Double = 23.0
     public const val PAIR_LAMBDA: Double = 0.5
     public const val USER_LAMBDA_STEP: Double = 0.06
     public const val USER_LAMBDA_CAP: Double = 0.24

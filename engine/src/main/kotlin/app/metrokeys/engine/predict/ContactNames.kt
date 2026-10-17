@@ -27,10 +27,10 @@ public class ContactNames private constructor(
     /** Followers of a run context (lower-cased words joined by a space). */
     public fun followers(context: String): Map<String, Int>? = runs[context]
 
-    /** contactCost(w) of 05 §13, or [NO_COST] if [word] is not a contact word. */
-    public fun cost(word: String, nameField: Boolean): Int {
+    /** contactCost(w) of 05 §13 on the cost scale [scale] of a language (§3.2), or [NO_COST] if [word] is not a contact word. */
+    public fun cost(word: String, nameField: Boolean, scale: LmScale): Int {
         val n = unigrams[word] ?: return NO_COST
-        return surcharge(nameField) + LmCost.cost(lambda(n) * n / total)
+        return surcharge(nameField) + scale.cost(lambda(n) * n / total)
     }
 
     public companion object {

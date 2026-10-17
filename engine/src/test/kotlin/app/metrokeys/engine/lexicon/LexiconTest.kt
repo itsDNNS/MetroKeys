@@ -57,37 +57,73 @@ class LexiconTest {
     }
 
     @Test
-    fun fuzzy() {
-        val r = small.fuzzy("hsus", 2, 10)
-        assertEquals("Haus", r.first().form.text)
-        assertEquals(1, r.first().distance)
-        assertEquals(listOf("Haus" to 1, "Haut" to 2, "Hut" to 2), r.map { it.form.text to it.distance }.take(3))
-        assertEquals(listOf("Haus" to 1), small.fuzzy("ahus", 1, 10).map { it.form.text to it.distance })
-        assertTrue(small.fuzzy("qqqqq", 2, 10).isEmpty())
+    fun derivedDataOfALexiconBuiltFromEntries() {
+        // 05b §1.1: without a version-3 header the lexicon derives the data from its classes (the class standing in for
+        // the form count): every form of class ≥ 1 is offered (fewer than SUGGEST_MAX_RANK forms), anchors at the ranks
+        // of the language's row, the guard class of the last form (fewer than AC_SPLIT_RANK forms)
+        assertFalse(small.derivedFromFile)
+        for (k in 0 until small.keyCount) for (f in 0 until small.formCountOf(k)) assertTrue(small.isOffered(k, f))
+        assertEquals(listOf(188 to 112, 183 to 118, 10 to 254), small.costAnchors)
+        assertEquals(10, small.guardClass)
+        val zero = Lexicon.fromEntries("de-DE", 16f, 1000, 100000,
+            mapOf("heure" to listOf(WordForm("heure", 0)), "heute" to listOf(WordForm("heute", 200))), flagged = setOf("heute"))
+        assertFalse(zero.isOfferedWord("heure"))
+        assertTrue(zero.isOfferedWord("heute"))
+        assertTrue(zero.isFlaggedWord("heute"))
+        assertFalse(zero.isFlaggedWord("heure"))
     }
 
     @Test
-    fun fuzzyMatchesABruteForceScan() {
-        val lex = TestDictionaries.de.lexicon
-        val brute = lex.words().map { it.text.lowercase() }.distinct()
-            .filter { app.metrokeys.engine.predict.EditDistance.units("dnan", it) <= 2 && unitOsa("dnan", it) <= 2 }.toSet()
-        val viaTrie = lex.fuzzy("dnan", 2, 100000).map { it.form.text.lowercase() }.toSet()
-        // every key within distance 2 on accent-folded letters is found (forms are best forms of the keys; 0.6.4)
-        fun fold(s: String) = String(CharArray(s.length) { app.metrokeys.engine.predict.EditDistance.fold(s[it]) })
-        val keys = (0 until lex.keyCount).map { lex.keyString(it) }.filter { unitOsa("dnan", fold(it)) <= 2 }.toSet()
-        assertEquals(keys.map { lex.bestForm(lex.keyIndex(it)).text.lowercase() }.toSet(), viaTrie)
-        assertTrue(brute.isNotEmpty())
+    fun derivedDataOfTheBundledLists() {
+        // 0.7.1 lists carry the derived data (version 3): SUGGEST_MAX_RANK offered forms, flags from the register labels
+        for (d in listOf(TestDictionaries.de, TestDictionaries.en, TestDictionaries.es, TestDictionaries.pt, TestDictionaries.it,
+            TestDictionaries.fr)) {
+            val lex = d.lexicon
+            assertTrue(lex.derivedFromFile, lex.languageTag)
+            assertEquals(90000, lex.offeredCount, lex.languageTag)
+            assertTrue(lex.flaggedCount > 0, lex.languageTag)
+            // the bound of a node is the highest offered class below it
+            assertTrue(lex.maxOfferedClassOf(lex.root) <= lex.maxClassOf(lex.root))
+        }
+        // German: a form beyond SUGGEST_MAX_RANK stays valid (05 §17.7a: "performant")
+        val de = TestDictionaries.de.lexicon
+        assertTrue(de.exact("performant"))
+        assertFalse(de.isOfferedWord("performant"))
+        assertTrue(de.isOfferedWord("Haus"))
     }
 
-    private fun unitOsa(a: String, b: String): Int {
-        val d = Array(a.length + 1) { IntArray(b.length + 1) }
-        for (i in 0..a.length) d[i][0] = i
-        for (j in 0..b.length) d[0][j] = j
-        for (i in 1..a.length) for (j in 1..b.length) {
-            d[i][j] = minOf(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + if (a[i - 1] == b[j - 1]) 0 else 1)
-            if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1]) d[i][j] = minOf(d[i][j], d[i - 2][j - 2] + 1)
+    @Test
+    fun casedFormsInCodeUnitOrder() {
+        // 05d §7: the cased forms walked as a tree in code-unit order, every form once
+        val lex = Lexicon.fromEntries("de-DE", 16f, 1000, 100000, mapOf(
+            "haus" to listOf(WordForm("Haus", 183), WordForm("HAUS", 20)),
+            "hausen" to listOf(WordForm("hausen", 90)),
+            "iphone" to listOf(WordForm("iPhone", 100)),
+            "dont" to listOf(WordForm("don't", 120)),
+            "ärger" to listOf(WordForm("Ärger", 150), WordForm("ärger", 20)),
+            "a" to listOf(WordForm("a", 10), WordForm("A", 9)),
+        ))
+        val walked = ArrayList<String>()
+        val forms = CasedForms(lex)
+        fun walk(kn: Int, modes: Int, en: Int, depth: Int, prefix: String) {
+            val lv = CasedForms.Level()
+            forms.children(kn, modes, en, depth, lv)
+            val n = lv.size
+            val chars = lv.char.copyOf(n)
+            val k = lv.keyNode.copyOf(n)
+            val m = lv.modes.copyOf(n)
+            val e = lv.expNode.copyOf(n)
+            val sp = IntArray(n) { forms.spellingAt(lv, it) }
+            val hc = lv.hasChildren.copyOf(n)
+            for (i in 0 until n) {
+                val text = prefix + chars[i]
+                if (sp[i] >= 0) walked.add(text)
+                if (hc[i]) walk(k[i], m[i], e[i], depth + 1, text)
+            }
         }
-        return d[a.length][b.length]
+        walk(0, forms.rootModes, 0, 0, "")
+        val expected = lex.words().map { it.text }.toSortedSet().toList()
+        assertEquals(expected, walked)
     }
 
     @Test

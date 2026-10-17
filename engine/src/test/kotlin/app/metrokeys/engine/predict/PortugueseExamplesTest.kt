@@ -5,10 +5,10 @@ import app.metrokeys.engine.PredictionEngine
 import app.metrokeys.engine.Proofreader
 import app.metrokeys.engine.Query
 import app.metrokeys.engine.TestDictionaries
+import app.metrokeys.engine.entry
 import app.metrokeys.engine.query
 import app.metrokeys.engine.text.PrevContext
 import app.metrokeys.engine.text.TextModel
-import app.metrokeys.engine.touch.TapSequence
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -17,15 +17,12 @@ import kotlin.test.assertTrue
 
 /**
  * Portuguese (Brazil) worked examples of spec 05 §17.9 and the pt rows of the conformance checklist (§18) with the
- * built dictionary (no learned data, no taps, Portuguese fallback grid). The outcomes are normative; the lm values and
- * scores come from the build and are recorded here (05 §17.9) so that a later build can be compared.
+ * built dictionary (no learned data, no taps, Portuguese fallback grid; 0.7.1 rules). The outcomes are normative; the lm
+ * values and scores come from the build and are recorded here (05 §17.9) so that a later build can be compared.
  */
 class PortugueseExamplesTest {
     private val pt = TestDictionaries.portuguese()
     private val engine = TestDictionaries.single(TestDictionaries.portuguese())
-
-    private fun LanguageSuggestions.corr(display: String): Candidate =
-        corrections.firstOrNull { it.display == display } ?: error("no correction $display in $corrections")
 
     private fun ac(text: String): String? = engine.query(Query(text)).autoCorrection
 
@@ -33,15 +30,15 @@ class PortugueseExamplesTest {
 
     @Test
     fun header() {
-        // 05 §3.1: corpusTokens = all counts of the main list plus the credited hyphen parts; S from maxCount ("que")
+        // 05 §3.1: corpusTokens = all counts of the main list plus the credited hyphen parts; S from maxCount ("de")
         assertEquals(433_743_576L, pt.lexicon.corpusTokens)
         assertEquals(-8.64, pt.a, 1e-9)
-        assertEquals(0.02808, pt.bc, 1e-9) // 0.7.0 (05b §12.2); 0.6.9: 0.02815
+        assertEquals(0.02808, pt.bc, 1e-9)
         assertEquals(15.4637f, pt.lexicon.scale, 0.0005f)
-        assertEquals(255, pt.lexicon.exactClass("de")) // 0.7.0: "de" (0.6.9: "que")
-        // lm without context: round(170.52 − 0.5067 · k): class 255 → 41, class 0 → 171
-        assertEquals(42, pt.lm("de")) // 0.7.0 header (0.6.9: lm(que) 41)
-        assertEquals(171, pt.lm("idéia"))
+        assertEquals(255, pt.lexicon.exactClass("de"))
+        // the median anchor row of 05 §1.1: the most frequent form costs 91, class 0 254
+        assertEquals(91, pt.lm("de"))
+        assertEquals(254, pt.lm("idéia"))
     }
 
     @Test
@@ -49,15 +46,12 @@ class PortugueseExamplesTest {
         assertFalse(pt.lexicon.exact("voce"))
         val r = pt.query("voce")
         assertFalse(r.validity.valid)
-        val v = r.corr("você")
+        val v = r.entry("você")
         assertEquals(30, v.ed)
-        assertEquals(v.lm + 37, pt.acScore(v, 4))
-        assertEquals(42, v.lm) // 0.7.0 (0.6.9: 41)
-        val vice = r.corr("vice")
-        assertEquals(44, vice.ed)
-        assertTrue(pt.acScore(vice, 4) - pt.acScore(v, 4) > pt.params.acMargin)
+        assertEquals(101, v.lm)
+        assertEquals(131, v.score)
         assertEquals("você", r.autoCorrection?.display)
-        assertEquals("você", ac("voce"))
+        assertEquals("4o", r.decisionStep)
         assertTrue(pt.query("vc").validity.valid)
         assertNull(ac("vc"))
     }
@@ -66,36 +60,38 @@ class PortugueseExamplesTest {
     fun example2Tilde() {
         assertFalse(pt.lexicon.exact("nao"))
         val r = pt.query("nao")
-        val n = r.corr("não")
+        val n = r.entry("não")
         assertEquals(30, n.ed)
-        assertEquals(n.lm + 50, pt.acScore(n, 3))
-        assertEquals(92, pt.acScore(n, 3)) // 0.7.0 (0.6.9: 91)
-        assertEquals(65, r.corr("ano").ed)
-        assertEquals("não", ac("nao"))
+        assertEquals(95, n.lm)
+        assertEquals(125, n.score)
+        assertEquals("não", r.autoCorrection?.display)
         val a = pt.query("Até amanha")
-        val m = a.corr("amanhã")
+        val m = a.entry("amanhã")
         assertEquals(30, m.ed)
-        assertEquals(51, m.lm) // lm(amanhã | até); unigram below
-        assertEquals(m.lm + 25, pt.acScore(m, 6))
-        assertEquals("amanhã", ac("Até amanha"))
+        assertEquals(117, m.lm)
+        assertEquals(147, m.score)
+        assertEquals("amanhã", a.autoCorrection?.display)
     }
 
     @Test
     fun example3Cedilla() {
         val r = pt.query("acao")
-        val a = r.corr("ação")
+        val a = r.entry("ação")
+        // two accent slips (c → ç, a → ã) of the key-slip search: a same-length correction
+        assertEquals(CandidateSource.KEY_SLIP, a.source)
+        assertTrue(a.isCorrection)
         assertEquals(60, a.ed)
-        assertEquals(a.lm + 75, pt.acScore(a, 4))
-        assertEquals(87, a.lm) // 0.7.0 (0.6.9: 89)
-        // ação comes from the correction pool, not from a completion (a variant prefix changes one position only)
-        assertEquals(Candidate.INF, a.completionCost)
+        assertEquals(169, a.lm)
+        assertEquals(229, a.score)
         assertEquals("ação", bar("acao").first())
         assertEquals("ação", ac("acao"))
+        val i = pt.query("informacao").entry("informação")
+        assertEquals(60, i.ed)
+        assertEquals(168, i.lm)
         assertEquals("informação", ac("informacao"))
-        assertEquals(60, pt.query("informacao").corr("informação").ed)
-        val c = pt.query("comecar").corr("começar")
+        val c = pt.query("comecar").entry("começar")
         assertEquals(30, c.ed)
-        assertEquals(c.lm + 21, pt.acScore(c, 7))
+        assertEquals(161, c.lm)
         assertEquals("começar", ac("comecar"))
         for (w in listOf("comecei", "comece")) {
             assertTrue(pt.query(w).validity.valid, w)
@@ -109,7 +105,9 @@ class PortugueseExamplesTest {
         assertTrue(r.validity.valid)
         assertTrue(r.validity.cost <= pt.params.acValidRare)
         assertNull(r.autoCorrection)
-        assertEquals(30, r.corr("está").ed)
+        val esta = r.entry("está")
+        assertEquals(30, esta.ed)
+        assertEquals(105, esta.lm)
         assertTrue("está" in bar("Ele esta").take(3), bar("Ele esta").toString())
         for ((typed, accented) in listOf("e" to "é", "nos" to "nós", "pais" to "país", "da" to "dá", "la" to "lá", "por" to "pôr",
             "pode" to "pôde", "sabia" to "sábia")) {
@@ -117,8 +115,8 @@ class PortugueseExamplesTest {
             assertNull(ac(typed), typed)
             assertTrue(pt.lexicon.exact(accented), accented)
         }
-        // AC_VALID_RARE 201 is above every static cost of the dictionary (class 0 → 171)
-        assertTrue(pt.lm("idéia") <= pt.params.acValidRare)
+        assertEquals("nós", bar("nos").first())
+        assertEquals("país", bar("pais").first())
     }
 
     @Test
@@ -130,16 +128,20 @@ class PortugueseExamplesTest {
     }
 
     @Test
-    fun example6CompletionThroughAnAccentVariant() {
-        assertTrue("atenç" in pt.prefixList("atenc", TapSequence.none(5)))
-        assertTrue(pt.lexicon.completions("atenc", 24).none { it.text == "atenção" })
+    fun example6CompletionThroughAnAccentSlip() {
         val r = pt.query("Obrigado pela atenc")
-        val a = r.ranked.first { it.display == "atenção" }
-        assertEquals(a.lm + Params.COMP_SURCHARGE + 30, a.completionCost)
-        assertTrue("atenção" in bar("Obrigado pela atenc").take(3), bar("Obrigado pela atenc").toString())
+        val a = r.bar().first()
+        assertEquals("atenção", a.display)
+        assertFalse(a.isCorrection)
+        assertEquals(162, a.lm)
+        assertEquals(202, a.score)
+        assertNull(r.autoCorrection)
+        assertEquals("atencioso", r.bar()[1].display)
         assertFalse(pt.lexicon.exact("atencao"))
         assertEquals("atenção", ac("Obrigado pela atencao"))
-        assertTrue("começar" in bar("Vamos comec").take(3), bar("Vamos comec").toString())
+        val c = pt.query("Vamos comec").bar().first()
+        assertEquals("começar", c.display)
+        assertEquals(156, c.score)
     }
 
     @Test
@@ -159,7 +161,7 @@ class PortugueseExamplesTest {
         val f = pt.query("faze")
         assertTrue(f.validity.valid)
         assertNull(f.autoCorrection)
-        assertEquals(30, f.corr("fazê").ed)
+        assertEquals(30, f.entry("fazê").ed)
     }
 
     @Test
@@ -167,14 +169,16 @@ class PortugueseExamplesTest {
         assertFalse(pt.lexicon.exact("porfavor"))
         assertFalse(pt.lexicon.exact("tudobem"))
         val r = pt.query("porfavor")
-        val pf = r.corr("por favor")
+        val pf = r.entry("por favor")
         assertEquals(213, pf.ed)
-        assertEquals(pf.lm + 133, pt.acScore(pf, 8))
-        assertEquals(68, pf.lm)
-        assertEquals("por favor", ac("porfavor"))
-        val tb = pt.query("tudobem").corr("tudo bem")
-        assertEquals(tb.lm + 152, pt.acScore(tb, 7))
-        assertTrue("tudo bem" in bar("tudobem").take(3), bar("tudobem").toString())
+        assertEquals(140, pf.lm)
+        assertEquals(186, pt.acScore(pf, "porfavor"))
+        assertEquals("por favor", r.autoCorrection?.display)
+        val t = pt.query("tudobem")
+        val tb = t.entry("tudo bem")
+        assertEquals(166, tb.lm)
+        assertEquals(218, pt.acScore(tb, "tudobem"))
+        assertEquals("tudo bem", t.autoCorrection?.display)
         val ag = pt.query("agente")
         assertTrue(ag.validity.valid)
         assertNull(ag.autoCorrection)
@@ -186,10 +190,10 @@ class PortugueseExamplesTest {
         assertEquals(listOf("Brasil"), pt.lexicon.forms("brasil").map { it.text })
         val r = pt.query("Eu moro no brasil")
         assertFalse(r.validity.valid)
-        val b = r.corr("Brasil")
+        val b = r.entry("Brasil")
         assertEquals(44, b.ed)
-        assertEquals(b.lm + 36, pt.acScore(b, 6))
-        assertEquals("Brasil", ac("Eu moro no brasil"))
+        assertEquals(168, b.lm)
+        assertEquals("Brasil", r.autoCorrection?.display)
     }
 
     @Test
@@ -200,9 +204,9 @@ class PortugueseExamplesTest {
         assertEquals(0, TestDictionaries.spanish().elisionPrefixLength("d'agua"))
         assertFalse(pt.lexicon.exact("agua"))
         val r = pt.query("um copo d'agua")
-        val a = r.corr("d'água")
+        val a = r.entry("d'água")
         assertEquals(30, a.ed)
-        assertEquals(a.lm + 37, pt.acScore(a, 4))
+        assertEquals(156, a.lm)
         assertEquals(pt.lm("água"), a.lm) // previous word none
         assertEquals("d'água", r.autoCorrection?.display)
         assertEquals("d'água", ac("um copo d'agua"))
@@ -224,20 +228,28 @@ class PortugueseExamplesTest {
 
     @Test
     fun example11PreReformSpellings() {
-        for (w in listOf("idéia", "vôo")) {
+        // 0.7.1: valid (no spelling mark), but class-0 forms are not valid for the autocorrection decision (§10.1 step 4)
+        for ((w, reformed) in listOf("idéia" to "ideia", "vôo" to "voo")) {
             assertEquals(0, pt.lexicon.exactClass(w), w)
-            assertTrue(pt.query(w).validity.valid, w)
-            assertNull(ac(w), w)
+            val r = pt.query(w)
+            assertTrue(r.validity.valid, w)
+            assertTrue(r.validity.classZero, w)
             assertTrue(engine.isKnown(w), w)
+            assertEquals(reformed, ac(w), w)
         }
-        assertTrue(pt.lexicon.exactClass("ideia") > 0)
+        assertTrue(Proofreader(engine).run("uma idéia ", 0, 0, emptyList()).add.isEmpty())
         val r = pt.query("idéia")
-        assertEquals(155, r.corr("ideia").ed)
-        assertTrue("ideia" in bar("idéia"), bar("idéia").toString())
-        val i = pt.query("ideia")
-        assertNull(i.autoCorrection)
-        assertEquals(171 + 30, i.corr("idéia").correctionCost)
+        val i = r.entry("ideia")
+        assertEquals(155, i.ed)
+        assertEquals(157, i.lm)
+        assertEquals(312, i.score)
+        // typing "ideia" offers "idéia" only far down (a class-0 form is never offered by the key-slip search)
+        val ideia = pt.query("ideia")
+        assertNull(ideia.autoCorrection)
         assertTrue(bar("ideia").indexOf("idéia").let { it < 0 || it >= 3 }, bar("ideia").toString())
+        // one undo keeps the old spelling for good (§10.4)
+        engine.rejectAutoCorrection("idéia", "ideia", accepted = true)
+        assertNull(ac("idéia"))
     }
 
     @Test
@@ -251,6 +263,9 @@ class PortugueseExamplesTest {
             assertNull(ac(w), w)
         }
         assertEquals(setOf("a", "à", "e", "é", "o"), pt.lexicon.words().map { it.text.lowercase() }.filter { it.length == 1 }.toSet())
+        // the accent variants of a one-letter word are not offered: lm + 400 · 1 / 1 > COMP_LIMIT (§8.3)
+        assertTrue("à" !in bar("a"), bar("a").toString())
+        assertTrue("é" !in bar("e"), bar("e").toString())
     }
 
     @Test
@@ -285,19 +300,14 @@ class PortugueseExamplesTest {
     }
 
     @Test
-    fun prefixVariantsWithManyAccents() {
-        // 05 §1.1 notes: accent variants cost 0 and come first, so the limit of 24 never removes them
-        fun kinds(p: String): Triple<Int, Int, Int> {
-            val v = pt.prefixList(p, TapSequence.none(p.length)).drop(1)
-            val accents = v.count { it.length == p.length && it.indices.count { i -> it[i] != p[i] } == 1 &&
-                EditDistanceAccess.isAccentOf(p, it) }
-            val swaps = v.count { it.length == p.length && it.toSet() == p.toSet() && it != p && it.indices.count { i -> it[i] != p[i] } == 2 }
-            return Triple(accents, swaps, v.size - accents - swaps)
-        }
-        assertEquals(Triple(12, 3, 9), kinds("acao"))
-        assertEquals(Triple(16, 8, 0), kinds("informacao"))
-        val ca = pt.prefixList("ca", TapSequence.none(2))
-        assertTrue(ca.containsAll(listOf("cá", "cà", "cã", "câ", "ça")), ca.toString())
+    fun slipAccentsWithManyTargets() {
+        // SLIP_ACCENTS pt: a → á, à, ã, â; c → ç (05 §1.1), each slip SLIP_ACCENT 16
+        val t = app.metrokeys.engine.touch.TouchModel(app.metrokeys.engine.touch.KeyboardGeometry.fallback("pt-BR"), pt.params)
+        val slips = SlipTable(t, pt.params)
+        for (x in listOf('á', 'à', 'ã', 'â')) assertEquals(16, slips.slip('a', x), "$x")
+        assertEquals(16, slips.slip('c', 'ç'))
+        // ç has its own key on the Portuguese page, far from c: no neighbour slip the other way
+        assertEquals(-1, slips.slip('ç', 'c'))
     }
 
     @Test
@@ -306,13 +316,5 @@ class PortugueseExamplesTest {
         assertEquals("😂", pt.emojiFor("kkkk"))
         assertNull(pt.emojiFor("nossa"))
         assertTrue(engine.query(Query("obrigado")).suggestions.any { it.text == "🙏" })
-    }
-}
-
-/** Accent test of the prefix variants: the variant replaces one base letter by one of its PREFIX_ACCENTS letters. */
-private object EditDistanceAccess {
-    fun isAccentOf(p: String, v: String): Boolean {
-        val i = p.indices.first { p[it] != v[it] }
-        return LanguageParams.PORTUGUESE.prefixAccents[p[i]]?.contains(v[i]) == true
     }
 }

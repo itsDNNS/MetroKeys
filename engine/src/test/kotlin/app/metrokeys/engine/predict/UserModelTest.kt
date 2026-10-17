@@ -21,13 +21,13 @@ class UserModelTest {
         assertEquals(500, e.user.totalCount)
         assertEquals(2, e.user.count("Zwuckel"))
         assertEquals(2, e.user.recentCount("Zwuckel"))
-        assertEquals(88, e.lm("Zwuckel"))
+        assertEquals(164, e.lm("Zwuckel")) // 05 §12.2 (anchored scale, 0.7.1)
     }
 
     @Test
     fun hausWorkedExample() {
         val e = de()
-        assertEquals(78, e.lm("Haus")) // 0.7.0 German list (0.6.9: 75)
+        assertEquals(151, e.lm("Haus")) // 05 §12.2 (anchored scale, 0.7.1)
         repeat(5) { e.user.learn("Haus", emptyList()) }
         repeat(1000) { e.user.learn("Füllwort", emptyList()) }
         repeat(5) { e.user.learn("Haus", emptyList()) }
@@ -35,7 +35,7 @@ class UserModelTest {
         assertEquals(2000, e.user.totalCount)
         assertEquals(10, e.user.count("Haus"))
         assertEquals(5, e.user.recentCount("Haus"))
-        assertEquals(74, e.lm("Haus")) // 0.7.0 German list (0.6.9: 73)
+        assertEquals(147, e.lm("Haus")) // 05 §12.2
     }
 
     @Test
@@ -139,14 +139,14 @@ class UserModelTest {
         e.user.learn("Zwuckel", emptyList(), accepted = true)
         val next = e.predictNext("Das ist mein kleiner ")
         assertEquals("Zwuckel", next.first().text)
-        assertEquals(15, next.first().cost)
+        assertEquals(74, next.first().cost) // cost(1.0) on the anchored scale
         // backoff: only the shorter context is known
         val e2 = de()
         repeat(2) { e2.user.learn("Zwuckel", listOf("kleiner"), accepted = true) }
         repeat(2) { e2.user.learn("Hund", listOf("ein", "kleiner")) }
         val n2 = e2.predictNext("ein kleiner ").associate { it.text to it.cost }
-        assertEquals(15, n2["Hund"])
-        assertEquals(LmCost.cost(0.4 * 2 / 4), n2["Zwuckel"])
+        assertEquals(74, n2["Hund"])
+        assertEquals(e2.scale.cost(0.4 * 2 / 4), n2["Zwuckel"])
     }
 
     @Test

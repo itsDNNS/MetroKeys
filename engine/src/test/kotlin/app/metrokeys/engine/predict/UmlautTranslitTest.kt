@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** German umlaut transliteration (05 §1.1 `UMLAUT_TRANSLIT`, §5 umlaut rule, §8.4 item 5; 0.7.0). */
+/** German umlaut transliteration (05 §1.1 `UMLAUT_TRANSLIT`, §5 umlaut rule, §8.1c transliterated spellings; 0.7.0). */
 class UmlautTranslitTest {
     private val de = TestDictionaries.german()
     private val edDe = EditDistance(LanguageParams.GERMAN, TouchModel(KeyboardGeometry.fallback("de-DE"), LanguageParams.GERMAN))
@@ -64,37 +64,43 @@ class UmlautTranslitTest {
         }
         // "fuer" no longer loses to "Ufer" (one swap)
         val fuer = de.query("fuer")
-        assertTrue(fuer.corrections.first { it.display == "Ufer" }.correctionCost > fuer.corrections.first().correctionCost)
+        assertEquals("für", fuer.corrections.first().display)
     }
 
     @Test
-    fun prefixVariants() {
-        // 05 §8.4 item 5: every "ae"/"oe"/"ue" replaced, case kept, added after the other prefixes ("always, not counted
-        // in 2"); the plain W stays the first prefix
-        val plain = LanguageEngine(LanguageParams.GERMAN.copy(umlautTranslit = false), TestDictionaries.de)
-        fun added(w: String): List<String> {
-            val with = de.prefixList(w, TapSequence.none(w.length))
-            val without = plain.prefixList(w, TapSequence.none(w.length))
-            assertEquals(without, with.take(without.size), w)
-            return with.drop(without.size)
-        }
-        assertEquals(listOf("fü"), added("fue"))
-        assertEquals(listOf("Übe"), added("Uebe"))
-        assertEquals(listOf("Feü"), added("Feue"))
-        assertEquals(listOf("Häuser"), added("Haeuser"))
-        assertEquals(listOf("schön"), added("schoen"))
-        assertEquals(listOf("FÜ"), added("FUE"))
-        assertEquals(emptyList(), added("Haus"))
-        assertEquals("fue", de.prefixList("fue", TapSequence.none(3)).first())
+    fun transliteratedSpellings() {
+        // 05 §8.1c: the walk runs once more on W with every "ae"/"oe"/"ue" replaced (case of the letter kept), and on W
+        // with "ss" → "ß"; W itself is always searched as well
+        assertEquals(listOf("fü"), de.transliterations("fue"))
+        assertEquals(listOf("Übe"), de.transliterations("Uebe"))
+        assertEquals(listOf("Feü"), de.transliterations("Feue"))
+        assertEquals(listOf("Häuser"), de.transliterations("Haeuser"))
+        assertEquals(listOf("schön"), de.transliterations("schoen"))
+        assertEquals(listOf("FÜ"), de.transliterations("FUE"))
+        assertEquals(listOf("Straße"), de.transliterations("Strasse"))
+        assertEquals(emptyList(), de.transliterations("Haus"))
+        // only the ß run in a language without the umlaut rule
+        assertEquals(listOf("Straße"), TestDictionaries.english().transliterations("Strasse"))
+        assertEquals(emptyList(), TestDictionaries.english().transliterations("fue"))
     }
 
     @Test
     fun completions() {
-        // "fue" → "fü" → "für"
+        // "fue" → "fü": the run hands over only completions longer than "fue" (05 §8.1c, 0.7.1), so "für" (as long as
+        // "fue") is a correction and the first entry, "führen" a completion of the run
         val fue = de.query("fue")
-        val fuer = fue.ranked.first()
+        val fuer = fue.ranked.first { !it.isTyped }
         assertEquals("für", fuer.display)
-        assertTrue(fuer.completionCost < Candidate.INF)
+        assertTrue(fuer.isCorrection)
+        assertTrue(fue.ranked.none { !it.isCorrection && it.source == CandidateSource.TRANSLITERATION && it.display.length <= 3 })
+        assertTrue(fue.ranked.any { !it.isCorrection && it.source == CandidateSource.TRANSLITERATION && it.display.startsWith("fü") })
+        // "Strass" → "Straß": "Straße" (as long as "Strass") is no completion of the run, "Straßen" is (05 §8.1c)
+        val strass = de.query("Strass")
+        println("Strass: " + strass.ranked.take(8).map { "${it.display}/${it.source}/${if (it.isCorrection) "c" else "p"}" })
+        assertTrue(strass.ranked.none { it.display == "Straße" && !it.isCorrection })
+        val strassen = strass.ranked.first { it.display == "Straßen" }
+        assertFalse(strassen.isCorrection)
+        assertEquals(CandidateSource.TRANSLITERATION, strassen.source)
         // the plain prefix still completes: "Feue" → "Feuer"
         assertEquals("Feuer", de.query("Feue").ranked.first().display)
         // "Uebe" → "Über…"

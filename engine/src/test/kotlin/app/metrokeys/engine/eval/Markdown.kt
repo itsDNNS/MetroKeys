@@ -85,7 +85,9 @@ internal class Markdown(private val r: Map<String, Any?>) {
         line("## Results per profile and language")
         line()
         line("Rates in percent. Error sets: fixed (AC recall), wrong, kept, precision, top-1, top-3; false-positive sets: " +
-            "false corrections (F7 also the offer rate of the accented word). `coll` = collision bucket (typed text valid, not counted). " +
+            "false corrections (F7 also the offer rate of the accented word and the accepted replacements by the more frequent " +
+            "spelling, 05c §3.7). `coll` = collision bucket (typed text valid, not counted), `flag` = flagged bucket (expected " +
+            "text a do-not-suggest form, not counted). E2 and E2a are judged by top-3, offer and wrong (05c §6, 0.7.1). " +
             "Differences to each baseline in percentage points.")
         line()
         for ((name, body) in res.toSortedMap()) {
@@ -99,8 +101,8 @@ internal class Markdown(private val r: Map<String, Any?>) {
             line("All errors (recall, N+S): ${v(agg["allErrors recall * $half"])} · all false positives (N+S): " +
                 "${v(agg["allFalsePositives * $half"])} · base words without a context occurrence: ${v(b["baseWordsWithoutContext"])} · queries: ${v(b["queries"])}")
             line()
-            line("| Set | Var | n | fixed | wrong | kept | prec | top-1 | top-3 | false corr | coll | Δ vs baselines |")
-            line("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|")
+            line("| Set | Var | n | fixed | wrong | kept | prec | top-1 | top-3 | offer | false corr | coll | flag | Δ vs baselines |")
+            line("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|")
             for (row in rows) {
                 if (row["half"] != half) continue
                 for (vv in listOf("N", "S")) {
@@ -108,13 +110,27 @@ internal class Markdown(private val r: Map<String, Any?>) {
                     if ((c["n"] as Int) == 0 && c["collisions"] == null) continue
                     val main = if (c.containsKey("recall")) "recall" else "falseCorrection"
                     val d = c["$main vs baseline"]?.let { v(it) } ?: ""
-                    val fc = c["falseCorrection"]?.let { v(it) + (c["offer3"]?.let { o -> " (offer ${v(o)})" } ?: "") } ?: ""
+                    val fc = c["falseCorrection"]?.let {
+                        v(it) + (c["offer3"]?.let { o -> " (offer ${v(o)})" } ?: "") +
+                            (c["acceptedReplacement"]?.let { a -> " (accepted ${v(a)})" } ?: "")
+                    } ?: ""
                     line("| ${row["set"]} | $vv | ${c["n"]} | ${c["recall"]?.let(::v) ?: ""} | ${c["wrong"]?.let(::v) ?: ""} | " +
                         "${c["kept"]?.let(::v) ?: ""} | ${c["precision"]?.let(::v) ?: ""} | ${c["top1"]?.let(::v) ?: ""} | " +
-                        "${c["top3"]?.let(::v) ?: ""} | $fc | ${v(c["collisions"])} | $d |")
+                        "${c["top3"]?.let(::v) ?: ""} | ${c["offer"]?.let(::v) ?: ""} | $fc | ${v(c["collisions"])} | ${v(c["flagged"])} | $d |")
                 }
             }
             line()
+            }
+            for ((key, title) in listOf("flaggedItems" to "flagged bucket (expected text a do-not-suggest form, 05c §3.5)",
+                "acceptedReplacements" to "F7 accepted replacements (05c §3.7)")) {
+                val items = b[key] as? List<String> ?: continue
+                if (items.isEmpty()) continue
+                line("<details><summary>$name: ${items.size} items of the $title</summary>")
+                line()
+                for (i in items.take(200)) line("- $i")
+                line()
+                line("</details>")
+                line()
             }
         }
     }

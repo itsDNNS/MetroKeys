@@ -365,11 +365,14 @@ class EnglishBuilder:
         self.max_count = max(cc.values())
         self.scale = 255.0 / math.log(self.max_count)
         entries = {}
+        # 0.7.1: the form counts (combined count x form share) for the frequency ranks of 05b §1.1
+        self.form_counts = {}
         for key in sorted(selected):
             total = key_count[key]
             forms = []
             for f, c in selected[key]:
                 share = c / total if total > 0 else 1.0 / len(selected[key])
+                self.form_counts[(key, f)] = cc[key] * share
                 forms.append((f, max(1, freq_class(cc[key] * share, self.scale))))
             forms.sort(key=lambda fc: -fc[1])
             entries[key] = forms

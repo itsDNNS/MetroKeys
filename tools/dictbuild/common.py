@@ -18,6 +18,13 @@ Word list format (gzip of the payload below; all integers big-endian or unsigned
     version 2 only (languages with an elision prefix table, 05b §1.1, §10.6), after the keys:
         varint prefixCount, per prefix: varint byte length + UTF-8 text (lower case, ASCII apostrophe), u8 class
 
+    Version 3 (0.7.1, every language; the derived data of 05b §1.1): after varint formCount the header holds
+        u8 anchorCount, per cost anchor (05 §3.2): u8 class, u8 cost; then u8 guard class (05 §10.1 step 7a);
+    the kind byte of every form carries the per-form data in its upper bits:
+        bits 0-1 kind as above, bit 2 offered (suggestion lexicon), bits 3-4 spelling class (05d §6),
+        bit 5 do-not-suggest (05b §2.16);
+    and the prefix table always follows the keys (varint prefixCount, possibly 0).
+
 Pair table format (gzip):
 
     "MKPT" u8 version=1
@@ -126,6 +133,90 @@ def form_kind(key, form):
     return 3
 
 
+# 05 §1.1 cost anchors (0.7.1): the ranks and, per anchor row, the costs; 05 §1.2 LM_TAIL_COST, SUGGEST_MAX_RANK,
+# AC_SPLIT_RANK; 05d §6 spelling-class ranks
+LM_ANCHOR_RANKS = (1, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 50000)
+LM_ANCHOR_COSTS = {
+    "de": (112, 118, 122, 129, 140, 153, 166, 178, 192, 210, 222),
+    "en": (99, 113, 130, 142, 153, 163, 172, 182, 199, 222, 235),
+    "fr": (107, 111, 117, 126, 139, 156, 173, 187, 205, 225, 234),
+    "median": (91, 105, 117, 126, 140, 157, 172, 182, 199, 222, 234),
+}
+# 05b §7 profile: which anchor row a language uses
+ANCHOR_ROW = {"de-DE": "de", "en-US": "en", "fr-FR": "fr", "es-ES": "median", "pt-BR": "median", "it-IT": "median"}
+LM_TAIL_COST = 254
+SUGGEST_MAX_RANK = 90000
+AC_SPLIT_RANK = 5000
+# 05d §6: (SPELL_RANK_1, SPELL_RANK_2, SPELL_TAIL_3)
+SPELL_CLASSES = {"de-DE": (3250, 8550, 0.044), "en-US": (1000, 38000, 0.11), "es-ES": (1000, 38000, 0.11),
+                 "pt-BR": (1000, 38000, 0.11), "it-IT": (1000, 38000, 0.11), "fr-FR": (0, 0, 0.024)}
+
+
+def derived_data(lang, entries, form_count, nosuggest=frozenset()):
+    """The derived data of 05b §1.1 (0.7.1): frequency ranks, cost anchors, offered bits, guard class, spelling classes.
+    [entries]: key -> [(form, class)]; [form_count](key, form, class): the form count (combined count x form share);
+    [nosuggest]: forms with the do-not-suggest flag. Returns (anchors [(class, cost)], guard class,
+    {(key, form): flags byte bits 2-5}, report dict)."""
+    items = [(key, form, cls, form_count(key, form, cls)) for key, forms in entries.items() for form, cls in forms]
+    # frequency rank: forms with class >= 1 by form count descending, ties by the form (then the key)
+    ranked = sorted((it for it in items if it[2] >= 1), key=lambda it: (-it[3], it[1], it[0]))
+    rank = {(it[0], it[1]): i + 1 for i, it in enumerate(ranked)}
+    # cost anchors: forms with class >= 1 by class descending
+    classes = sorted((it[2] for it in ranked), reverse=True)
+    n = len(classes)
+    costs = LM_ANCHOR_COSTS[ANCHOR_ROW[lang]]
+    anchors = []
+    for r, c in zip(LM_ANCHOR_RANKS, costs):
+        if r >= n:
+            break
+        k = classes[r - 1]
+        if anchors and anchors[-1][0] == k:
+            continue
+        anchors.append((k, c))
+    k_min = classes[-1] if classes else 1
+    if anchors and anchors[-1][0] == k_min:
+        anchors[-1] = (k_min, LM_TAIL_COST)
+    else:
+        anchors.append((k_min, LM_TAIL_COST))
+    guard = ranked[AC_SPLIT_RANK - 1][2] if n >= AC_SPLIT_RANK else k_min
+    # spelling classes: every form (class 0 included) by form count descending, ties by the form
+    every = sorted(items, key=lambda it: (-it[3], it[1], it[0]))
+    r1, r2, tail = SPELL_CLASSES[lang]
+    total = len(every)
+    spelling = {}
+    for i, it in enumerate(every):
+        r = i + 1
+        if r <= r1:
+            sc = 1
+        elif r <= r2:
+            sc = 2
+        elif r > total * (1 - tail):
+            sc = 3
+        else:
+            sc = 0
+        spelling[(it[0], it[1])] = sc
+    flags = {}
+    offered = 0
+    last_offered = None
+    for key, form, cls, _ in items:
+        rk = rank.get((key, form))
+        off = cls >= 1 and rk is not None and rk <= SUGGEST_MAX_RANK
+        if off:
+            offered += 1
+            if rk == min(n, SUGGEST_MAX_RANK):
+                last_offered = cls
+        bits = (4 if off else 0) | (spelling[(key, form)] << 3) | (32 if form in nosuggest else 0)
+        flags[(key, form)] = bits
+    report = {
+        "costAnchors": [list(a) for a in anchors],
+        "guardClass": guard,
+        "offeredForms": offered,
+        "lastOfferedClass": last_offered,
+        "formsPerSpellingClass": {str(c): sum(1 for v in spelling.values() if v == c) for c in range(4)},
+    }
+    return anchors, guard, flags, report, rank
+
+
 def deterministic_gzip(payload):
     buf = io.BytesIO()
     with gzip.GzipFile(fileobj=buf, mode="wb", compresslevel=9, mtime=0, filename="") as gz:
@@ -133,18 +224,28 @@ def deterministic_gzip(payload):
     return buf.getvalue()
 
 
-def write_word_list(path, lang, scale, max_count, corpus_tokens, entries, prefixes=None, unattested=None):
+def write_word_list(path, lang, scale, max_count, corpus_tokens, entries, prefixes=None, unattested=None, derived=None,
+                    abbreviation=None):
     """entries: dict key -> list of (form, class), best first; prefixes: None, or a list of (elision prefix, class)
-    written as a version-2 prefix table; unattested: keys flagged as unattested (0.6.9). Returns (payload sha256 bytes,
-    keys list)."""
+    written as a version-2 prefix table; unattested: keys flagged as unattested (0.6.9); derived: (anchors, guard class,
+    {(key, form): flag bits}) of derived_data(), which writes a version-3 list (0.7.1); abbreviation: keys with the
+    abbreviation bit (05b §1.1, 0.7.1; bit 6 of the form count, version 3 only, which then allows at most 63 forms per
+    key). Returns (payload sha256 bytes, keys list)."""
     unattested = unattested or set()
     unknown = set(unattested) - set(entries)
     if unknown:
         raise ValueError(f"unattested keys without entry: {sorted(unknown)[:5]}")
+    abbreviation = abbreviation or set()
+    if abbreviation and derived is None:
+        raise ValueError("the abbreviation bit needs a version-3 list")
+    unknown = set(abbreviation) - set(entries)
+    if unknown:
+        raise ValueError(f"abbreviation keys without entry: {sorted(unknown)[:5]}")
+    max_forms = 0x3F if derived is not None else 0x7F
     keys = sorted(entries)
     out = io.BytesIO()
     out.write(b"MKWL")
-    out.write(bytes([1 if prefixes is None else 2]))
+    out.write(bytes([3 if derived is not None else 1 if prefixes is None else 2]))
     tag = lang.encode("ascii")
     out.write(bytes([len(tag)]))
     out.write(tag)
@@ -153,6 +254,12 @@ def write_word_list(path, lang, scale, max_count, corpus_tokens, entries, prefix
     _varint(out, int(corpus_tokens))
     _varint(out, len(keys))
     _varint(out, sum(len(entries[k]) for k in keys))
+    if derived is not None:
+        anchors, guard, flag_bits = derived
+        out.write(bytes([len(anchors)]))
+        for k, c in anchors:
+            out.write(bytes([k, c]))
+        out.write(bytes([guard]))
     prev = ""
     for key in keys:
         if jlower(key) != key:
@@ -164,20 +271,21 @@ def write_word_list(path, lang, scale, max_count, corpus_tokens, entries, prefix
         _varint(out, shared)
         _utf8(out, key[shared:])
         forms = entries[key]
-        if not 1 <= len(forms) <= 0x7F:
+        if not 1 <= len(forms) <= max_forms:
             raise ValueError(key)
-        out.write(bytes([len(forms) | (0x80 if key in unattested else 0)]))
+        out.write(bytes([len(forms) | (0x80 if key in unattested else 0) | (0x40 if key in abbreviation else 0)]))
         for form, cls in forms:
             if jlower(form) != key and jlower(form).replace("'", "").replace("-", "") != key:
                 raise ValueError(f"form {form!r} does not belong to key {key!r}")
             kind = form_kind(key, form)
-            out.write(bytes([cls, kind]))
+            bits = flag_bits[(key, form)] if derived is not None else 0
+            out.write(bytes([cls, kind | bits]))
             if kind == 3:
                 _utf8(out, form)
         prev = key
-    if prefixes is not None:
-        _varint(out, len(prefixes))
-        for text, cls in prefixes:
+    if prefixes is not None or derived is not None:
+        _varint(out, len(prefixes or ()))
+        for text, cls in prefixes or ():
             if text in entries or not text.endswith("'") or jlower(text) != text:
                 raise ValueError(f"bad elision prefix {text!r}")
             _utf8(out, text)
@@ -271,8 +379,18 @@ def read_word_list(path):
     corpus, pos = _read_varint(buf, pos)
     key_count, pos = _read_varint(buf, pos)
     form_count, pos = _read_varint(buf, pos)
+    anchors = guard = None
+    if version == 3:
+        na = buf[pos]
+        pos += 1
+        anchors = [(buf[pos + 2 * i], buf[pos + 2 * i + 1]) for i in range(na)]
+        pos += 2 * na
+        guard = buf[pos]
+        pos += 1
+    form_bits = {}
     entries = {}
     unattested = set()
+    abbreviation = set()
     prev = ""
     for _ in range(key_count):
         shared, pos = _read_varint(buf, pos)
@@ -283,9 +401,12 @@ def read_word_list(path):
         pos += 1
         if nf & 0x80:
             unattested.add(key)
+        if version == 3 and nf & 0x40:
+            abbreviation.add(key)
         forms = []
-        for _ in range(nf & 0x7F):
-            cls, kind = buf[pos], buf[pos + 1]
+        for _ in range(nf & (0x3F if version == 3 else 0x7F)):
+            cls, kind_byte = buf[pos], buf[pos + 1]
+            kind = kind_byte & 3
             pos += 2
             if kind == 0:
                 form = key
@@ -298,10 +419,12 @@ def read_word_list(path):
                 form = buf[pos:pos + ln].decode("utf-8")
                 pos += ln
             forms.append((form, cls))
+            if version == 3:
+                form_bits[(key, form)] = kind_byte & 0xFC
         entries[key] = forms
         prev = key
     prefixes = None
-    if version == 2:
+    if version in (2, 3):
         prefixes = []
         cnt, pos = _read_varint(buf, pos)
         for _ in range(cnt):
@@ -310,8 +433,11 @@ def read_word_list(path):
             pos += ln
             prefixes.append((text, buf[pos]))
             pos += 1
+    if version == 3 and not prefixes:
+        prefixes = None
     header = {"tag": tag, "version": version, "S": scale, "maxCount": max_count, "corpusTokens": corpus,
-              "keys": key_count, "forms": form_count}
+              "keys": key_count, "forms": form_count, "anchors": anchors, "guardClass": guard, "formBits": form_bits,
+              "abbreviation": abbreviation}
     return header, entries, unattested, prefixes
 
 

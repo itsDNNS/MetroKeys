@@ -7,17 +7,25 @@ import java.text.Normalizer
 /** Weighted Damerau (optimal string alignment) distance and unit distance of spec 05 §5. */
 public class EditDistance(private val params: LanguageParams, private val touch: TouchModel) {
 
-    /** ED(typed, cand, taps); [taps] are aligned to [typed]. */
-    public fun weighted(typed: String, cand: String, taps: TapSequence?): Int {
+    /**
+     * ED(typed, cand, taps); [taps] are aligned to [typed]. With [ac] the autocorrection edit weights of 05 §10.1
+     * (`AC_INSERT`, `AC_DELETE`, `AC_SPACE`, `AC_SWAP`) replace the insert, delete, space and swap weights.
+     */
+    @JvmOverloads
+    public fun weighted(typed: String, cand: String, taps: TapSequence?, ac: Boolean = false): Int {
         val n = typed.length
         val m = cand.length
         if (n > Params.ED_MAX_LEN || m > Params.ED_MAX_LEN) return Params.ED_OVERFLOW
         val p = params
+        val wInsert = if (ac) p.acInsert else p.edInsert
+        val wDelete = if (ac) p.acDelete else p.edDelete
+        val wSpace = if (ac) p.acSpace else p.edSpace
+        val wSwap = if (ac) p.acSwap else p.edSwap
         val t = CharArray(n) { Character.toLowerCase(typed[it]) }
         val c = CharArray(m) { Character.toLowerCase(cand[it]) }
         val d = Array(n + 1) { IntArray(m + 1) }
-        for (j in 0..m) d[0][j] = j * p.edInsert
-        for (i in 0..n) d[i][0] = i * p.edDelete
+        for (j in 0..m) d[0][j] = j * wInsert
+        for (i in 0..n) d[i][0] = i * wDelete
         for (i in 1..n) {
             val ti = t[i - 1]
             val tu = Character.isUpperCase(typed[i - 1])
@@ -27,10 +35,10 @@ public class EditDistance(private val params: LanguageParams, private val touch:
                 val cj = c[j - 1]
                 val ins = d[i][j - 1] + when {
                     isFiller(cj) -> p.edFiller
-                    cj == ' ' -> p.edSpace
-                    else -> p.edInsert
+                    cj == ' ' -> wSpace
+                    else -> wInsert
                 }
-                val del = d[i - 1][j] + p.edDelete
+                val del = d[i - 1][j] + wDelete
                 val cu = Character.isUpperCase(cand[j - 1])
                 val s = if (ti == cj) {
                     if (typed[i - 1] != cand[j - 1]) p.edCase else 0
@@ -41,14 +49,14 @@ public class EditDistance(private val params: LanguageParams, private val touch:
                     val base = when {
                         isDiacriticOf(ti, cj) -> p.edDiacritic
                         p.accentSwap && isAccentSwap(ti, cj) -> p.edDiacritic
-                        cj == ' ' -> p.edSpace
+                        cj == ' ' -> wSpace
                         else -> touch.substitutionCost(ti, tx, ty, cj)
                     }
                     if (tu != cu) base + p.edCase else base
                 }
                 var v = minOf(ins, del, d[i - 1][j - 1] + s)
                 if (i > 1 && j > 1 && ti == c[j - 2] && t[i - 2] == cj && ti != cj) {
-                    v = minOf(v, d[i - 2][j - 2] + p.edSwap)
+                    v = minOf(v, d[i - 2][j - 2] + wSwap)
                 }
                 if (i > 1 && cj == 'ß' && ti == 's' && t[i - 2] == 's') {
                     v = minOf(v, d[i - 2][j - 1] + p.edDiacritic)
@@ -125,8 +133,9 @@ public class EditDistance(private val params: LanguageParams, private val touch:
         /**
          * UNITS(typed, cand): the same recursion with unit costs, case 0 and filler 0 (05 §5); the ß rule and the ligature
          * rule cost 1, an unaccented capital ([capsUnaccented], fr) 0. A diacritic difference (typed base letter for an
-         * accented letter of the candidate, or an `ACCENT_SWAP` pair when [accentSwap]) counts 0 units (0.6.4). With
-         * [umlautTranslit] (de, 0.7.0) the umlaut rule (typed "ae"/"oe"/"ue" for "ä"/"ö"/"ü") costs 1 as well.
+         * accented letter of the candidate, or an `ACCENT_SWAP` pair when [accentSwap]) counts 1 unit with
+         * [diacriticUnits] (languages whose `ED_DIACRITIC` is not 0, 0.7.1, 1:1), else 0. With [umlautTranslit] (de,
+         * 0.7.0) the umlaut rule (typed "ae"/"oe"/"ue" for "ä"/"ö"/"ü") costs 1 as well.
          */
         @JvmStatic
         @JvmOverloads
@@ -136,6 +145,7 @@ public class EditDistance(private val params: LanguageParams, private val touch:
             capsUnaccented: Boolean = false,
             accentSwap: Boolean = false,
             umlautTranslit: Boolean = false,
+            diacriticUnits: Boolean = false,
         ): Int {
             val n = typed.length
             val m = cand.length
@@ -151,7 +161,7 @@ public class EditDistance(private val params: LanguageParams, private val touch:
                     val cj = c[j - 1]
                     val ins = d[i][j - 1] + if (isFiller(cj)) 0 else 1
                     val del = d[i - 1][j] + 1
-                    val same = ti == cj || isDiacriticOf(ti, cj) || (accentSwap && isAccentSwap(ti, cj)) ||
+                    val same = ti == cj || (!diacriticUnits && (isDiacriticOf(ti, cj) || (accentSwap && isAccentSwap(ti, cj)))) ||
                         (capsUnaccented && Character.isUpperCase(typed[i - 1]) && Character.isUpperCase(cand[j - 1]) &&
                             isUnaccentedCapital(ti, cj))
                     val sub = d[i - 1][j - 1] + if (same) 0 else 1

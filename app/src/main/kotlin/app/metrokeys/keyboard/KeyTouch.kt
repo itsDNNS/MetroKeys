@@ -54,8 +54,17 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
         /** Class of the best completion of the current word plus the key's letter, < 0 if impossible. */
         fun prefixClass(k: Key): Int
 
-        /** Touch-down of a key: click/vibration and the keys that act on touch-down (03 §1.2, §4, §7.1, §8.2). */
+        /**
+         * A key-sound event of [k] (03 §1.4 "When key sounds play"): its touch-down, before anything else of the key
+         * press, and every repeated action of a repeating key. Sound class by the key's look, plus the vibration.
+         */
+        fun keySound(k: Key)
+
+        /** Touch-down of a key: the keys that act on touch-down (03 §1.2, §4, §7.1, §8.2). */
         fun touchDown(k: Key)
+
+        /** Shift still held when its hold timer fires (03 §4 item 2a): caps lock, possibly with a second sound. */
+        fun shiftHold()
 
         /** Click of a sticky picker tap (03 §3.4 item 6). */
         fun pickerTap()
@@ -161,6 +170,8 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
     private val repeatTask = object : Runnable {
         override fun run() {
             val k = activeKey ?: return
+            // every repeated action plays the key's sound again, also word-wise deletion (03 §1.4, §5 item 1a)
+            host.keySound(k)
             if (k.role == KeyRole.BACKSPACE && clock.now() - repeatStart >= WORD_DELETE_AFTER_MS) {
                 host.wordDelete()
                 clock.post(this, WORD_DELETE_INTERVAL_MS)
@@ -227,15 +238,18 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
         val k = choose(c, hit, x, y)
         if (k.role == KeyRole.PAGE || k.role == KeyRole.EMOJI) {
             pageSwitchThreshold = c.cell(k).width / 2
+            host.keySound(k)
             host.touchDown(k)
             pageSwitchLock = true
             host.invalidate()
             return
         }
+        host.keySound(k)
         host.touchDown(k)
         activate(k, Activation.DOWN, x, y, corrected = k !== hit.key, show = true)
         consumed = k.role == KeyRole.SHIFT || k.role == KeyRole.EMOJI_CATEGORY
-        if (!consumed) clock.post(holdTask, k.longPressMs.toLong())
+        // Shift acts on touch-down and has a hold of its own (03 §4 item 2a)
+        if (!consumed || k.role == KeyRole.SHIFT) clock.post(holdTask, k.longPressMs.toLong())
         // whatever key it lands on (03 §1.5 item 1, 06 §2.1): on the letter pages also Shift and Backspace
         traceCandidate = host.shapeWritingActive && ShapeWriter.isSwipeCandidate(y, host.keyAreaHeight)
         traceCandidateTouch = traceCandidate
@@ -464,6 +478,11 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
         val k = activeKey ?: return
         if (activation != Activation.DOWN || !inTouch) return
         val cell = cellOf(k) ?: return
+        if (k.role == KeyRole.SHIFT) {
+            // a touch that has become a trace never triggers the hold (03 §4 item 2a)
+            if (!tracing) host.shiftHold()
+            return
+        }
         if (k.holdOutput != null) {
             abortTrace()
             host.holdOutput(k)
@@ -486,6 +505,7 @@ class KeyTouch(private val host: Host, private val clock: TouchClock) {
             repeating = true
             traceCandidate = false
             repeatStart = clock.now()
+            host.keySound(k)
             host.repeat(k)
             clock.post(repeatTask, REPEAT_INTERVAL_MS)
         }

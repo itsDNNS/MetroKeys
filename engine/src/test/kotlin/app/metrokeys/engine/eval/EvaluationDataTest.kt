@@ -60,6 +60,6 @@ class EvaluationDataTest {
         }
         val (p, d) = single.queryDiagnosed(Query("Das ist das haus"))
         assertEquals("Haus", p.autoCorrection)
-        assertEquals("8", d!!.step)
+        assertEquals("4o", d!!.step) // 0.7.1: an orthographic candidate (05 §10.1 step 4o)
     }
 }

@@ -18,6 +18,11 @@ class ImportRulesTest {
             "AddToDictionary.wav" to "dictionary",
             "candidate-select.WAV" to "candidate",
             "Suggestion.wav" to "candidate",
+            "Paste.wav" to "paste",
+            "clipboard-key.wav" to "paste",
+            // rule order: "candidate" before "paste", "paste" before "picker" and "key"
+            "candidate_paste.wav" to "candidate",
+            "paste_picker.wav" to "paste",
             "picker_open.wav" to "picker",
             "accent popup.wav" to "picker",
             "alternates.wav" to "picker",

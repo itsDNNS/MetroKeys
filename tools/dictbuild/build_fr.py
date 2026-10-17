@@ -943,6 +943,8 @@ class FrenchBuilder(AttestedRules):
         collisions = []
         for k, lst in sorted(alias.items()):
             items = [(f, max(1, freq_class(max(c, 0.5), self.scale)), c) for f, c in lst]
+            for f, c in lst:
+                self.form_counts[(k, f)] = max(c, 0.5)
             if k in entries:
                 real = entries[k]
                 best_alias = max(c for _, _, c in items)

@@ -5,6 +5,8 @@ import app.metrokeys.engine.TestDictionaries
 import app.metrokeys.engine.query
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -33,14 +35,41 @@ class ShortKeysAndNamesTest {
     fun zi() {
         show("zi")
         show("Ich gehe zi")
-        // "zi" is a German form ("Zi", abbreviation of "Zimmer"), so step 6a does not reach it (spec/QUESTIONS.md).
-        // The real-word typo rule (05b §3.6) does: count 96 < 100, its most frequent form "zi" (share 0.56) is lower case,
-        // and "zu" is one key aside and ≥ 5000 times as frequent. So "zi" has class 0: valid, never offered, and a space
-        // autocorrects it to "zu" as 05 §17.7a expects.
+        // "zi" is a German form ("Zi", abbreviation of "Zimmer"), so step 6a does not reach it (spec/QUESTIONS.md). It is
+        // a real-word typo of "zu" (05b §3.6; the abbreviation exemption of the 0.7.1 draft is withdrawn): class 0, valid
+        // (no spelling mark) and corrected to "zu"; its key carries the abbreviation bit (05b §1.1), so "Zi." stays (04
+        // §3.2 item 9, tested in the app)
         assertEquals(0, de.lexicon.exactClass("zi"))
         assertTrue(de.query("zi").validity.valid)
         assertEquals("zu", engine.query(Query("zi")).autoCorrection)
         assertEquals("zu", engine.query(Query("Ich gehe zi")).autoCorrection)
+        assertTrue(de.lexicon.isAbbreviationWord("zi"))
+        // the other abbreviations that are real-word typos are class 0 again and carry the bit; "heure" has no bit
+        for (k in listOf("fem", "unf", "lett", "ind", "dor")) {
+            assertEquals(0, de.lexicon.exactClass(k), k)
+            assertTrue(de.lexicon.isAbbreviationWord(k), k)
+        }
+        assertEquals(0, de.lexicon.exactClass("heure"))
+        assertFalse(de.lexicon.isAbbreviationWord("heure"))
+    }
+
+    @Test
+    fun abbreviationBit() {
+        // 05b §1.1 (0.7.1): one bit per key from the abbreviation titles ("usw.", "bzw.") and the sections "Abkürzung";
+        // it changes no class or validity and is reported as typedIsAbbreviation (05 §2.1)
+        for (k in listOf("usw", "bzw", "vgl")) assertTrue(de.lexicon.isAbbreviationWord(k), k)
+        for (k in listOf("haus", "und", "heute")) assertFalse(de.lexicon.isAbbreviationWord(k), k)
+        assertTrue(engine.query(Query("Äpfel, Birnen usw")).typedIsAbbreviation)
+        assertNull(engine.query(Query("Äpfel, Birnen usw")).autoCorrection)
+        assertFalse(engine.query(Query("Das ist das haus")).typedIsAbbreviation)
+        // every language has the bit
+        for (le in listOf(de, TestDictionaries.english(), TestDictionaries.spanish(), TestDictionaries.portuguese(),
+            TestDictionaries.italian(), TestDictionaries.french())) {
+            println("${le.languageTag}: ${le.lexicon.abbreviationCount} keys with the abbreviation bit")
+            assertTrue(le.lexicon.abbreviationCount > 0, le.languageTag)
+        }
+        assertTrue(TestDictionaries.english().lexicon.isAbbreviationWord("etc"))
+        assertTrue(TestDictionaries.spanish().lexicon.isAbbreviationWord("etc"))
     }
 
     @Test
@@ -103,18 +132,19 @@ class ShortKeysAndNamesTest {
     @Test
     fun performanzOffersPerformant() {
         show("Die App ist nicht performanz")
-        // no subtitle occurrence: 0.7.0 admitted by its written frequency (05b §12.3), class from the combined count
-        // (05b §12.2; 0.6.6–0.6.9: the lemma class 1)
-        assertEquals(12, de.lexicon.exactClass("performant")) // 0.7.0 German list (0.6.9: 1)
+        // no subtitle occurrence: admitted by its written frequency (05b §12.3), class from the combined count. From
+        // 0.7.1 it lies beyond SUGGEST_MAX_RANK: valid, but not offered (05 §17.7a, R2 of OD 0.7.1); the case variant
+        // "Performanz" is the only orthographic candidate and becomes the autocorrection
+        assertEquals(12, de.lexicon.exactClass("performant"))
+        assertFalse(de.lexicon.isOfferedWord("performant"))
         val r = engine.query(Query("Die App ist nicht performanz"))
-        val top3 = r.suggestions.take(3).map { it.text }
-        println("performanz: ac=${r.autoCorrection} bar=${r.suggestions.map { it.text }}")
-        assertTrue("performant" in top3, top3.toString())
-        // also German with English (multilingual)
+        assertEquals("Performanz", r.autoCorrection)
+        assertTrue(r.suggestions.none { it.text == "performant" }, r.suggestions.toString())
         val multi = TestDictionaries.multilingual("de-DE", TestDictionaries.german(), TestDictionaries.english())
         val m = multi.query(Query("Die App ist nicht performanz"))
-        println("performanz de+en: ac=${m.autoCorrection} bar=${m.suggestions.map { it.text }}")
-        assertTrue("performant" in m.suggestions.take(3).map { it.text }, m.suggestions.toString())
+        assertTrue(m.suggestions.none { it.text == "performant" }, m.suggestions.toString())
+        // typed in full it stays as typed
+        assertNull(engine.query(Query("Die App ist nicht performant")).autoCorrection)
     }
 
     /** 05 §17.7a (0.6.9): spellings without umlauts are merged into the umlaut form (05b §3.6 umlaut merge). */

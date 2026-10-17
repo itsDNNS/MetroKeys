@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import app.metrokeys.engine.ActiveLanguages
 import app.metrokeys.ime.MetroKeysService
+import app.metrokeys.keyboard.SoundSource
 import app.metrokeys.keyboard.UserAssets
 import app.metrokeys.settings.ui.Accents
 import app.metrokeys.settings.ui.MetroFonts
@@ -35,6 +36,14 @@ class SettingsStore(private val context: Context) {
         // stores the device default of `languages` (07 §9.1) before any page reads it, so no read during
         // composition writes a preference
         Prefs.languages(context)
+        // the one-time migration of the sound source (07 §9.9) runs before any page reads it
+        Prefs.soundSource(prefs)
+    }
+
+    /** The sound source (07 §9.9). */
+    fun soundSource(): SoundSource {
+        version
+        return Prefs.soundSource(prefs)
     }
 
     /** Incremented on resume and on window focus so that permission and setup state are re-read. */

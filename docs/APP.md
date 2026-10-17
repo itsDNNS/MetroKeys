@@ -12,7 +12,7 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew :engine:test testDebugUnitTest lintDebug ass
 **Release build.** `assembleRelease` minifies with R8 (`proguard-android-optimize.txt`) and shrinks resources. No own
 keep rules are needed (reasons in `app/proguard-rules.pro`): manifest components are kept by AAPT's rules, the engine
 loads its dictionaries by absolute Java resource paths, and the only reflective call targets a framework method. The
-release APK (15.0 MB in 0.6.9, 0.6.8 and 0.6.6 with the dictionary-only German lemmas, 15.7 MB in 0.6.5 with all dictionary-only German forms, 14.6 MB in 0.6.4, 14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
+release APK (15.8 MB in 0.7.1, +19 KB for the sounds; 15.0 MB in 0.6.9, 0.6.8 and 0.6.6 with the dictionary-only German lemmas, 15.7 MB in 0.6.5 with all dictionary-only German forms, 14.6 MB in 0.6.4, 14.7 MB since the French dictionary in 0.6.3, 12.5 MB in 0.6.2, 10.6 MB in 0.6.1, 9.1 MB in 0.6.0; debug about 25.7 MB) was checked on the emulator: typing, suggestions, autocorrection, shape
 writing, emoji, clipboard text and images, app bar, all settings pages, learned words and licences; for 0.6.8 (`input motionevent`, screenshots): a vertical move inside
 `s` beyond the threshold shows the trace and, held, opens the picker (the trace fades, the drag selects); a swipe
 from Shift through a-l-t gives "alt" in lower case (shift set back); "(" + swipe → "(gut"; swipe + "?" → "gut?";
@@ -300,6 +300,68 @@ after typing in a plain field (no chips there), back from another app, six rotat
 (fills); first input after the keyboard process started: the system drop-down. `InlineAutofillTest` covers the request
 rule, the chip spec from the settings, the platform size and the slot rules (repeated response, restart, clear).
 
+### Key and event sounds (0.7.1)
+
+03 §1.4, Appendix A; 07 §9.1, §9.8, §9.9.
+
+- **Generated sounds** (`SoundGenerator`, pure Kotlin): the six sounds of Appendix A (letter, space, function, picker,
+  add-to-dictionary, paste) computed with the appendix's algorithm and constants, double arithmetic in the written
+  order (Java semantics forbid contracting to fused multiply-add), once per process. `GeneratedSoundFiles` writes them as
+  WAV files to `cacheDir/generated-sounds/<sound>-<crc32>.wav` on a background thread (only missing files; the CRC in
+  the name means a changed algorithm never plays an old file) and logs a warning if a CRC differs from the appendix.
+  No audio file is shipped.
+- **Rules** (`SoundPlan`, pure): `SoundKind.forKey` gives the sound class by the key's look (`normal` → letter,
+  `function`/`emphasized` → function, the space bar of a letter or symbols page → space; backspace and Enter only
+  choose Android's delete/return click). `SoundPlan.plan` decides per event: nothing with key sounds off, volume 0,
+  do-not-disturb (any interruption filter other than "all") or ringer silent/vibrate without "key sounds in silent
+  mode"; source "MetroKeys" → the generated sound of the slot (pick: the function sound); "Android system sounds" →
+  Android's click for the key slots and pick, the generated sound for picker, add-to-dictionary and paste, and the
+  generated sound for every slot in silent-mode playback; "my own sounds" → the user's file of the slot, else the
+  generated sound (pick: the user's function file, else the generated function sound). Gain: key and picker sounds
+  0.372 × G, pick/add-to-dictionary/paste G, "not recognised" min(1, 2.82 × G), G = (percent / 100)²; Android's clicks
+  keep 07 §9.8 item 3. Silent-mode playback uses the media usage, otherwise sonification.
+- **Playback** (`Feedback`): one `SoundPool` with sonification usage and, while "key sounds in silent mode" is on, one
+  with media usage, both preloaded with the generated sounds and the user's files when the keyboard service starts
+  and again only when the source, the silent-mode setting or the imported files (`custom_assets_stamp`) change.
+  Key and picker sounds share one voice per pool (the previous stream is stopped); pick, add-to-dictionary and paste
+  play independently. Ringer mode and do-not-disturb follow their broadcasts, so a key asks the system nothing. When
+  the keyboard is shown, a silent play of the letter sound opens the pool's output track (03 §1.4 "Latency").
+- **Events**: `KeyTouch` calls `Host.keySound` on every touch-down before anything else of the key (also page keys)
+  and before every repeated action (repeat and word-wise deletion); keys reached by sliding, the key handed over after
+  a page switch and releases play nothing. `SoundEvents` maps the strip pick (pick, add item → add-to-dictionary, the
+  live swipe word → nothing), the autocorrection (pick, after the trigger key's sound), paste header and
+  recently-copied chip (paste; the clipboard panel plays only its touch-down function sound) and the end of a swipe
+  (nothing recognised or not recognised → "not recognised"). The emoji grid plays the letter sound on the release
+  that inserts, not on touch-down. Vibration (12 ms) goes with the key-sound events of `KeyTouch`, the second sound of
+  a held Shift and a touch-down on a sticky picker item.
+- **Shift hold** (03 §4 item 2a): Shift now has a hold timer (450 ms) that stops when the finger leaves its hysteresis
+  area; it does nothing on a touch that became a trace. `ShiftRules.hold`: 1 → 2 with a second function sound, 0 → 2
+  without a sound unless "just unlocked", 2 stays. The release after it changes nothing.
+- **Settings**: `sound_source` `metrokeys` (default) | `system` | `custom`; `Prefs.soundSource` runs the one-time
+  migration (`sound_source_migrated`: a stored `system` or none → `metrokeys`, `custom` kept), called by
+  `KeyboardSettings.read` and at the creation of `SettingsStore`. The sounds page has "Key sounds in silent mode"
+  (dimmed while key sounds are off, item-1 note switches to `key_sounds_note_silent`); the volume preview plays the
+  letter sound of the current source by the same rules (`SoundPreview.playSample`); the sound pack page offers the
+  three sources and seven slots (paste added; import rule "paste"/"clipboard" before "picker"); "remove" sets
+  `metrokeys`. A slot's long-press preview plays with the slot's gain.
+
+Checked on the emulator (release build, 0.6.9 installed before): the sounds page shows the new toggle and "sound
+pack: MetroKeys" (migration); the six files in the cache are named with the appendix's CRC-32 values, so ART computes
+the sounds bit-exactly. Typing "teh quick the " as fast as `input tap` allows (14 keys in 250 ms) played 15 sounds (14
+keys and the pick sound of "teh" → "the"; the platform's playback events), the main-thread time of the sound call per
+key was 0.105 ms median / 0.36 ms max (`mk:feedback`), AudioFlinger showed the key tracks at −8.6 dB and the pick track
+at 0 dB with no underruns. Holding Shift for 800 ms played two function sounds and locked caps ("AN" typed, Shift stays
+accent-coloured); holding backspace for 1.2 s played 11 sounds (touch-down, first repeat at 450 ms, then every 83 ms).
+The emulator's audio has no fast mixer, so absolute latency there is not representative.
+
+Tests: `SoundGeneratorTest` (CRC-32 of all six sounds against the appendix, the listed samples, lengths, peaks 29 000 /
+14 500, WAV header), `SoundPlanTest` (sound class of every key of the German layouts, sources and fallbacks, level
+relation at 100/80/60/50/30/0 %, voices, conditions, silent-mode playback), `SoundEventsTest` (strip picks, swipe
+results, autocorrection and paste, shift taps and holds), `KeyTouchTest` (sound before the touch-down action, classes,
+dial pad, sliding and page hand-over silent, second finger, every repeat and word-delete step, Shift hold once, no hold
+after leaving or as a trace), `SoundSourceMigrationTest` (fresh install, `system` once switched and later kept,
+`custom` kept, the silent-mode default), `ImportRulesTest` (paste rule and order).
+
 ### Own edits versus caret moves
 
 `InputLogic` tracks the selection itself. After each own edit it records the selection it expects; an
@@ -390,13 +452,18 @@ FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < EN
 | 03 §1.1 hit testing, §1.1a key choice, §1.2 hysteresis | `layout/HitTest.kt`: `KeyCells`, `HitTester`, `LetterCorrection`, `Hysteresis` |
 | 03 §1.2–§1.5, §2 touch, sliding, popup | `KeyTouch.down`/`move`/`up` (pressed look, popup and release delay: `pressedKey`, `popup`) |
 | 03 §3, §5 picker, repeat, word delete | `KeyTouch.onHold`, `repeatTask`; `PickerModel` (hold zone, drag phase, slots, sticky picker) |
-| 03 §4 shift | `KeyboardController.shiftDown`/`updateAutoShift` |
+| 03 §4 shift | `KeyboardController.shiftDown`/`updateAutoShift`, transitions in `ShiftRules` |
+| 03 §4 item 2a shift hold (0.7.1) | `KeyTouch.onHold` → `Host.shiftHold` → `KeyboardController.shiftHold` (`ShiftRules.hold`) |
+| 03 §1.4 sounds, §5 item 1a (0.7.1) | `SoundPlan` (classes, sources, level relation, conditions), `Feedback` (pools, voices, ringer and do-not-disturb), `KeyTouch` (`Host.keySound` at touch-down and every repeat), `SoundEvents` |
+| 03 Appendix A generated sounds (0.7.1) | `SoundGenerator`, `GeneratedSoundFiles` |
+| 07 §9.8, §9.9 sounds pages (0.7.1) | `SoundPages`, `SoundPreview`, `Prefs.soundSource` (migration) |
 | 03 §13 hardware keyboard | `MetroKeysService.onKeyDown`, `KeyboardController.toggleMiniKeyboard`, slide in `KeyboardView` |
 | 03 §14 dictation | `Dictation` |
 | 03 §16 inline autofill | `MetroKeysService.onCreateInlineSuggestionsRequest`/`onInlineSuggestionsResponse`, `InlineAutofill` (request, chip sizes, `ChipSlots`), see "Inline autofill (0.6.9)" |
 | 03 §18 insets | `MetroKeysService.onComputeInsets`, navigation inset from window insets |
 | 03 §19 accessibility | `KeyboardAccessibility` (ExploreByTouchHelper; keys are text-entry keys) |
 | 04 text rules | `InputLogic` (with `TextRules`/`TextModel` of the engine) |
+| 04 §3.2 item 9 abbreviation with its period (0.7.1) | `InputLogic.separator`: the engine's autocorrection is not applied when `TextRules.keepsAbbreviation(trigger, prediction.typedIsAbbreviation)` ("Zi." and "fem." stay, "zi" + space → "zu") |
 | 06 shape writing | touch side in `KeyboardView`, recognition in the engine, insertion in `InputLogic.applySwipe` |
 | 01 §5.2 comma key (extension) | `LayoutSet.withOptionalComma`, chosen in `KeyboardController.loadLayout` (`show_comma_key`) |
 | 05 §13 contacts | `ContactsWordSource` (harvest, observer with 1 s debounce, 5 retries 30 s apart) → `PredictionEngine.refreshContacts` |
@@ -427,7 +494,8 @@ FRA/FR, domains, decimal comma) and `languageKeyOrderByLabel` the order DEU < EN
 | Clipboard images | `noBackupFilesDir/clips/<sha-256>.<ext>`, served as `content://app.metrokeys.clips/<file>`; deleted with their entry, stale files swept at start |
 | Forgotten words for the keyboard | preference `forget_words`: lines "timestamp TAB word", last 20 |
 | Imported fonts | `noBackupFilesDir/fonts/<slot>`, slot = light, semilight, regular, semibold, bold, emoji |
-| Imported sounds | `noBackupFilesDir/sounds/<slot>.wav`, slot = letter, space, function, picker, candidate, dictionary |
+| Imported sounds | `noBackupFilesDir/sounds/<slot>.wav`, slot = letter, space, function, picker, candidate, dictionary, paste |
+| Generated sounds (0.7.1) | `cacheDir/generated-sounds/<sound>-<crc32>.wav`, rewritten when missing |
 | Contact names | memory only (keyboard process) |
 | Keyboard language selection order | preference `language_recency` (written by the keyboard) |
 | Keyboard languages | preference `languages`, stored on first use from the device's locale list (0.6.9) |
@@ -565,7 +633,6 @@ to a change counter fed by the preference listener, so summaries follow changes 
 - 03 §6.3.2 extension (restoring a kept list when no follow-up list arrives within 250 ms) is not implemented.
 - 03 §19.3.2 (hover-exit activation for screen readers that do not type text-entry keys) is not implemented;
   TalkBack types the keys itself.
-- No "not recognised" swipe sound (no sound assets are shipped).
 - Compact mode draws its own hide/switch pictograms; Android's own IME buttons in the gesture inset stay visible.
 - Settings: no feathering of the outgoing page (whole-page turnstile), no message box animation, no original file
   name in the sound slot subtitles (MAY), the radio button is part of the control set but used on no page.

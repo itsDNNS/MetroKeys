@@ -34,13 +34,14 @@ class ContactNamesTest {
 
     @Test
     fun costExample() {
-        // n = 1, T = 600 → p = 1e-4 → 87 → 156 (87 in a name field)
+        // 05 §13 (de, anchors of §3.2): n = 1, T = 600 → p = 1e-4 → cost 163 → 232 (163 in a name field)
         val names = listOf("Zora") + List(599) { "Name${'a' + it % 26}${'a' + it / 26}" }
         val c = ContactNames.build(names)
+        val scale = TestDictionaries.german().scale
         assertEquals(600, c.totalCount)
-        assertEquals(156, c.cost("Zora", nameField = false))
-        assertEquals(87, c.cost("Zora", nameField = true))
-        assertEquals(ContactNames.NO_COST, c.cost("Unbekannt", false))
+        assertEquals(232, c.cost("Zora", nameField = false, scale))
+        assertEquals(163, c.cost("Zora", nameField = true, scale))
+        assertEquals(ContactNames.NO_COST, c.cost("Unbekannt", false, scale))
     }
 
     @Test

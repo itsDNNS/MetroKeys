@@ -6,8 +6,10 @@ import android.content.SharedPreferences
 import android.content.res.Resources
 import android.os.Build
 import android.os.LocaleList
+import androidx.core.content.edit
 import app.metrokeys.R
 import app.metrokeys.engine.ActiveLanguages
+import app.metrokeys.keyboard.SoundSource
 import java.util.Locale
 
 /**
@@ -35,8 +37,10 @@ object Prefs {
     const val AUTOFILL_INLINE = "autofill_inline"
     const val KEY_SOUNDS = "key_sounds"
     const val KEY_SOUND_VOLUME = "key_sound_volume"
+    const val KEY_SOUNDS_SILENT_MODE = "key_sounds_silent_mode"
     const val VIBRATION = "vibration"
     const val SOUND_SOURCE = "sound_source"
+    const val SOUND_SOURCE_MIGRATED = "sound_source_migrated"
     const val THEME = "theme"
     const val ACCENT = "accent"
     const val APP_COLOR = "app_color"
@@ -105,6 +109,27 @@ object Prefs {
         return (0 until list.size()).map { list[it] }
     }
 
+    /**
+     * The sound source (07 §9.1, §9.9) after the one-time migration: while [SOUND_SOURCE_MIGRATED] is not set, a stored
+     * `system` (or none) becomes `metrokeys` – earlier versions had no own sounds, so `system` was no deliberate choice –
+     * and `custom` is kept; then the flag is set, and a later choice of `system` is never changed again. Whichever of
+     * keyboard and settings app reads it first runs the migration.
+     */
+    fun soundSource(p: SharedPreferences): SoundSource {
+        if (!p.getBoolean(SOUND_SOURCE_MIGRATED, false)) {
+            synchronized(this) {
+                if (!p.getBoolean(SOUND_SOURCE_MIGRATED, false)) {
+                    val old = p.getString(SOUND_SOURCE, null)
+                    p.edit {
+                        if (old == null || old == SoundSource.SYSTEM.value) putString(SOUND_SOURCE, SoundSource.METROKEYS.value)
+                        putBoolean(SOUND_SOURCE_MIGRATED, true)
+                    }
+                }
+            }
+        }
+        return SoundSource.of(p.getString(SOUND_SOURCE, null))
+    }
+
     /** [languages] of the app's settings with the device's locale list. */
     fun languages(context: Context): List<String> = languages(of(context)) { systemLocales(context) }
 
@@ -164,8 +189,10 @@ data class KeyboardSettings(
     val autofillInline: Boolean,
     val keySounds: Boolean,
     val keySoundVolume: Int,
+    /** Key sounds also in silent/vibrate mode, through the media volume (07 §9.8 item 2). */
+    val keySoundsSilentMode: Boolean = false,
     val vibration: Boolean,
-    val customSounds: Boolean,
+    val soundSource: SoundSource,
     val theme: ThemeChoice,
     val accentIndex: Int,
     val highContrast: HighContrastChoice,
@@ -195,7 +222,7 @@ data class KeyboardSettings(
             autocorrect = true, spaceAfterSuggestion = true, autoCaps = true, doubleSpacePeriod = true,
             shapeWriting = true, spellingUnderline = true, contactsWordSource = false, autoswitchAfterEmoji = true,
             clipboardHistory = true, autofillInline = true, keySounds = true, keySoundVolume = 100, vibration = false,
-            customSounds = false, theme = ThemeChoice.SYSTEM, accentIndex = 5, highContrast = HighContrastChoice.SYSTEM,
+            soundSource = SoundSource.METROKEYS, theme = ThemeChoice.SYSTEM, accentIndex = 5, highContrast = HighContrastChoice.SYSTEM,
             keyboardHeightPercent = 100, customFonts = false, navMode = NavMode.APP_BAR, navTap = Prefs.DEFAULT_NAV_TAP,
             navHold = listOf("none", "none", "none"), learnedResetAt = 0, customAssetsStamp = 0,
         )
@@ -222,8 +249,9 @@ data class KeyboardSettings(
             autofillInline = p.getBoolean(Prefs.AUTOFILL_INLINE, true),
             keySounds = p.getBoolean(Prefs.KEY_SOUNDS, true),
             keySoundVolume = p.getInt(Prefs.KEY_SOUND_VOLUME, 100).coerceIn(0, 100),
+            keySoundsSilentMode = p.getBoolean(Prefs.KEY_SOUNDS_SILENT_MODE, false),
             vibration = p.getBoolean(Prefs.VIBRATION, false),
-            customSounds = p.getString(Prefs.SOUND_SOURCE, "system") == "custom",
+            soundSource = Prefs.soundSource(p),
             theme = when (p.getString(Prefs.THEME, "system")) {
                 "light" -> ThemeChoice.LIGHT
                 "dark" -> ThemeChoice.DARK

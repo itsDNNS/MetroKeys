@@ -5,6 +5,7 @@ import math
 import unicodedata
 
 import casing
+import combined
 from attested import AttestedRules
 from casing import case_kind_rank
 from common import capitalize_first, jlower
@@ -391,6 +392,8 @@ class GermanBuilder(AttestedRules):
                         if best is None or (self.count(cand), cand) > (self.count(best), best):
                             best = cand
             if best is not None:
+                # abbreviations are not exempted (the item 4 of the 0.7.1 draft is withdrawn); they carry the
+                # abbreviation bit of §1.1 instead, which changes no class
                 out[key] = best
         return out
 
@@ -454,6 +457,10 @@ class GermanBuilder(AttestedRules):
             if forms:
                 entries[key] = forms
                 added.append(key)
+                # 0.7.1: their form counts for the frequency ranks of 05b §1.1 (subtitles alone, no written frequency)
+                cc = combined.combined_count(self.count(key), self.corpus_tokens, 0.0)
+                for f, _ in forms:
+                    self.form_counts[(key, f)] = cc / len(forms)
         return added
 
 

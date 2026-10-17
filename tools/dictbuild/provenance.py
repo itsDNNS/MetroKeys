@@ -9,7 +9,8 @@ Word list `<tag>.forms.tsv.gz`: one line per cased form, sorted by key then form
 Flags (comma-separated): spelling (the spelling dictionary knows the key; en-US: a SCOWL key), wiktionary (a form of the
 Wiktionary pass or of the build's own spelling steps), abbreviation, name, colloquial (kept by the colloquial path,
 flagged unattested), merged (received the counts of merged spellings), class0-typo, class0-dominated (dominated and
-former spellings), lemma-only (German dictionary-only lemma, class 1), alias.
+former spellings), lemma-only (German dictionary-only lemma, class 1), alias; from 0.7.1 nosuggest (the do-not-suggest
+flag of 05b §2.16, on the form's line).
 
 Pair table `<tag>.pairs.tsv.gz`: previous word (empty = sentence start; an elision prefix ends with '), follower,
 stored form, weighted pair count, class; per previous word in table order. Prefix table `<tag>.prefixes.tsv`: prefix,
@@ -27,7 +28,9 @@ def _g6(x):
     return "0" if not x else f"{x:.6g}"
 
 
-def write(export_dir, tag, builder, entries, src, lemma_keys=()):
+def write(export_dir, tag, builder, entries, src, lemma_keys=(), nosuggest=()):
+    """[nosuggest]: the forms with the do-not-suggest flag of 05b §2.16 (flag `nosuggest`, 0.7.1; a per-form flag, given
+    on the lines of those forms)."""
     os.makedirs(export_dir, exist_ok=True)
     count = getattr(builder, "count", None) or (lambda k: builder.counts.get(k, 0))
     english = tag == "en-US"
@@ -81,8 +84,9 @@ def write(export_dir, tag, builder, entries, src, lemma_keys=()):
                 c = combined.combined_count(sub, total, pw.get(key, 0.0), key in name_keys, combined.letters_only(key))
             merged = ",".join(sorted(merged_from.get(key, ())))
             for form, cls in forms:
+                form_flags = flags + (["nosuggest"] if form in nosuggest else [])
                 line = "\t".join([key, form, str(int(round(sub))), _g6(pw.get(key, 0.0)), f"{float(c):.3f}", str(cls),
-                                  ",".join(flags), merged])
+                                  ",".join(form_flags), merged])
                 gz.write((line + "\n").encode("utf-8"))
     os.replace(tmp, path)
 

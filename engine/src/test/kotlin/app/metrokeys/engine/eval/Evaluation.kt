@@ -124,7 +124,7 @@ internal class Evaluation(
         val ALL_LANGUAGES = listOf("de-DE", "en-US", "es-ES", "fr-FR", "it-IT", "pt-BR")
         val DE_EN_ENGLISH_SETS = setOf("E1", "E2", "E2a", "E3", "E4", "E5", "F1")
         val ERROR_SETS = listOf("E1", "E2", "E2a", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "R")
-        val FP_SETS = listOf("F1", "F2", "F2z", "F3", "F4", "F5", "F6", "F7")
+        val FP_SETS = listOf("F1", "F2", "F2z", "F3", "F4", "F5", "F5z", "F6", "F7")
         val ALL_ERRORS = listOf("E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8")
         val ALL_FP = listOf("F1", "F2", "F3", "F4", "F5", "F6", "F7")
         const val RATCHET_TOL_LARGE = 0.5
@@ -139,7 +139,8 @@ internal class Evaluation(
             if (error) linkedMapOf("recall" to recall(c), "precision" to precision(c), "wrong" to rate(c.wrong, c.n),
                 "kept" to rate(c.kept, c.n), "top1" to rate(c.top1, c.n), "top3" to rate(c.top3, c.n),
                 "offer" to rate(c.offer, c.n))
-            else if (set == "F7") linkedMapOf("falseCorrection" to rate(c.changed, c.n), "offer3" to rate(c.offer3, c.n))
+            else if (set == "F7") linkedMapOf("falseCorrection" to rate(c.changed, c.n), "offer3" to rate(c.offer3, c.n),
+                "acceptedReplacement" to rate(c.accepted, c.n))
             else linkedMapOf("falseCorrection" to rate(c.changed, c.n))
 
         /** True if a higher value of the metric is better. */
@@ -163,6 +164,7 @@ internal class Evaluation(
                     if (c.n == 0) return
                     for ((m, v) in metrics(c, error, set)) rows["$profile|$lang|$set|$variant|$half|$band|$lb|$m"] = c.n to v
                     rows["$profile|$lang|$set|$variant|$half|$band|$lb|collisions"] = (c.n + c.collisions) to c.collisions.toDouble()
+                    if (c.flagged > 0) rows["$profile|$lang|$set|$variant|$half|$band|$lb|flagged"] = (c.n + c.flagged) to c.flagged.toDouble()
                 }
                 put("*", "*")
                 for (b in listOf("B1", "B2", "B3", "-")) put(b, "*")
@@ -178,6 +180,13 @@ internal class Evaluation(
                 if (e14.n > 0) rows["$profile|$lang|E1-E4|$variant|$half|B1+B2|L2+L3|precision"] = e14.n to precision(e14)
                 val e5 = cells.sum { it.profile == profile && it.language == lang && it.half == half && vf(it) && it.set == "E5" && it.band in setOf("B1", "B2") }
                 if (e5.n > 0) rows["$profile|$lang|E5|$variant|$half|B1+B2|*|recall"] = e5.n to recall(e5)
+                // 0.7.1: omissions are judged by offer, top-3 and wrong (§6, gates G8 and G9)
+                for (s in listOf("E2", "E2a")) {
+                    val c = cells.sum { it.profile == profile && it.language == lang && it.half == half && vf(it) && it.set == s && it.band in setOf("B1", "B2") }
+                    if (c.n == 0) continue
+                    rows["$profile|$lang|$s|$variant|$half|B1+B2|*|wrong"] = c.n to rate(c.wrong, c.n)
+                    rows["$profile|$lang|$s|$variant|$half|B1+B2|*|top3"] = c.n to rate(c.top3, c.n)
+                }
                 val er = ALL_ERRORS.filter { isErrorSet(it, lang) }.mapNotNull { s ->
                     cells.sum { it.profile == profile && it.language == lang && it.half == half && vf(it) && it.set == s }.takeIf { it.n > 0 }
                 }
@@ -211,14 +220,15 @@ internal class Evaluation(
                 val first = o.diagnostics?.entries?.firstOrNull()
                 if (first != null && (first.unattested || toKey(first.word) in lex.names)) w += 1.0
             }
-        } else if (o.autoCorrection != null && o.autoCorrection != o.typed) {
+        } else if (o.autoCorrection != null && o.autoCorrection != o.typed && !o.acceptedReplacement) {
+            // an accepted F7 replacement (§3.7) is no false correction
             w = 3.0
         }
         return w * z
     }
 
     private fun worst(outcomes: List<Outcome>, lex: Map<String, EvalLexicon>, prov: Map<String, Provenance?>): List<Map<String, Any?>> {
-        val scored = outcomes.filter { !it.collision }.map { it to severity(it, lex.getValue(it.language)) }.filter { it.second > 0 }
+        val scored = outcomes.filter { !it.collision && !it.flagged }.map { it to severity(it, lex.getValue(it.language)) }.filter { it.second > 0 }
         val top = scored.sortedWith(compareBy<Pair<Outcome, Double>>({ -it.second }, { it.first.item.set }, { it.first.typed }, { it.first.item.id })).take(50)
         return top.map { (o, s) -> worstEntry(o, s, lex.getValue(o.language), prov) }
     }
@@ -233,7 +243,7 @@ internal class Evaluation(
                 toKey(e.word) in lex.names -> "${e.kind}, name"
                 else -> e.kind
             }
-            "${e.text} ($kind, ${e.languageTag}, lm ${e.lm}, ed ${e.ed ?: "-"}, score ${e.score ?: "-"}, flags ${flags(e.languageTag, e.word)})"
+            "${e.text} ($kind, ${e.source}, ${e.languageTag}, lm ${e.lm}, ed ${e.ed ?: "-"}, score ${e.score ?: "-"}, AC score ${e.acScore ?: "-"}, flags ${flags(e.languageTag, e.word)})"
         } ?: o.bar.take(5)
         val v = d?.validity
         return linkedMapOf(
@@ -258,12 +268,14 @@ internal class Evaluation(
     }
 
     private val stepNames = mapOf("1" to "1 character before blocks", "2" to "2 one-letter word", "2a" to "2a prefix letters",
-        "3" to "3 digit or undone", "4" to "4 no correction candidate", "5" to "5 typed word valid",
-        "6" to "6 score above the limit", "7" to "7 runner-up too close", "8" to "8 applied")
+        "3" to "3 digit or undone", "4" to "4 no correction candidate", "4t" to "4t best is the typed word",
+        "4f" to "4f best is flagged", "4o" to "4o orthographic candidate applied", "4m" to "4m orthographic runner-up too close",
+        "5" to "5 typed word valid", "6" to "6 AC score above the limit", "7" to "7 runner-up too close", "7e" to "7e elision guard",
+        "7o" to "7o omission guard", "7r" to "7r omission reading applied", "7s" to "7s missing-space guard", "8" to "8 applied")
 
     private fun worstLine(o: Outcome, d: app.metrokeys.engine.QueryDiagnostics?): String {
         val bar = d?.entries?.take(5)?.joinToString(" · ") { e ->
-            "${e.text} (${e.kind}, lm ${e.lm}, ed ${e.ed ?: "-"}, score ${e.score ?: "-"})"
+            "${e.text} (${e.kind}, ${e.source}, lm ${e.lm}, ed ${e.ed ?: "-"}, score ${e.score ?: "-"}${e.acScore?.let { ", AC score $it" } ?: ""})"
         } ?: o.bar.take(5).joinToString(" · ")
         val v = d?.validity
         val valid = if (v != null && v.valid) "typed valid (rule ${v.rule}${if (d.typedUnattested) ", unattested" else ""})" else
@@ -468,6 +480,15 @@ internal class Evaluation(
                 val id = "$profile|$lang|$set|$v|test|*|*|falseCorrection"
                 rows[id]?.let { gate(profile, lang, "G6", "$set $v false-correction rate", it.second, it.first, "≤ 1.0 %", it.second <= 1.0, id) }
             }
+            // 0.7.1 (report only): omissions by wrong rate and top-3
+            for ((set, limit) in listOf("E2" to 3.0, "E2a" to 5.0)) {
+                val id = "$profile|$lang|$set|N|test|B1+B2|*|wrong"
+                rows[id]?.let { gate(profile, lang, "G8", "$set wrong rate, B1+B2, N", it.second, it.first, "≤ ${"%.1f".format(java.util.Locale.ROOT, limit)} %", it.second <= limit, id) }
+            }
+            for (set in listOf("E2", "E2a")) {
+                val id = "$profile|$lang|$set|N|test|B1+B2|*|top3"
+                rows[id]?.let { gate(profile, lang, "G9", "$set top-3, B1+B2, N", it.second, it.first, "≥ 60 %", it.second >= 60.0, id) }
+            }
         }
         return out
     }
@@ -477,7 +498,8 @@ internal class Evaluation(
         val set = p[2]
         val half = p[4]
         val metric = p[7]
-        return half != "test" || set == "E9" || set == "R" || set == "F2z" || metric == "offer3" || metric == "collisions"
+        return half != "test" || set == "E9" || set == "R" || set == "F2z" || set == "F5z" || metric == "offer3" || metric == "collisions" ||
+            metric == "flagged" || metric == "acceptedReplacement" || ((set == "E2" || set == "E2a") && metric == "recall")
     }
 
     private fun ratchetSection(rows: Map<String, Pair<Int, Double>>, lintCounts: Map<String, Int>, lintLists: Map<String, Set<String>>, base: Baseline?): Map<String, Any?> {
@@ -518,7 +540,7 @@ internal class Evaluation(
                 for (v in listOf("N", "S")) {
                     val prefix = "$profile|$lang|$set|$v|$half|*|*|"
                     val metricNames = if (isErrorSet(set, lang)) listOf("recall", "wrong", "kept", "precision", "top1", "top3", "offer")
-                        else if (set == "F7") listOf("falseCorrection", "offer3") else listOf("falseCorrection")
+                        else if (set == "F7") listOf("falseCorrection", "offer3", "acceptedReplacement") else listOf("falseCorrection")
                     val cell = linkedMapOf<String, Any?>()
                     val n = metricNames.firstNotNullOfOrNull { rows[prefix + it]?.first }
                     cell["n"] = n ?: 0
@@ -530,6 +552,7 @@ internal class Evaluation(
                         if (diffs.isNotEmpty()) cell["$m vs baseline"] = diffs
                     }
                     rows[prefix + "collisions"]?.let { cell["collisions"] = it.second.toInt() }
+                    rows[prefix + "flagged"]?.let { cell["flagged"] = it.second.toInt() }
                     row[v] = cell
                 }
                 table.add(row)
@@ -541,8 +564,14 @@ internal class Evaluation(
                 rows["$profile|$lang|allErrors|$v|$half|*|*|recall"]?.let { aggregates["allErrors recall $v $half"] = Num.pct(it.second) }
                 rows["$profile|$lang|allFalsePositives|$v|$half|*|*|falseCorrection"]?.let { aggregates["allFalsePositives $v $half"] = Num.pct(it.second) }
             }
+            // 0.7.1: the flagged buckets (§3.5) and the F7 accepted replacements (§3.7) with their items
+            val own = ts?.outcomes?.filter { it.language == lang && !it.collision }.orEmpty()
+            fun item(o: Outcome) = "${o.item.id} ${o.item.set} ${o.item.variant} ${o.item.half} \"${o.typed}\" → \"${o.item.expected}\"" +
+                (o.autoCorrection?.let { " (autocorrection $it)" } ?: "")
             out["$profile $lang"] = linkedMapOf("sets" to table, "aggregates" to aggregates,
-                "baseWordsWithoutContext" to (noContext?.let { (it as Double).toInt() }), "queries" to (ts?.outcomes?.size))
+                "baseWordsWithoutContext" to (noContext?.let { (it as Double).toInt() }), "queries" to (ts?.outcomes?.size),
+                "flaggedItems" to own.filter { it.flagged }.sortedBy { it.item.id }.map(::item),
+                "acceptedReplacements" to own.filter { it.acceptedReplacement }.sortedBy { it.item.id }.map(::item))
         }
         return out
     }

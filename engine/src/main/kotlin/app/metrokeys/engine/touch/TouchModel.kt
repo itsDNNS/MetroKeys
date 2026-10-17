@@ -71,14 +71,17 @@ public class TouchModel(public val geometry: KeyboardGeometry, private val param
      */
     public fun proximity(typed: Char, x: Float, y: Float, intended: Char): Int {
         val ki = geometry.touchKey(intended) ?: return -1
+        val kt = geometry.touchKey(typed)
+        // two different letters of the same key (an accent alternate for its base letter, "ä" typed for "a") are no
+        // neighbours, also with a known tap: a substitution on the same key costs ED_SUBSTITUTE (05 §5, 0.7.1)
+        if (kt === ki && typed != intended) return -1
         val px: Float
         val py: Float
         if (!x.isNaN() && !y.isNaN()) {
             px = x
             py = y
         } else {
-            val kt = geometry.touchKey(typed) ?: return -1
-            if (kt === ki) return -1
+            if (kt == null || kt === ki) return -1
             px = kt.centerX
             py = kt.centerY
         }

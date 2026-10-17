@@ -245,6 +245,8 @@ class AttestedRules:
         self.max_count = classes.max_count
         self.scale = classes.scale
         entries = {}
+        # 0.7.1: the form counts (combined count x form share) for the frequency ranks of 05b §1.1
+        self.form_counts = {}
         for key, sel in selected.items():
             pairs = []
             seen = set()
@@ -253,6 +255,7 @@ class AttestedRules:
                     continue
                 seen.add(f)
                 pairs.append((f, share))
+                self.form_counts[(key, f)] = cc[key] * share
             forms = classes.forms(pairs, cc[key], key not in self.colloquial, key in zero,
                                   fixed.get(key) if fixed else None)
             forms.sort(key=lambda fc: -fc[1])

@@ -221,6 +221,14 @@ public object TextRules {
         return isAutocorrectTrigger(trigger)
     }
 
+    /**
+     * 04 §3.2 item 9 (0.7.1): true if the autocorrection must not be applied because [trigger] is a period and the
+     * engine reports the typed word as an abbreviation (05 §2.1 `typedIsAbbreviation`): "Zi." and "fem." stay as
+     * typed, while "zi" + space is still corrected.
+     */
+    @JvmStatic
+    public fun keepsAbbreviation(trigger: Char, typedIsAbbreviation: Boolean): Boolean = trigger == '.' && typedIsAbbreviation
+
     /** Query scheduling (05 §2.3): delay before running a query for a key that came [gapMs] after the previous one. */
     @JvmStatic
     public fun queryDelayMs(gapMs: Long): Long = if (gapMs in 0 until 700) 350 else 0

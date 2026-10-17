@@ -10,8 +10,8 @@ app (next stage) only translates editor state into queries and applies the resul
 | Package | Content |
 |---|---|
 | `app.metrokeys.engine` | public facade: `PredictionEngine`, `Query`, `Prediction`, `Suggestion`, `EngineSettings`, `LearnedDataStore`, `Proofreader`, `ActiveLanguages` (05 §14.5) |
-| `…engine.lexicon` | runtime dictionaries: `Dictionary` (word list + pair table), `Lexicon` (prefix tree with per-subtree best class, `forms/exact/canonical/frequency/completions/fuzzy/words`), `PairTable` (`bigram/followers`, bound to its word list) |
-| `…engine.predict` | per-language engine `LanguageEngine` (LM cost §3, case mode §6, validity §7, candidates §8, autocorrection decision §10.1, next word §11), `EditDistance` (§5), `LmCost`, `UserModel` (§12, persistence), `ContactNames` (§13), `LanguageParams`/`ShapeParams`/`Params` (§1, 06 §7.1) |
+| `…engine.lexicon` | runtime dictionaries: `Dictionary` (word list + pair table), `Lexicon` (prefix tree with per-subtree best class and best offered class, the derived per-form data of 05b §1.1, `forms/exact/canonical/frequency/completions/words`), `CasedForms`/`CasedTrie` (the cased forms walked in code-unit order for the spelling source, 05d §7), `DerivedData` (cost anchors, offered bits and spelling classes for files without them), `PairTable` (`bigram/followers`, bound to its word list) |
+| `…engine.predict` | per-language engine `LanguageEngine` (LM cost §3, case mode §6, validity §7, candidates §8, autocorrection decision §10.1, next word §11), `KeySlipSearch`/`SlipTable` (§8.1), `SpellingSource`/`SpellingParams` (05d), `EditDistance` (§5), `LmScale` (the anchored cost map of §3.2), `UserModel` (§12, persistence), `ContactNames` (§13), `LanguageParams`/`ShapeParams`/`Params` (§1, 06 §7.1) |
 | `…engine.text` | `TextModel` (word characters, current word, contexts §2.2), `TextRules` (04: auto-shift, double-space period, triggers, smart/trailing space, word delete, autocorrection gate), `FieldPolicy`/`FieldInfo` (§15 incl. Android input-type mapping), case helpers |
 | `…engine.touch` | `KeyboardGeometry` (letter keys from `spec/data/layouts-*.json` or the fallback grid), `TouchModel` (§4), `Tap`/`TapSequence` |
 | `…engine.swipe` | `ShapeWriter` (06 §3–§4: key sequence, angles, stage-A search, templates, DTW, context, unrecognised gestures), `ShapeTrace`, `ShapeResult` |
@@ -21,10 +21,12 @@ app (next stage) only translates editor state into queries and applies the resul
 Keyboard languages: German (`de-DE`), US English (`en-US`), Spanish (`es-ES`), French (France, `fr-FR`, 0.6.3),
 Portuguese (Brazil, `pt-BR`, 0.6.1) and Italian (`it-IT`, 0.6.2).
 Everything that differs between them is one `LanguageParams` instance (`LanguageParams.ALL`, fixed language order =
-alphabetical by tag): the weights and limits of 05 §1.1, the language rules (`prefixAccents` with one or more accented
-letters per base letter, `oneLetterWords`, `singleLetterFix`, `compoundLinks` = null for no compounds,
-`missingSpaceSplit`, `ingRule`, `elisionPrefixes`, `accentSwap`, `hideClassZero`, `elisionValidSlack`,
-`capsUnaccented`, `umlautTranslit`), the fallback grid of 05 §4 (rows and the starts of rows 2 and 3: Spanish and Portuguese have ten keys
+alphabetical by tag): the weights and limits of 05 §1.1 (from 0.7.1 also the AC edit weights `acInsert`, `acDelete`,
+`acSpace`, `acSwap` and the slips `slipNear`, `slipAccent`, `slipFiller`), the language rules (`slipAccents` with one or
+more accented letters per base letter, `oneLetterWords`, `singleLetterFix`, `compoundLinks` = null for no compounds,
+`missingSpaceSplit`, `ingRule`, `elisionPrefixes`, `elisionFullWords`, `accentSwap`, `hideClassZero` (shape writing
+only), `elisionValidSlack`, `capsUnaccented`, `umlautTranslit`), one `SpellingParams` instance (the rows S, B, E, P, F,
+letter pairs, letter-group rules, vowel classes, adjacent keys and digraphs of 05d §9), the fallback grid of 05 §4 (rows and the starts of rows 2 and 3: Spanish and Portuguese have ten keys
 without indent in row 2, ñ / ç last; French AZERTY has ten keys in row 2 and starts row 3 at 0.2 · width), the
 shape-writing constants
 of 06 §7.1 (`ShapeParams`; English uses its own column since 0.6) and the emoji table. A further language adds one
@@ -47,7 +49,9 @@ engine.loadLearnedData(store)                                 // LearnedDataStor
 val field = FieldPolicy.fromAndroid(editorInfo.inputType, editorInfo.imeOptions)
 val p = engine.query(Query(before = textBeforeCaret, after = textAfterCaret, taps = taps, field = field))
 // p.suggestions: bar entries (autocorrection first and marked), p.autoCorrection: applied on a trigger
-if (TextRules.mayApplyAutocorrection(/* keyboard-side conditions of 04 §3.2 */)) …
+// engine.query(q) { outdated } stops with QueryCancelledException once the check reports the query outdated (05 §2.3)
+if (TextRules.mayApplyAutocorrection(/* keyboard-side conditions of 04 §3.2 */) &&
+    !TextRules.keepsAbbreviation(trigger, p.typedIsAbbreviation)) …   // 04 §3.2 item 9: "Zi." stays
 engine.learn(committedWord, previousWords, field, accepted = pickedTypedWord)
 engine.rejectAutoCorrection(typed, correction, field, accepted = undoneByPickingTheTypedWord)
 engine.isForgettable(candidate); engine.forget(word); engine.learnedWords()   // 05 §12.5
@@ -69,17 +73,38 @@ for the licences screen. Queries are thread-safe; learned data is synchronised i
 called at the start of every `query` on the calling thread, so the keyboard's tests (and debug checks) can verify that
 no query runs on its UI thread.
 
-## Data flow of a query
+## Data flow of a query (0.7.1)
 
-1. `QueryContext.of(before, taps)` extracts the current word, the character before it, the pair context
-   (`PrevContext`: sentence start / word / none) and the preceding words of the sentence; taps are aligned from the
-   end.
-2. Each running `LanguageEngine` computes validity, the correction pool (fuzzy trie search, ß variant, canonical
-   form, learned and contact words), the missing-space split, completions for the typed and the variant prefixes,
-   the final filtering (CORR_KEEP) and the autocorrection decision.
-3. `PredictionEngine` builds the bar: single language → autocorrection first, then the ranked list; multilingual →
-   language weights from the preceding words, cost + 18 · (−log10 w) per language, merge, top-language-only
-   autocorrection with the foreign-word block, emoji from the top language.
+1. `QueryContext.of(before, taps, nameField, cancel)` extracts the current word, the character before it, the pair
+   context (`PrevContext`: sentence start / word / none) and the preceding words of the sentence; taps are aligned from
+   the end.
+2. Each running `LanguageEngine` computes validity (with `classZero` for a word valid only as a class-0 form) and then
+   the candidates of 05 §8, each source on its own:
+   - the **key-slip search** (§8.1, `KeySlipSearch`): a best-first walk over the key tree along the typed letters with
+     exact, neighbour (proximity at the key centres), filler and accent slips; the priority is slip + the static cost
+     of the highest *offered* class below a node, so subtrees that cannot improve a full list are not entered; the
+     forms whose cost in the query is below their static cost (stored pair followers of the previous word, forms with
+     learned counts, contact words) are matched directly. Same-length list (5), completion list (12), hand-over (12);
+     the forms of an all-exact key enter with total 1;
+   - the same walk over the **user words** (§8.1a: known learned words without case errors, contact words);
+   - the walks of the **transliterated spellings** (§8.1c: ß for ss, œ/æ for oe/ae in French, umlauts for ae/oe/ue in
+     German); such a walk hands over only completions longer than the typed word (0.7.1 review: "fue" → "fü" no
+     longer makes "für" a completion, so "das ist fue" corrects to "für"; "Strass" completes to "Straßen", not
+     "Straße");
+   - the **spelling source** (§8.1b, 05d, `SpellingSource`): its first five words, looked up as stored forms (lm 300
+     for a word that is no offered form, two-word suggestions only where `SPLIT_SPACE` is on);
+   - the **missing-space split** (§8.2) and the **elision candidates** (§8.2.1 items 1, 1a, 2, 3).
+   Every candidate is scored against its display form (score = lm + ed; completions ed of the matched prefix +
+   `COMP_SURCHARGE`), filtered by the unit rules of §8.3, merged by display (lower score kept with its kind) and ordered
+   (score, then descending code-unit order). The decision of §10.1 (policy P3) follows.
+3. `PredictionEngine` builds the bar (05 §9): autocorrection first, then the ranked list; of the first 11 entries of that
+   order the typed word and flagged entries are not shown. Multilingual: language weights from the preceding words,
+   score + 23 · (−log10 w) per language, merge, top-language-only autocorrection with the foreign-word block, emoji from
+   the top language.
+4. Cancellation (05 §2.3, 05d §7): `query(q, cancel)` passes the check to the key-slip search and the spelling source,
+   which test it every 1 000 heap steps / node visits and throw `QueryCancelledException`; the spelling source stops at
+   `SPELL_VISIT_MAX` = 200 000 node visits. The keyboard cancels its typing queries when a newer word state replaces
+   them.
 
 ## Learning, acceptance and forgetting (05 §10.4, §12)
 
@@ -104,9 +129,8 @@ byte with bit 0 = accepted); contexts (key, followers with counts); recent windo
 Version 1 (without the flags byte and the undo counts) is still read: its undo entries get one undo (they were rejected
 before), its words are not accepted. Anything else yields an empty model.
 
-**Three-letter words** (05 §8.1 extension): `LanguageEngine.twoNeighbourSubstitutions` tries, for each pair of positions,
-every pair of neighbour letters (touch-model proximity at the key centres ≤ `NEAR_MAX`) and adds the best cased form of
-every dictionary key it hits ("usz" → "ist"); scoring is unchanged.
+**Three-letter words**: since 0.7.1 the key-slip search lets any number of positions slip, so "usz" reaches "ist" (two
+neighbour slips) without the extension of 0.6.x.
 
 ## Dictionary format
 
@@ -116,6 +140,14 @@ Both files are gzip streams (written by `tools/dictbuild/common.py`, read by `Le
   UTF-16 order, front-coded (shared prefix length + UTF-8 suffix), each with its forms (class byte + a kind byte:
   the key itself, first letter upper-cased, all upper-cased, or an explicit string — used for alias keys such as
   `dont` → `don't`).
+- **Version 3** (0.7.1, every language; 05b §1.1 derived data): after the form count the header holds the cost anchors
+  (count, then class and cost bytes) and the guard class; the kind byte of every form carries bit 2 offered (the
+  `SUGGEST_MAX_RANK` most frequent forms by form count), bits 3–4 the spelling class of 05d §6 and bit 5 the
+  do-not-suggest flag of 05b §2.16; bit 6 of a key's form-count byte is the **abbreviation bit** of 05b §1.1 (0.7.1
+  review; so a version-3 key has at most 63 forms; `Lexicon.isAbbreviation` / `isAbbreviationWord`,
+  `abbreviationCount`, a `BitSet` over the key indices); the prefix table always follows the keys (count 0 where a
+  language has none). Older files and lexicons built from entries derive these data from their classes
+  (`DerivedData`) and have no abbreviation bits.
 - **Unattested flag** (0.6.9; meaning from 0.7.0): bit 7 of a key's form-count byte marks a key that is no form of the
   language: since 0.7.0 the keys kept by the colloquial path of 05b §12.4 (23–203 per language), in 0.6.9 the keys kept
   by the count rule (the damped keys of 05b §3.6 step 7). `Lexicon.isUnattested` /
@@ -137,16 +169,21 @@ computed on the way), never held as a whole. The front-coded keys are kept only 
 character per tree node) with their lengths and common-prefix lengths; the breadth-first prefix tree (children
 contiguous and sorted, so lookups are binary searches and node order is (depth, text)) is then built level by level —
 a key's node at depth d is new exactly when its common prefix with the previous key is shorter than d — into arrays of
-exactly the node count: de-DE ≈ 1 091 400 nodes (322 189 keys since 0.6.7 with the abbreviation titles and prefix compounds; 1 089 000 nodes and 320 804 keys in 0.6.6 with the dictionary-only lemmas; 1 781 000 nodes and 857 274 keys in 0.6.5 with all dictionary-only forms; 717 000 nodes and 236 223 keys in 0.6.4), en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 063 keys since 0.6.7, 185 711 before),
+exactly the node count (0.7.1: the children ranges as one array, `start[i] … start[i + 1]`, because the breadth-first
+layout puts the children of node i + 1 right after those of node i, and the key of a terminal node through a bit set
+with a rank directory, which saves 6 bytes per node against separate child counts and a key per node; two further bytes
+per node hold the best offered class and the case kinds of the forms below): de-DE ≈ 1 091 400 nodes (322 189 keys since 0.6.7 with the abbreviation titles and prefix compounds; 1 089 000 nodes and 320 804 keys in 0.6.6 with the dictionary-only lemmas; 1 781 000 nodes and 857 274 keys in 0.6.5 with all dictionary-only forms; 717 000 nodes and 236 223 keys in 0.6.4), en-US ≈ 385 000, es-ES ≈ 516 000, pt-BR ≈ 369 000, it-IT (185 063 keys since 0.6.7, 185 711 before),
 fr-FR (174 238 keys since 0.6.7, 174 316 before). Explicit forms are a sorted index array with their
 texts; pair-table followers go straight into primitive arrays. Two languages with pair tables retain 24–35 MB of JVM
 heap without German and 38–42 MB with German since 0.6.6 (56–60 MB in 0.6.5, 31–35 MB in 0.6.4) and load within a 56 MB
 maximum heap (0.6.5: 80 MB, 0.6.4: 44 MB), three 39–43 MB without and 50–57 MB with German within 68 MB (0.6.5: 88 MB,
 0.6.4: 60 MB) (`MemoryBudgetTest`; before: transient copies of the decompressed files, one
-string per key and per-character build arrays). Loading both takes ≈ 0.2–0.3 s on a desktop JVM. Completions are a best-first search over the per-node maximum class; the fuzzy search walks the tree with
-optimal-string-alignment rows and prunes with the row minimum (and the row before it, which keeps the pruning
-admissible with transpositions). Shape writing reuses the same tree as its word index; contact words not in the
-lexicon get a small second tree.
+string per key and per-character build arrays). Loading both takes ≈ 0.2–0.3 s on a desktop JVM. Completions (next-word filler) are a best-first search over the per-node maximum class; the key-slip search is a
+best-first search over the per-node maximum offered class; the spelling source walks the cased forms in code-unit order
+as (key node, case modes, explicit-form node) without a second tree (`CasedForms`): a key node's children are produced
+once per case mode (L: as the key, F: first letter upper, A: every letter upper) where the case kinds below the child
+have forms of that mode, merged with the children of the small tree of the explicitly stored forms. Shape writing reuses
+the key tree as its word index; contact words not in the lexicon get a small second tree.
 
 ## Rebuilding the dictionaries
 
@@ -224,13 +261,64 @@ cover 0.6.2;
 `ShapeWriterTest` covers the multilingual example of 06 §4.1 (d-a-s → das · dass · daß · da · dad) and the language
 penalty. `-PshowOutput` shows test output.
 
+0.7.1 tests: `WorkedExamplesTest` (05 §17.1–17.7a with the anchored costs) and the language example tests (§17.8–17.10);
+`SpellingSourceTest` (05d: every edit kind and group rule with hand-computed costs, rounds and confidence, case
+penalty, two-word suggestions, transliterated spellings, cancellation and the introsort order of equal costs); `KeySlipTest` (the
+best-first search returns the same lists as a brute-force scan of the trie, tie order, pair followers, learned and
+contact words); `PipelineRulesTest` (merge and tie order of §8.4, the filters, the bar cut of §9, the class-0 rule,
+do-not-suggest forms, the P3 steps 4o/4m/4t, the omission guard 7o, the missing-space guard 7s, the apostrophe guard
+7e, two-word candidates, the AC edit weights, unoffered spelling candidates); `LmCostTest` (anchors, slopes, inverse);
+`LexiconTest` (format version 3, derived data of the bundled lists, the fallback derivation, the cased forms in
+code-unit order); `MemoryBudgetTest` with the compacted trie arrays (German alone 29.8 MB retained, 0.7.0 32.8 MB; the
+largest set of three, fr + de + it, 59.3 MB, 0.7.0 64.1 MB; every pair and set of three passes the limits above);
+`tools/dictbuild/test_build_071.py` (the build's derived data, register labels, the real-word typo rule without
+the withdrawn abbreviation exemption and the abbreviation bit). 0.7.1 review: `ShortKeysAndNamesTest.zi` /
+`abbreviationBit` ("zi", "fem", "ind", "dor" are class 0 with the abbreviation bit; the bit in all six lists),
+`WorkedExamplesTest` ("zi" + space → "zu", "ind" → "und", "wie geht es dor" → "dir", "das ist fue" → "für"),
+`UmlautTranslitTest.completions` (§8.1c length rule, "Strass" → "Straßen"), `TextRulesTest.periodKeepsAnAbbreviation`
+and in the app `InputLogicTest.anAbbreviationTypedWithItsPeriodStays` ("Zi." and "fem." stay, "zi " → "zu ").
+Unknown words always corrected (0.7.1 review): `PipelineRulesTest.runnerUpMarginOnlyForValidTypedWords` (a synthetic
+list: the same close corrections keep a valid rare word and correct the unknown one; "nir", "fue", "ind") and
+`omissionGuardNotForTheOmissionReading` ("das mchte" → "möchte", "diees" still 7o) and
+`omissionGuardAppliesTheOmissionReadingForUnknownWords` ("Kanst" at the text start → "Kannst" in step 7r; "diees"
+stays because "dieses" is only a completion; "Aut" → "Auf"; valid typed words stay); `WorkedExamplesTest` ("das mchte"
+→ "möchte", "das ist scon" → "schon", "ich habe es gesen" → "gegen", "Ich habe nir" → "mir") and
+`SpanishExamplesTest.example7MissingSpace` ("aveces" → "veces", "a veces" among the next three).
+
+## Latency (0.7.1)
+
+A query runs off the input thread and is cancelled by the next keystroke (`QueryContext.cancel`, checked every 1 000
+visits of the spelling walk and between sources; `InputLogic` passes a generation check). The spelling walk also stops
+at `SPELL_VISIT_MAX` 200 000 visits (05d §7). Measured per query over the salt-A test sets (every item, typed word
+with its taps, no learning, no swipe):
+
+- JVM (`MK_LATENCY=1 ./gradlew :engine:test --tests '*LatencyBenchmark*'`, JDK 21, after warm-up): mean / p95 / max
+  in ms — de 1.75 / 3.96 / 8.07, en 1.07 / 2.31 / 9.17, es 1.14 / 2.53 / 5.49, fr 1.78 / 3.48 / 7.72, it 0.96 / 2.00 /
+  4.69, pt 1.13 / 2.41 / 5.12. German spelling visits: mean 20 198, p95 45 071, max 80 439 (the budget is never hit).
+- Emulator (`SERIAL=emulator-5580 tools/device-benchmark.sh`: the engine shrunk with R8 in release mode as in the
+  release APK, run with `app_process`, 2 000 items per language): de 3.02 / 6.58 / 13.84, en 1.83 / 4.03 / 6.94, es
+  2.04 / 4.48 / 10.06, fr 3.19 / 6.09 / 9.42, it 1.72 / 3.54 / 5.63, pt 2.04 / 4.30 / 7.83 — p95 well below the 50 ms
+  of the task, so no further optimisation was needed.
+
 ## Decisions where the specification leaves room
 
 - **Search fields and the double-space period** (0.6.8): on, as in the reference (04 §2, §8.2 and 05 §15 agree since
   0.6.8; before, 04 was followed and it was off).
 - **ED_CASE on substitutions** (05 §5): added to every substitution branch (diacritic, space, neighbour) when exactly
   one of the two letters is upper case.
-- **Autocorrection runner-up** (05 §10.1 step 7): the second candidate in correction-cost order.
+- **Autocorrection runner-up** (05 §10.1 steps 4o and 7, 0.7.1): among the orthographic candidates the second one in
+  ranked-list order; otherwise the second correction in AC-score order (equal AC scores in ranked-list order). From the
+  0.7.1 review (owner decision) step 7 applies only to a typed word that is valid for the decision: an unknown word or
+  a class-0 form never stays because two corrections are within `AC_MARGIN` ("Ich habe nir" → "mir", "das ist fue" →
+  "für", "ind" → "und"). The omission guard of step 7a is not applied when such a word's best correction is itself the
+  typed word with one letter inserted ("das mchte" → "möchte" although "machte" is close). With any other best it
+  still applies, but for such a word it applies the omission reading instead of none: the first correction in
+  AC-score order (not best, not the typed word, not flagged) that is the typed word with one letter inserted, with an
+  lm within `AC_OMISSION_MARGIN` of best's and an AC score within `AC_LIMIT` ("Kanst" at the text start → "Kannst",
+  although "Knast" has the same AC score and ranks first; diagnostic step `7r`). Only without such a correction is
+  the result none ("diees" stays: "dieses" is only a completion, and completions are never applied). Valid typed
+  words keep the guard's plain "none". A valid typed word is offered by the spelling source and is its own orthographic
+  candidate, so its decision normally ends in step 4o (4t) before step 7.
 - **Unattested keys** (05 §10.1 step 5; off — owner decision for 0.7.0, the flag marks the colloquial-path keys for the
   evaluation of 05c only): the rule is behind
   `LanguageParams.unattestedKeysRule`, whose default for every language is the one switch `Params.UNATTESTED_KEYS_RULE`
@@ -268,7 +356,8 @@ penalty. `-PshowOutput` shows test output.
   The stage-A dominance table is an open-addressing map over primitive arrays (≤ 16 bytes per slot).
 - **Touch keys**: the touch model uses the alternates listed in 05 §4 (ä → a …), shape writing removes any
   diacritic (06 §4.2). Nominal key size = the most common letter-key width/height (05 open point 3).
-- **Completion ties** (05 open point 2): equal classes are returned shorter first, then alphabetically.
+- **Completion ties** (05 open point 2): in the next-word filler equal classes are returned shorter first, then
+  alphabetically; in the key-slip lists equal totals by higher class, then the form in code-unit order (05 §8.1).
 - **Next-word display**: equal costs are ordered by text as the rule says (in 0.6.4 "Das 49" preceded "Sie 49"; since
   0.6.5 "Das" costs 50, see the German dictionary-only forms below).
 - **Stricter learning everywhere**: 05 §12.2's "typed twice" text and its worked example predate §12.5; §12.5 is
@@ -284,10 +373,9 @@ penalty. `-PshowOutput` shows test output.
   of this build (05 open point 10): lm(canción) 87, lm(mañana | hasta) 56, lm(dámelo) 101, score(por favor) 177,
   score(España) = lm + 29, score(Hola) = lm + 65. Measured deviations from the expected outcomes are in
   spec/QUESTIONS.md ("Muchas " → "gracias" is fifth, "aveces" scores 218 > 217).
-- **Prefix accent variants** (05 open point 8, §1.1 notes on pt-BR): accent variants cost 0 and are sorted before
-  every other variant (also a neighbour variant of cost 0), so the limit of 24 never removes them; Portuguese
-  "acao" gives 12 accent variants + 3 swaps + 9 neighbour variants, "informacao" 16 accent variants + 8 of its 9
-  swaps (`PortugueseExamplesTest`).
+- **Slip accents** (05 §8.1, `SLIP_ACCENTS`, 0.7.1; up to 0.7.0 the prefix variants of `PREFIX_ACCENTS`): a typed base
+  letter may stand for each listed accented letter at any number of positions (Portuguese "acao" reaches "ação" with two
+  accent slips, `PortugueseExamplesTest`); a typed letter without an entry uses the entry of its base letter.
 - **Elided prefix** (05 §2.2, `ELISION_PREFIXES`): `LanguageEngine.suggest` strips the language's prefix ("d'", also
   typed with `’`) when the word continues with a letter and is not itself an exact form, runs the query for the
   remainder without pair context (the character before the prefix still decides `AC_BLOCK_PREV`) and puts the prefix
@@ -330,8 +418,9 @@ penalty. `-PshowOutput` shows test output.
   "dell'" as last context word, a bare prefix is never learned.
 - **ACCENT_SWAP** (§5): `EditDistance.isAccentSwap` (both letters carry a diacritic, same base letter) costs
   `ED_DIACRITIC`; a typed accented letter for a plain one stays a substitution of the same key (`ED_SUBSTITUTE`).
-- **Class-0 Italian spellings** ("perche", "citta", "cè"): valid, but `hideClassZero` keeps them out of corrections,
-  completions and shape writing (05 §1.1 notes on it-IT: "never suggested").
+- **Class-0 spellings** ("perche", "citta", "cè", German real-word typos, Portuguese pre-reform spellings): valid, never
+  offered (0.7.1: no class-0 form is an offered form in any language, 05 §8), and not valid for the autocorrection
+  decision (05 §10.1 step 4); `hideClassZero` (de, it, fr) now only keeps them out of shape writing.
 - **Elided words in shape writing** (06 §4.1): a second index (`Lexicon.fromEntries`, 6 506 entries since 0.6.7, 6 581 before) of prefix +
   static follower with the class of p_pre · P(F | P′); its context bonus mixes P(prefix | previous word) into p_pre. After
   a prefix ("l'" + swipe) the previous word is the prefix and the elided index is not searched.
@@ -449,5 +538,28 @@ penalty. `-PshowOutput` shows test output.
   text start 49 (50; again the value of 05 §17.7). Outcomes: "Cursos" offers "Crusoe", "Cursor", … ("Cursor" among the
   first three, "Curtis" no key: 05 §17.7a as amended), "dad", "the", "Curtis" and "Captain" are no keys any more, "wär"
   and "gibts" are flagged colloquial keys; the other German outcomes are unchanged.
+
+- **Candidate pipeline of 0.7.1** (05 §8–§10, 05d): see "Data flow of a query". Decisions where the text leaves room
+  (spec/QUESTIONS.md, 0.7.1):
+  - the typed word itself is an orthographic candidate of step 4o (it keeps every typed letter); a valid typed word is
+    therefore replaced only by an orthographic candidate that ranks more than `AC_MARGIN` above it ("Stuck" → "Stück");
+  - a learned word that is a case error ("haus" learned for "Haus") is no user word of §8.1a (it never counts as known,
+    §7 rule 3), so "Das ist das haus" is still corrected after "haus" was learned;
+  - the unpaired elision candidate of §8.2.1 item 1a of a valid typed word is kept, like an elision split, only within
+    `ELISION_VALID_SLACK` (French "lui" offers no "l'ui");
+  - a two-word spelling suggestion is costed with the parts as stored forms, a capitalised part looked up decapitalised;
+  - spelling source (05d): a space mark is checked once at the next letter and then cleared (§4.2); a finished group rule
+    aligns p with the newest candidate letter (§4.6 step 5); the accent marks of a rule letter compared in folded form
+    follow the letters compared; a form stored twice (an alias key and its own key) is walked once with the better
+    spelling class;
+  - the key-slip lists are computed best first with the bound of the highest offered class below a node; the forms of
+    an all-exact key enter with total 1 before the walk; `KeySlipTest` checks the lists against a scan of every key.
+- **Abbreviations and the period** (0.7.1 review, owner decision; 05 §2.1, 04 §3.2 item 9): German real-word typos
+  that are also abbreviations ("zi", "fem", "ind", "dor") are class 0 like every real-word typo. `Prediction` reports
+  `typedIsAbbreviation` (the typed word's key, of an elided word its remainder, carries the abbreviation bit in the
+  deciding language: the only one, in multilingual typing the top language); the keyboard does not apply the
+  autocorrection when the trigger is "." and the flag is set. The decision of §10.1 does not depend on the trigger.
+- **Typing queries off the input thread** (05 §2.3, 05d §7): `PredictionEngine.query(q, cancel)`; the keyboard's ahead
+  query is cancelled when a newer word state replaces it, its delayed strip query when the input generation changes.
 
 Questions with assumptions that matter are recorded in the specification (`spec/QUESTIONS.md`, not published).

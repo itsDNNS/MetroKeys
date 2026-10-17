@@ -1,25 +1,151 @@
 {
  "allDataFiles": {
-  "bytes": 13746792,
+  "bytes": 13879718,
   "files": {
-   "de-DE.pairs.gz": 1867310,
-   "de-DE.words.gz": 1696370,
-   "en-US.pairs.gz": 1876202,
-   "en-US.words.gz": 537526,
-   "es-ES.pairs.gz": 1172828,
-   "es-ES.words.gz": 870189,
-   "fr-FR.pairs.gz": 1479369,
-   "fr-FR.words.gz": 753352,
-   "it-IT.pairs.gz": 1240825,
-   "it-IT.words.gz": 750291,
-   "pt-BR.pairs.gz": 836263,
-   "pt-BR.words.gz": 666267
+   "de-DE.pairs.gz": 1867308,
+   "de-DE.words.gz": 1729188,
+   "en-US.pairs.gz": 1876205,
+   "en-US.words.gz": 553606,
+   "es-ES.pairs.gz": 1172825,
+   "es-ES.words.gz": 896217,
+   "fr-FR.pairs.gz": 1479367,
+   "fr-FR.words.gz": 766359,
+   "it-IT.pairs.gz": 1240830,
+   "it-IT.words.gz": 774247,
+   "pt-BR.pairs.gz": 836264,
+   "pt-BR.words.gz": 687302
   },
   "limit": 17000000
  },
  "de-DE": {
   "S": 16.94788645456542,
+  "abbreviationBitKeys": 3796,
   "corpusTokens": 156169536,
+  "derived": {
+   "costAnchors": [
+    [
+     255,
+     112
+    ],
+    [
+     253,
+     118
+    ],
+    [
+     244,
+     122
+    ],
+    [
+     227,
+     129
+    ],
+    [
+     205,
+     140
+    ],
+    [
+     181,
+     153
+    ],
+    [
+     158,
+     166
+    ],
+    [
+     137,
+     178
+    ],
+    [
+     111,
+     192
+    ],
+    [
+     83,
+     210
+    ],
+    [
+     68,
+     222
+    ],
+    [
+     1,
+     254
+    ]
+   ],
+   "doNotSuggestForms": 873,
+   "doNotSuggestTop": [
+    "Scheiße rank 418 (vulgar)",
+    "Arsch rank 724 (vulgar)",
+    "Scheiß rank 861 (vulgar)",
+    "Arschloch rank 1512 (vulgar)",
+    "Idiot rank 2033 (pejorative)",
+    "Fick rank 2106 (vulgar)",
+    "Schlampe rank 2232 (pejorative)",
+    "Idioten rank 2323 (form of Idiot: pejorative)",
+    "Hurensohn rank 3393 (vulgar)",
+    "Titten rank 3425 (form of Titte: vulgar)",
+    "Hure rank 3819 (vulgar)",
+    "Arschlöcher rank 5541 (form of Arschloch: vulgar)",
+    "scheißegal rank 5557 (vulgar)",
+    "Kacke rank 5800 (vulgar)",
+    "Penner rank 6267 (pejorative)",
+    "Depp rank 7617 (pejorative)",
+    "verpiss rank 8049 (form of verpissen: vulgar)",
+    "Dummkopf rank 8220 (derogatory)",
+    "Huren rank 8478 (form of Hure: vulgar)",
+    "Vollidiot rank 8908 (pejorative)",
+    "Schwuchtel rank 9743 (pejorative)",
+    "Schiss rank 9868 (vulgar)",
+    "Nigger rank 10279 (offensive)",
+    "scheißen rank 10479 (vulgar)",
+    "Deppen rank 10876 (form of Depp: pejorative)",
+    "Ärsche rank 11372 (form of Arsch: vulgar)",
+    "Zigeuner rank 11435 (offensive)",
+    "Mistkerl rank 11622 (offensive)",
+    "Tussi rank 12967 (pejorative)",
+    "Scheißdreck rank 13035 (vulgar)",
+    "Pisse rank 13087 (vulgar)",
+    "geschissen rank 13111 (form of scheißen: vulgar)",
+    "fucking rank 13729 (vulgar)",
+    "Scheißkerl rank 13977 (pejorative)",
+    "kacken rank 14000 (vulgar)",
+    "scheißt rank 14339 (form of scheißen: vulgar)",
+    "Köter rank 14674 (derogatory)",
+    "Vollidioten rank 14684 (form of Vollidiot: pejorative)",
+    "Weichei rank 14805 (pejorative)",
+    "Klugscheißer rank 14891 (pejorative)",
+    "Krüppel rank 15047 (offensive)",
+    "Irrenhaus rank 15241 (derogatory)",
+    "Hurensöhne rank 15344 (form of Hurensohn: vulgar)",
+    "Schwachkopf rank 15479 (pejorative)",
+    "Flittchen rank 15517 (pejorative)",
+    "Schlampen rank 15782 (form of Schlampe: pejorative)",
+    "verpissen rank 16040 (vulgar)",
+    "Scheißer rank 16218 (vulgar)",
+    "verpisst rank 16290 (form of verpissen: vulgar)",
+    "Amigo rank 16669 (derogatory)",
+    "Viecher rank 16690 (form of Viech: pejorative)",
+    "Möse rank 16850 (vulgar)",
+    "Macho rank 17553 (pejorative)",
+    "töricht rank 18091 (derogatory)",
+    "Gaul rank 18134 (pejorative)",
+    "Blödmann rank 18243 (offensive)",
+    "Lump rank 19338 (derogatory)",
+    "Drecksau rank 19412 (derogatory)",
+    "Spießer rank 19591 (pejorative)",
+    "Drecksarbeit rank 19957 (derogatory)"
+   ],
+   "formsPerSpellingClass": {
+    "0": 394386,
+    "1": 3250,
+    "2": 5300,
+    "3": 18546
+   },
+   "formsWithoutFormCount": 0,
+   "guardClass": 126,
+   "lastOfferedClass": 49,
+   "offeredForms": 90000
+  },
   "forms": 421482,
   "heldOutSentences": {
    "commonVoice": 85327,
@@ -30,30 +156,93 @@
   "pairPrevWords": 55366,
   "pairs": 553032,
   "pairsFile": {
-   "bytes": 1867310,
-   "sha256": "3f1a14ca38fa57304f3337df24b1d82f7cdf8c04aa96bc7f5268f2bd0024b17a"
+   "bytes": 1867308,
+   "sha256": "c0fcfca325928f216bcb0fb4120c667b9e219f554d74dcaefa7271e052786668"
   },
   "sizes": {
-   "pairsBytes": 1867310,
-   "pairsGrowth": -0.0121,
+   "pairsBytes": 1867308,
+   "pairsGrowth": -0.0,
    "pairsLimit": 2500000,
-   "previousPairsBytes": 1890114,
-   "previousRelease": "0.6.9",
-   "previousWordsBytes": 1342081,
-   "wordsBytes": 1696370,
-   "wordsGrowth": 0.264,
-   "wordsGrowthLimit": 0.3,
+   "previousPairsBytes": 1867310,
+   "previousRelease": "0.7.0",
+   "previousWordsBytes": 1696370,
+   "wordsBytes": 1729188,
+   "wordsGrowth": 0.0193,
+   "wordsGrowthLimit": 0.25,
    "wordsLimit": 2000000
   },
   "unattestedKeys": 132,
   "wordsFile": {
-   "bytes": 1696370,
-   "sha256": "edafa980bab6ca902ddd7a77033b3c39b0dac5be4dc1d779b687666bcda9a4fa"
+   "bytes": 1729188,
+   "sha256": "cfd2a31ab7e68579e70f09d827ec9c1d4ed6a46b7820ea37bc1e131e613a026b"
   },
-  "wordsPayloadSha256": "2b69ee4f2ce2d7e6314a6e679789531abfbda2e205bb7d68748c9885a53464d1"
+  "wordsPayloadSha256": "09eb9f8a81b104e21559913ac2e28b55b511241987bed69447a226a416f76824"
  },
  "de-DE-extra": {
   "S": 16.94788645456542,
+  "abbreviationBitKeys": 3796,
+  "abbreviationBitKeysTop60": [
+   "das 3122198 das:251",
+   "du 2947020 du:236",
+   "er 1352161 er:235",
+   "in 1231372 in:244",
+   "mir 1019451 mir:225",
+   "mit 1014541 mit:238",
+   "den 920646 den:237",
+   "dass 879520 dass:231",
+   "so 813903 so:230",
+   "an 627600 an:228",
+   "bin 576589 bin:216",
+   "da 564244 da:221",
+   "dir 554802 dir:212",
+   "dem 465044 dem:227",
+   "als 440490 als:225",
+   "mal 435631 mal:210 Mal:197",
+   "im 403737 im:227",
+   "man 300922 man:217",
+   "wo 288363 wo:206",
+   "hab 252697 hab:203",
+   "tun 219102 tun:197",
+   "komm 201117 komm:182",
+   "weg 175124 weg:188 Weg:182",
+   "am 170913 am:212",
+   "des 169182 des:218",
+   "ok 147191 ok:179 OK:156",
+   "na 140395 na:181",
+   "zur 115474 zur:205",
+   "ab 104853 ab:199",
+   "ob 97001 ob:195",
+   "sir 92012 Sir:163",
+   "ach 82252 ach:174 Ach:161",
+   "ins 80529 ins:191",
+   "geh 74468 geh:174",
+   "musik 59500 Musik:181",
+   "mag 47150 mag:179",
+   "hi 44653 hi:145 HI:143",
+   "all 43808 all:174 All:139",
+   "mom 38250 Mom:147",
+   "art 34062 Art:180",
+   "he 33922 he:148",
+   "ah 31832 ah:148 Ah:142 AH:142",
+   "tu 27733 tu:146 TU:145",
+   "dies 26436 dies:180",
+   "alte 25827 alte:170 Alte:136",
+   "alt 25682 alt:169 Alt:137",
+   "pass 22790 Pass:157",
+   "ruf 21947 Ruf:158",
+   "new 21321 New:168",
+   "rest 17407 Rest:162",
+   "mr 17083 Mr:152",
+   "ma 15762 ma:149 Ma:131 MA:126",
+   "tom 13560 Tom:153",
+   "max 12310 Max:159",
+   "bar 11161 bar:140 Bar:140",
+   "leg 11081 leg:138",
+   "ben 11045 Ben:149",
+   "de 10624 de:170",
+   "fbi 9947 FBI:138",
+   "ran 9783 ran:146"
+  ],
   "abbreviationKeys": 895,
   "abbreviationKeysDictionaryOnly": [
    "abchas",
@@ -493,7 +682,7 @@
    "bem 37 Bem:73"
   ],
   "abbreviationTitles": 1285,
-  "classChangedBy20": 30604,
+  "classChangedBy20": 0,
   "colloquialDropped": 7993,
   "colloquialDroppedApostropheFragmentTop100": [],
   "colloquialDroppedByCondition": {
@@ -946,8 +1135,8 @@
    "subzero 15 Subzero:34",
    "multimillionen 14 Multimillionen:37"
   ],
-  "keysLostAgainstPrevious": 8032,
-  "keysNewAgainstPrevious": 99774,
+  "keysLostAgainstPrevious": 0,
+  "keysNewAgainstPrevious": 0,
   "keysSpellingDictionaryOnly": 46943,
   "keysSpellingDictionaryOnlyTop100": [
    "jack 25967",
@@ -1361,6 +1550,41 @@
    "hegend 1 -> gegend 8754",
    "hone 1 -> ohne 88934",
    "härtest 1 -> hättest 28264"
+  ],
+  "realWordTyposWithAbbreviationBit": 32,
+  "realWordTyposWithAbbreviationBitList": [
+   "ak 92 -> an 627600",
+   "apl 2 -> all 43808",
+   "aux 68 -> auf 881418",
+   "bab 50 -> hab 252697",
+   "brn 1 -> ben 11045",
+   "cas 67 -> das 3122198",
+   "dh 58 -> du 2947020",
+   "dis 50 -> die 2484854",
+   "dor 21 -> dir 554802",
+   "dz 5 -> du 2947020",
+   "fag 4 -> tag 103559",
+   "fem 4 -> dem 465044",
+   "geg 1 -> geh 74468",
+   "germ 9 -> gern 52147",
+   "hag 6 -> hat 799017",
+   "hist 2 -> bist 381498",
+   "hom 4 -> vom 76597",
+   "iber 14 -> über 197474",
+   "ide 10 -> die 2484854",
+   "ind 19 -> und 2289891",
+   "jur 7 -> nur 564245",
+   "kh 7 -> oh 284455",
+   "lb 17 -> ob 97001",
+   "lett 1 -> legt 5875",
+   "nir 5 -> mir 1019451",
+   "obb 1 -> bob 8852",
+   "schwed 1 -> schwer 33640",
+   "sp 62 -> so 813903",
+   "sus 33 -> aus 425184",
+   "unf 10 -> und 2289891",
+   "zi 96 -> zu 1424706",
+   "zz 33 -> zu 1424706"
   ],
   "shortKeysDroppedByStep6a": 724,
   "shortKeysDroppedByStep6aList": [
@@ -2506,7 +2730,87 @@
  },
  "en-US": {
   "S": 14.835626071159512,
+  "abbreviationBitKeys": 846,
   "corpusTokens": 695682540,
+  "derived": {
+   "costAnchors": [
+    [
+     255,
+     99
+    ],
+    [
+     245,
+     113
+    ],
+    [
+     235,
+     130
+    ],
+    [
+     223,
+     142
+    ],
+    [
+     204,
+     153
+    ],
+    [
+     185,
+     163
+    ],
+    [
+     163,
+     172
+    ],
+    [
+     144,
+     182
+    ],
+    [
+     118,
+     199
+    ],
+    [
+     90,
+     222
+    ],
+    [
+     71,
+     235
+    ],
+    [
+     1,
+     254
+    ]
+   ],
+   "doNotSuggestForms": 287,
+   "doNotSuggestTop": [
+    "dog's rank 6152 (vulgar)",
+    "fucker rank 6839 (offensive)",
+    "nerd rank 8758 (derogatory)",
+    "badass rank 9798 (vulgar)",
+    "crappy rank 9970 (vulgar)",
+    "fuckers rank 11357 (form of fucker: offensive)",
+    "scumbag rank 11755 (vulgar)",
+    "homosexuality rank 12444 (offensive)",
+    "motherfucking rank 12831 (vulgar)",
+    "nerds rank 13977 (form of nerd: derogatory)",
+    "turd rank 15514 (vulgar)",
+    "goddammit rank 16724 (vulgar)",
+    "wannabe rank 17484 (derogatory)",
+    "goddamned rank 18551 (pejorative)"
+   ],
+   "formsPerSpellingClass": {
+    "0": 107995,
+    "1": 1000,
+    "2": 37000,
+    "3": 18045
+   },
+   "formsWithoutFormCount": 0,
+   "guardClass": 134,
+   "lastOfferedClass": 35,
+   "offeredForms": 90000
+  },
   "forms": 164040,
   "heldOutSentences": {
    "commonVoice": 79337,
@@ -2517,32 +2821,96 @@
   "pairPrevWords": 41276,
   "pairs": 574921,
   "pairsFile": {
-   "bytes": 1876202,
-   "sha256": "30db574b7fde0e3a3f91ddeda9e4490289be743574652ff47960d0e0d086d5d0"
+   "bytes": 1876205,
+   "sha256": "f0b9159d31a2b7ef7addbdb72e4d115c2ad387b65883ddb22d523f2fa0e29788"
   },
   "sizes": {
-   "pairsBytes": 1876202,
-   "pairsGrowth": -0.0264,
+   "pairsBytes": 1876205,
+   "pairsGrowth": 0.0,
    "pairsLimit": 2500000,
-   "previousPairsBytes": 1927135,
-   "previousRelease": "0.6.9",
-   "previousWordsBytes": 519514,
-   "wordsBytes": 537526,
-   "wordsGrowth": 0.0347,
+   "previousPairsBytes": 1876202,
+   "previousRelease": "0.7.0",
+   "previousWordsBytes": 537526,
+   "wordsBytes": 553606,
+   "wordsGrowth": 0.0299,
+   "wordsGrowthLimit": 0.25,
    "wordsLimit": 2000000
   },
   "unattestedKeys": 0,
   "wordsFile": {
-   "bytes": 537526,
-   "sha256": "4ff727151da6837e934fd81e7b1360fc655d7d389cca5c5a39aff30015c78963"
+   "bytes": 553606,
+   "sha256": "786a0382e841963374c62c1109b0e6138d3e7f6c3120e8a95195b52ef2c13367"
   },
-  "wordsPayloadSha256": "0fa4d7af968ddfaa9e31d43eebc785efe295baf76230919f37188a00a05502fa"
+  "wordsPayloadSha256": "391dd8dff448b0a91f9a1ffcf9c56c04c7f87f27a61fdec767c327f7d5b72abe"
  },
  "en-US-extra": {
   "S": 14.835626071159512,
+  "abbreviationBitKeys": 846,
+  "abbreviationBitKeysTop60": [
+   "i 19893877 I:243",
+   "a 14482243 a:245",
+   "it 9148681 it:235",
+   "of 8915110 of:242",
+   "is 7400641 is:235",
+   "in 7336947 in:239",
+   "me 6444948 me:224",
+   "on 4821795 on:229",
+   "do 4419663 do:219",
+   "no 4374634 no:219",
+   "not 4262273 not:225",
+   "so 3434027 so:220",
+   "can 2696545 can:217",
+   "oh 2295037 oh:199",
+   "or 1267620 or:213",
+   "cant 1129419 can't:207",
+   "man 1079728 man:200",
+   "off 799351 off:199",
+   "am 785773 am:197",
+   "sir 619500 sir:183",
+   "long 495000 long:194",
+   "guy 416923 guy:186",
+   "ok 388338 OK:181",
+   "found 337382 found:189",
+   "most 282985 most:193",
+   "miss 280930 miss:180",
+   "part 192185 part:186",
+   "rest 158976 rest:175",
+   "mr 156641 Mr:183",
+   "child 142052 child:176",
+   "war 141818 war:179",
+   "met 141105 met:172",
+   "sent 113959 sent:172",
+   "ass 105009 ass:168",
+   "bet 91573 bet:164",
+   "act 78817 act:171",
+   "pass 76635 pass:167",
+   "class 76385 class:172",
+   "sam 74144 Sam:160",
+   "sing 69575 sing:158",
+   "joe 62602 Joe:161",
+   "sun 61568 sun:164",
+   "bar 61454 bar:163",
+   "mm 57659 mm:158",
+   "ice 57419 ice:164",
+   "art 53922 art:168",
+   "la 52415 la:157 La:150",
+   "green 52004 green:165",
+   "mrs 49087 Mrs:161",
+   "bus 47484 bus:160",
+   "er 45995 er:141 ER:137",
+   "max 44030 Max:152 max:135",
+   "arm 41438 arm:157",
+   "leg 40079 leg:156",
+   "alex 39515 Alex:152",
+   "van 38070 van:157",
+   "pop 38035 pop:159",
+   "camp 37531 camp:157",
+   "nor 34789 nor:157",
+   "copy 33489 copy:156"
+  ],
   "aliasKeys": 79,
   "aliasKeysReplacingAWord": 11,
-  "classChangedBy20": 5347,
+  "classChangedBy20": 0,
   "keysLostAgainstPrevious": 0,
   "keysNewAgainstPrevious": 0,
   "maxCount": 29161342.132,
@@ -2818,7 +3186,83 @@
  },
  "es-ES": {
   "S": 15.173834740112072,
+  "abbreviationBitKeys": 157,
   "corpusTokens": 423290924,
+  "derived": {
+   "costAnchors": [
+    [
+     255,
+     91
+    ],
+    [
+     247,
+     105
+    ],
+    [
+     235,
+     117
+    ],
+    [
+     214,
+     126
+    ],
+    [
+     195,
+     140
+    ],
+    [
+     177,
+     157
+    ],
+    [
+     157,
+     172
+    ],
+    [
+     139,
+     182
+    ],
+    [
+     115,
+     199
+    ],
+    [
+     88,
+     222
+    ],
+    [
+     72,
+     234
+    ],
+    [
+     1,
+     254
+    ]
+   ],
+   "doNotSuggestForms": 487,
+   "doNotSuggestTop": [
+    "imbécil rank 2644 (offensive)",
+    "gilipollas rank 5356 (vulgar)",
+    "imbéciles rank 7330 (form of imbécil: offensive)",
+    "mear rank 9775 (vulgar)",
+    "pelotudo rank 10020 (vulgar)",
+    "pija rank 10844 (vulgar)",
+    "gilipolleces rank 18158 (form of gilipollez: vulgar)",
+    "secuaces rank 18465 (form of secuaz: pejorative)",
+    "ramera rank 18673 (pejorative)",
+    "coñazo rank 19621 (vulgar)"
+   ],
+   "formsPerSpellingClass": {
+    "0": 199518,
+    "1": 1000,
+    "2": 37000,
+    "3": 29357
+   },
+   "formsWithoutFormCount": 0,
+   "guardClass": 130,
+   "lastOfferedClass": 49,
+   "offeredForms": 90000
+  },
   "forms": 266875,
   "heldOutSentences": {
    "commonVoice": 59267,
@@ -2829,30 +3273,93 @@
   "pairPrevWords": 36826,
   "pairs": 369515,
   "pairsFile": {
-   "bytes": 1172828,
-   "sha256": "29db69ea97840151bbd232ed120b692ec2f59a84d47139e9ac7760061a6f9504"
+   "bytes": 1172825,
+   "sha256": "0e1bdaeab4c64c0cfc4c893d94fbf0cc492d23a5857cab5e22b1436e1a11a0d1"
   },
   "sizes": {
-   "pairsBytes": 1172828,
-   "pairsGrowth": -0.0326,
+   "pairsBytes": 1172825,
+   "pairsGrowth": -0.0,
    "pairsLimit": 2500000,
-   "previousPairsBytes": 1212411,
-   "previousRelease": "0.6.9",
-   "previousWordsBytes": 811368,
-   "wordsBytes": 870189,
-   "wordsGrowth": 0.0725,
+   "previousPairsBytes": 1172828,
+   "previousRelease": "0.7.0",
+   "previousWordsBytes": 870189,
+   "wordsBytes": 896217,
+   "wordsGrowth": 0.0299,
    "wordsGrowthLimit": 0.25,
    "wordsLimit": 2000000
   },
   "unattestedKeys": 92,
   "wordsFile": {
-   "bytes": 870189,
-   "sha256": "95ec4093f230fb6f94d8872be918223bb618d78082316139a760178a4b2bfb73"
+   "bytes": 896217,
+   "sha256": "3db3baddfe7b9306ccce9bbeed4dd894ec6a0434de8c503e4abdb31b1d2f9617"
   },
-  "wordsPayloadSha256": "29cea6a85753917154faa9f7691da6c8c2885d47df9a9eb10fe9af9be33ac16b"
+  "wordsPayloadSha256": "d02df99b0d4878c1b2bb4901ad55ece47f89072661717f068b1d1d92cbec61d8"
  },
  "es-ES-extra": {
   "S": 15.173834740112072,
+  "abbreviationBitKeys": 157,
+  "abbreviationBitKeysTop60": [
+   "sin 474828 sin:202",
+   "mar 35165 mar:162",
+   "sr 17126 Sr:154",
+   "ma 10053 Ma:140",
+   "ud 8963 ud:134 Ud:118",
+   "sra 5689 Sra:131",
+   "may 4692 May:129",
+   "srta 3876 Srta:112",
+   "val 3335 Val:120",
+   "uds 3307 Uds:126",
+   "post 3039 post:135",
+   "jr 2428 Jr:122",
+   "jun 2407 Jun:115 jun:96",
+   "cap 2192 cap:110 Cap:100",
+   "col 1770 col:120",
+   "vs 1370 vs:122",
+   "der 1331 der:117",
+   "tte 1306 Tte:99",
+   "vd 1122 Vd:114",
+   "etc 984 etc:137",
+   "tel 815 Tel:114",
+   "ab 791 ab:99 Ab:90",
+   "dra 703 Dra:112",
+   "sres 668 Sres:102",
+   "cnel 469 Cnel:89",
+   "sta 449 Sta:103",
+   "mts 384 mts:95",
+   "sep 369 sep:102",
+   "sii 368 sii:91",
+   "ene 360 ene:101",
+   "br 327 Br:99",
+   "gro 318 Gro:89",
+   "mat 301 Mat:94",
+   "dim 294 Dim:89",
+   "cía 293 Cía:94",
+   "aten 267 aten:79",
+   "esp 264 Esp:101",
+   "sto 261 Sto:88",
+   "gral 248 Gral:102",
+   "ago 244 ago:98",
+   "fr 214 fr:93",
+   "chis 211 chis:75 Chis:59",
+   "cp 207 cp:92",
+   "sras 202 Sras:77",
+   "ant 201 Ant:92",
+   "cl 176 Cl:78",
+   "pp 173 pp:120",
+   "prof 166 Prof:95",
+   "avda 158 Avda:89",
+   "dic 146 dic:91",
+   "gto 144 Gto:84",
+   "nov 143 nov:86 Nov:86",
+   "hna 137 hna:74",
+   "ing 125 Ing:101",
+   "tb 125 tb:92",
+   "srtas 118 Srtas:65",
+   "lat 111 lat:80",
+   "aprox 110 aprox:91",
+   "sup 102 sup:79",
+   "núm 99 núm:92"
+  ],
   "abbreviationKeys": 100,
   "abbreviationKeysInWordList": 95,
   "abbreviationKeysTop60": [
@@ -2922,7 +3429,7 @@
   "accentMergedInflectedForms": 1651,
   "accentMergedVariantPages": 184,
   "acceptedCliticKeys": 2730,
-  "classChangedBy20": 13123,
+  "classChangedBy20": 0,
   "cliticCandidates": 3858,
   "cliticFormsAccepted": 2730,
   "colloquialDropped": 21557,
@@ -3728,8 +4235,8 @@
   "hyphenTokensStripped": 20113,
   "keptNotAForm": 92,
   "keysBoth": 193335,
-  "keysLostAgainstPrevious": 21610,
-  "keysNewAgainstPrevious": 38039,
+  "keysLostAgainstPrevious": 0,
+  "keysNewAgainstPrevious": 0,
   "keysSpellingDictionaryOnly": 7520,
   "keysSpellingDictionaryOnlyTop100": [
    "john 70004",
@@ -5885,7 +6392,118 @@
  },
  "fr-FR": {
   "S": 15.682406029910132,
+  "abbreviationBitKeys": 157,
   "corpusTokens": 328850678,
+  "derived": {
+   "costAnchors": [
+    [
+     255,
+     107
+    ],
+    [
+     246,
+     111
+    ],
+    [
+     239,
+     117
+    ],
+    [
+     222,
+     126
+    ],
+    [
+     199,
+     139
+    ],
+    [
+     178,
+     156
+    ],
+    [
+     158,
+     173
+    ],
+    [
+     138,
+     187
+    ],
+    [
+     114,
+     205
+    ],
+    [
+     85,
+     225
+    ],
+    [
+     68,
+     234
+    ],
+    [
+     1,
+     254
+    ]
+   ],
+   "doNotSuggestForms": 580,
+   "doNotSuggestTop": [
+    "putain rank 451 (vulgar)",
+    "con rank 886 (vulgar)",
+    "chier rank 1611 (vulgar)",
+    "flics rank 1695 (form of flic: derogatory)",
+    "conneries rank 1712 (form of connerie: vulgar)",
+    "pute rank 1726 (vulgar)",
+    "connard rank 2016 (vulgar)",
+    "flic rank 2259 (derogatory)",
+    "couilles rank 2757 (vulgar)",
+    "ferme-la rank 2788 (form of la fermer: offensive)",
+    "bite rank 3078 (vulgar)",
+    "cons rank 3385 (form of con: vulgar)",
+    "connerie rank 4269 (vulgar)",
+    "boy rank 4286 (offensive)",
+    "chiant rank 5268 (vulgar)",
+    "putains rank 5888 (form of putain: vulgar)",
+    "putes rank 6350 (form of pute: vulgar)",
+    "connards rank 6737 (form of connard: vulgar)",
+    "fermez-la rank 6989 (form of la fermer: offensive)",
+    "boys rank 7388 (form of boy: offensive)",
+    "richard rank 7545 (derogatory)",
+    "merdé rank 9592 (form of merder: vulgar)",
+    "sorcellerie rank 10510 (pejorative)",
+    "emmerder rank 10595 (vulgar)",
+    "merdier rank 10837 (vulgar)",
+    "merdes rank 10842 (form of merder: vulgar)",
+    "paperasse rank 10881 (pejorative)",
+    "connasse rank 11304 (vulgar)",
+    "bites rank 11427 (form of bite: vulgar)",
+    "enculer rank 12169 (vulgar)",
+    "couille rank 12222 (vulgar)",
+    "chie rank 12332 (form of chier: vulgar)",
+    "négro rank 12888 (offensive)",
+    "racaille rank 13411 (derogatory)",
+    "bled rank 13558 (pejorative)",
+    "chié rank 13609 (form of chier: vulgar)",
+    "expérimentation rank 14286 (pejorative)",
+    "gueuler rank 14554 (vulgar)",
+    "merdeux rank 14957 (vulgar)",
+    "clochard rank 15762 (pejorative)",
+    "agissements rank 16003 (form of agissement: pejorative)",
+    "branlette rank 16300 (vulgar)",
+    "branleur rank 17022 (vulgar)",
+    "idéaliste rank 18921 (pejorative)",
+    "minus rank 19530 (derogatory)"
+   ],
+   "formsPerSpellingClass": {
+    "0": 213827,
+    "1": 0,
+    "2": 0,
+    "3": 5259
+   },
+   "formsWithoutFormCount": 0,
+   "guardClass": 129,
+   "lastOfferedClass": 42,
+   "offeredForms": 90000
+  },
   "forms": 219086,
   "heldOutSentences": {
    "commonVoice": 85418,
@@ -5896,30 +6514,93 @@
   "pairPrevWords": 41037,
   "pairs": 478291,
   "pairsFile": {
-   "bytes": 1479369,
-   "sha256": "3091985164cf5c18184ca07eacce5ea310f4151a36ddf7c2d7eba0a775b34750"
+   "bytes": 1479367,
+   "sha256": "358ed42e2284ad957caf38b25eef1a3b3d3cd74c791bb9a08278ed8896d2f3a2"
   },
   "sizes": {
-   "pairsBytes": 1479369,
-   "pairsGrowth": -0.0192,
+   "pairsBytes": 1479367,
+   "pairsGrowth": -0.0,
    "pairsLimit": 2500000,
-   "previousPairsBytes": 1508324,
-   "previousRelease": "0.6.9",
-   "previousWordsBytes": 610121,
-   "wordsBytes": 753352,
-   "wordsGrowth": 0.2348,
+   "previousPairsBytes": 1479369,
+   "previousRelease": "0.7.0",
+   "previousWordsBytes": 753352,
+   "wordsBytes": 766359,
+   "wordsGrowth": 0.0173,
    "wordsGrowthLimit": 0.25,
    "wordsLimit": 2000000
   },
   "unattestedKeys": 23,
   "wordsFile": {
-   "bytes": 753352,
-   "sha256": "33a81d77e6964f68ed1bc61213706a78be26b69418d94b4aefdbf145e57abf07"
+   "bytes": 766359,
+   "sha256": "d58c4418df00665983defa8197848046ef39b9a04452934594e5162611ff4e40"
   },
-  "wordsPayloadSha256": "a8f1271594408ef660e474b40676ab4157d4620da93dbc9b9ae1af2f02a786f9"
+  "wordsPayloadSha256": "3cb84e4b4bacdd548f1fb5c273d521bfb25903387cc17e07d26face512d898d5"
  },
  "fr-FR-extra": {
   "S": 15.682406029910132,
+  "abbreviationBitKeys": 157,
+  "abbreviationBitKeysTop60": [
+   "me 1447152 me:216",
+   "nom 160965 nom:186",
+   "dr 75487 Dr:163",
+   "mme 72416 Mme:167",
+   "jeu 57748 jeu:176",
+   "mlle 42257 Mlle:143",
+   "mr 38267 Mr:156",
+   "sam 36276 Sam:150",
+   "or 29941 or:168",
+   "sept 23099 sept:160",
+   "mer 21745 mer:161",
+   "vol 21110 vol:159",
+   "ex 20578 ex:160",
+   "art 13863 art:161",
+   "mm 12921 mm:154",
+   "al 12729 al:150 Al:128",
+   "prof 9214 prof:143",
+   "ann 4528 Ann:126",
+   "sec 4260 sec:137",
+   "rit 3970 rit:126",
+   "mrs 3841 Mrs:122",
+   "just 3745 Just:128",
+   "cat 3064 Cat:123",
+   "col 2870 col:132",
+   "anton 2315 Anton:110",
+   "liv 1995 Liv:112",
+   "luc 1906 Luc:118",
+   "pr 1839 Pr:123 pr:94",
+   "jr 1580 Jr:116",
+   "po 1247 po:119",
+   "ms 1102 Ms:116 ms:95",
+   "bass 994 bass:99 Bass:84",
+   "etc 957 etc:141",
+   "string 868 string:100",
+   "mad 823 Mad:108",
+   "fur 783 fur:117",
+   "ss 782 SS:99 ss:99",
+   "ps 573 Ps:128",
+   "mar 512 Mar:108",
+   "fr 501 fr:112",
+   "abs 496 abs:95",
+   "drag 482 drag:91",
+   "cie 452 Cie:109",
+   "vs 419 vs:113",
+   "déc 413 déc:102",
+   "mono 374 mono:97 Mono:76",
+   "id 361 id:109",
+   "arn 353 ARN:92",
+   "cod 345 Cod:99",
+   "sg 330 sg:97",
+   "av 304 av:111",
+   "led 252 Led:99 led:72",
+   "att 242 att:84 Att:67",
+   "dim 242 Dim:86",
+   "acc 237 acc:87 Acc:70",
+   "ant 229 ant:91",
+   "litt 213 litt:83",
+   "app 195 App:101",
+   "pl 190 pl:101",
+   "arbor 158 Arbor:78"
+  ],
   "abbreviationKeys": 76,
   "abbreviationKeysInWordList": 62,
   "abbreviationKeysTop60": [
@@ -9418,7 +10099,7 @@
     254
    ]
   ],
-  "classChangedBy20": 10166,
+  "classChangedBy20": 0,
   "colloquialDropped": 8434,
   "colloquialDroppedApostropheFragmentTop100": [
    "aujourd 411"
@@ -9649,16 +10330,16 @@
     10,
     [
      [
+      "même",
+      49228
+     ],
+     [
       "mémé",
       44
      ],
      [
       "mème",
       23
-     ],
-     [
-      "même",
-      49228
      ]
     ],
     6193
@@ -9723,12 +10404,12 @@
     92,
     [
      [
-      "âge",
-      8652
-     ],
-     [
       "âgé",
       980
+     ],
+     [
+      "âge",
+      8652
      ]
     ],
     2469
@@ -9738,12 +10419,12 @@
     2,
     [
      [
-      "méré",
-      15
-     ],
-     [
       "mère",
       18558
+     ],
+     [
+      "méré",
+      15
      ]
     ],
     2300
@@ -9775,16 +10456,16 @@
     101,
     [
      [
-      "côté",
-      9003
+      "coté",
+      133
      ],
      [
       "côte",
       2683
      ],
      [
-      "coté",
-      133
+      "côté",
+      9003
      ]
     ],
     1766
@@ -9827,12 +10508,12 @@
     4,
     [
      [
-      "près",
-      9377
-     ],
-     [
       "prés",
       271
+     ],
+     [
+      "près",
+      9377
      ]
     ],
     898
@@ -9985,16 +10666,16 @@
     12,
     [
      [
-      "brulé",
-      45
+      "brûle",
+      626
      ],
      [
       "brûlé",
       751
      ],
      [
-      "brûle",
-      626
+      "brulé",
+      45
      ]
     ],
     342
@@ -10089,12 +10770,12 @@
       1518
      ],
      [
-      "rèves",
-      1
-     ],
-     [
       "rêvés",
       8
+     ],
+     [
+      "rèves",
+      1
      ]
     ],
     278
@@ -10170,12 +10851,12 @@
     20,
     [
      [
-      "réserve",
-      1853
-     ],
-     [
       "réservé",
       849
+     ],
+     [
+      "réserve",
+      1853
      ]
     ],
     231
@@ -10490,12 +11171,12 @@
       63
      ],
      [
-      "goûte",
-      193
-     ],
-     [
       "goûté",
       726
+     ],
+     [
+      "goûte",
+      193
      ]
     ],
     128
@@ -10711,12 +11392,12 @@
     0,
     [
      [
-      "lâches",
-      260
-     ],
-     [
       "lâchés",
       94
+     ],
+     [
+      "lâches",
+      260
      ]
     ],
     98
@@ -10774,12 +11455,12 @@
     2,
     [
      [
-      "crée",
-      1579
-     ],
-     [
       "créé",
       2213
+     ],
+     [
+      "crée",
+      1579
      ]
     ],
     96
@@ -10789,12 +11470,12 @@
     1,
     [
      [
-      "pâtes",
-      355
-     ],
-     [
       "pâtés",
       49
+     ],
+     [
+      "pâtes",
+      355
      ]
     ],
     96
@@ -10837,12 +11518,12 @@
     0,
     [
      [
-      "entraînés",
-      126
-     ],
-     [
       "entrainés",
       12
+     ],
+     [
+      "entraînés",
+      126
      ],
      [
       "entraînes",
@@ -11250,12 +11931,12 @@
     0,
     [
      [
-      "poète",
-      1715
-     ],
-     [
       "poété",
       3
+     ],
+     [
+      "poète",
+      1715
      ]
     ],
     56
@@ -11298,12 +11979,12 @@
     1,
     [
      [
-      "pécher",
-      62
-     ],
-     [
       "pêcher",
       688
+     ],
+     [
+      "pécher",
+      62
      ]
     ],
     52
@@ -16533,8 +17214,8 @@
    "trés",
    "tète"
   ],
-  "keysLostAgainstPrevious": 8447,
-  "keysNewAgainstPrevious": 45944,
+  "keysLostAgainstPrevious": 0,
+  "keysNewAgainstPrevious": 0,
   "keysSpellingDictionaryOnly": 2491,
   "keysSpellingDictionaryOnlyTop100": [
    "new 41456",
@@ -18608,7 +19289,105 @@
  },
  "it-IT": {
   "S": 16.10629091405188,
+  "abbreviationBitKeys": 58,
   "corpusTokens": 247073874,
+  "derived": {
+   "costAnchors": [
+    [
+     255,
+     91
+    ],
+    [
+     251,
+     105
+    ],
+    [
+     241,
+     117
+    ],
+    [
+     220,
+     126
+    ],
+    [
+     201,
+     140
+    ],
+    [
+     181,
+     157
+    ],
+    [
+     159,
+     172
+    ],
+    [
+     139,
+     182
+    ],
+    [
+     114,
+     199
+    ],
+    [
+     84,
+     222
+    ],
+    [
+     66,
+     234
+    ],
+    [
+     1,
+     254
+    ]
+   ],
+   "doNotSuggestForms": 519,
+   "doNotSuggestTop": [
+    "coglione rank 2151 (vulgar)",
+    "tette rank 2376 (form of tetta: vulgar)",
+    "fanculo rank 3065 (vulgar)",
+    "coglioni rank 3080 (form of coglione: vulgar)",
+    "vaffanculo rank 3280 (vulgar)",
+    "cazzata rank 4854 (vulgar)",
+    "sfigato rank 6503 (vulgar)",
+    "incazzato rank 6549 (vulgar)",
+    "Down rank 6731 (derogatory)",
+    "fottere rank 7751 (vulgar)",
+    "pisciare rank 8458 (vulgar)",
+    "sfigati rank 8498 (form of sfigato: vulgar)",
+    "bordello rank 9017 (vulgar)",
+    "fottutamente rank 9929 (vulgar)",
+    "fotte rank 10382 (form of fottere: vulgar)",
+    "cazzone rank 10389 (vulgar)",
+    "sfiga rank 10668 (vulgar)",
+    "piscio rank 12100 (vulgar)",
+    "mannaggia rank 13117 (non-vulgar)",
+    "scartoffie rank 15965 (form of scartoffia: pejorative)",
+    "affanculo rank 16091 (vulgar)",
+    "fotta rank 16218 (form of fottere: vulgar)",
+    "gnocca rank 16419 (vulgar)",
+    "cazzeggiare rank 16468 (vulgar)",
+    "incazzati rank 16635 (form of incazzarsi: vulgar)",
+    "sfigata rank 17189 (form of sfigato: vulgar)",
+    "gentaglia rank 17419 (pejorative)",
+    "pisciato rank 17544 (form of pisciare: vulgar)",
+    "piscia rank 18594 (vulgar)",
+    "stronzetto rank 18806 (vulgar)",
+    "fotto rank 19019 (form of fottere: vulgar)",
+    "tetta rank 19921 (vulgar)"
+   ],
+   "formsPerSpellingClass": {
+    "0": 170016,
+    "1": 1000,
+    "2": 37000,
+    "3": 25710
+   },
+   "formsWithoutFormCount": 0,
+   "guardClass": 129,
+   "lastOfferedClass": 40,
+   "offeredForms": 90000
+  },
   "forms": 233726,
   "heldOutSentences": {
    "commonVoice": 50011,
@@ -18619,30 +19398,91 @@
   "pairPrevWords": 35797,
   "pairs": 390318,
   "pairsFile": {
-   "bytes": 1240825,
-   "sha256": "eab6ee2d10beb0bfb3caa3a5b32c2e2aa8206f94ca29577b6844caca516ac6a6"
+   "bytes": 1240830,
+   "sha256": "881cbfbd2146d638273a87d7f432fccb9391ea4fb7eb3f1b97acad5a793f7f1c"
   },
   "sizes": {
-   "pairsBytes": 1240825,
-   "pairsGrowth": -0.0268,
+   "pairsBytes": 1240830,
+   "pairsGrowth": 0.0,
    "pairsLimit": 2500000,
-   "previousPairsBytes": 1274932,
-   "previousRelease": "0.6.9",
-   "previousWordsBytes": 612927,
-   "wordsBytes": 750291,
-   "wordsGrowth": 0.2241,
+   "previousPairsBytes": 1240825,
+   "previousRelease": "0.7.0",
+   "previousWordsBytes": 750291,
+   "wordsBytes": 774247,
+   "wordsGrowth": 0.0319,
    "wordsGrowthLimit": 0.25,
    "wordsLimit": 2000000
   },
   "unattestedKeys": 130,
   "wordsFile": {
-   "bytes": 750291,
-   "sha256": "5a52a806a34c4d6ca385ade1522e66e5e5d049a759f153ad8daf6d53abb81d3d"
+   "bytes": 774247,
+   "sha256": "340e18fd4e1cfa93136a069349da752ee9576bf742e4a51029210c71ca90671a"
   },
-  "wordsPayloadSha256": "99aa46704846bba402aa5c8a6aab314e8dcfcd0919f20104ba35537147962f2b"
+  "wordsPayloadSha256": "531712592f5a42eae398d559b15dc4dc05fe148e0e0e37e8154e98696548a448"
  },
  "it-IT-extra": {
   "S": 16.10629091405188,
+  "abbreviationBitKeys": 58,
+  "abbreviationBitKeysTop60": [
+   "a 3452196 a:244",
+   "no 1433433 no:213",
+   "va 508632 va:201",
+   "ed 203018 ed:203",
+   "sig 9129 sig:136 Sig:126",
+   "set 4989 set:141",
+   "ago 2873 ago:127",
+   "oz 1813 Oz:114",
+   "ms 1663 Ms:120 ms:100",
+   "mar 1368 Mar:127 mar:106",
+   "prof 1217 prof:135",
+   "cor 902 cor:109",
+   "ciurma 675 ciurma:101",
+   "mag 274 mag:93 Mag:88",
+   "gen 260 gen:99 Gen:95",
+   "dott 210 dott:105 Dott:92",
+   "ecc 188 ecc:125",
+   "str 169 str:85",
+   "arch 164 arch:85 Arch:82",
+   "cl 159 cl:94 Cl:83",
+   "tr 132 Tr:99",
+   "dic 129 dic:88",
+   "rag 110 rag:83 Rag:66",
+   "cb 93 Cb:86",
+   "ott 76 Ott:91",
+   "vc 75 Vc:78",
+   "cav 68 cav:76",
+   "edit 64 edit:82 Edit:78",
+   "fl 64 Fl:81",
+   "vn 64 Vn:78",
+   "cad 62 cad:77",
+   "ing 53 ing:84 Ing:82",
+   "vl 51 Vl:71",
+   "apr 40 apr:81",
+   "fam 37 fam:65 Fam:65",
+   "ob 29 Ob:73",
+   "geom 28 Geom:65",
+   "cfr 27 cfr:87",
+   "nov 26 nov:83",
+   "avv 22 avv:71 Avv:71",
+   "prov 19 prov:69",
+   "arp 15 Arp:55",
+   "lug 15 lug:64",
+   "vla 13 Vla:42",
+   "feb 12 feb:68",
+   "agg 10 agg:63",
+   "timp 8 Timp:31",
+   "cpv 6 cpv:48",
+   "fg 5 fg:53 Fg:36",
+   "vlc 5 Vlc:47",
+   "spett 2 Spett:39",
+   "artt 1 artt:55",
+   "egr 1 egr:28",
+   "orch 1 orch:26",
+   "tbn 1 Tbn:12",
+   "giu 0 giu:0",
+   "tbe 0 Tbe:16",
+   "trb 0 Trb:11"
+  ],
   "abbreviationKeys": 40,
   "abbreviationKeysInWordList": 34,
   "abbreviationKeysTop60": [
@@ -20644,7 +21484,7 @@
     499
    ]
   ],
-  "classChangedBy20": 12954,
+  "classChangedBy20": 0,
   "cliticFormsAccepted": 2219,
   "cliticFormsAcceptedList": [
    [
@@ -24080,8 +24920,8 @@
    "velocita",
    "verro"
   ],
-  "keysLostAgainstPrevious": 14253,
-  "keysNewAgainstPrevious": 59637,
+  "keysLostAgainstPrevious": 0,
+  "keysNewAgainstPrevious": 0,
   "keysSpellingDictionaryOnly": 25378,
   "keysSpellingDictionaryOnlyTop100": [
    "ii 23972",
@@ -26868,7 +27708,79 @@
  },
  "pt-BR": {
   "S": 15.463676049653197,
+  "abbreviationBitKeys": 84,
   "corpusTokens": 433743576,
+  "derived": {
+   "costAnchors": [
+    [
+     255,
+     91
+    ],
+    [
+     253,
+     105
+    ],
+    [
+     237,
+     117
+    ],
+    [
+     221,
+     126
+    ],
+    [
+     202,
+     140
+    ],
+    [
+     182,
+     157
+    ],
+    [
+     162,
+     172
+    ],
+    [
+     143,
+     182
+    ],
+    [
+     118,
+     199
+    ],
+    [
+     86,
+     222
+    ],
+    [
+     67,
+     234
+    ],
+    [
+     1,
+     254
+    ]
+   ],
+   "doNotSuggestForms": 329,
+   "doNotSuggestTop": [
+    "caralho rank 2521 (vulgar)",
+    "babaca rank 3425 (derogatory)",
+    "sub rank 3696 (form of subcelebridade: derogatory)",
+    "mijar rank 8511 (vulgar)",
+    "cagar rank 9935 (vulgar)",
+    "babacas rank 13115 (form of babaca: derogatory)"
+   ],
+   "formsPerSpellingClass": {
+    "0": 138158,
+    "1": 1000,
+    "2": 37000,
+    "3": 21773
+   },
+   "formsWithoutFormCount": 0,
+   "guardClass": 133,
+   "lastOfferedClass": 39,
+   "offeredForms": 90000
+  },
   "forms": 197931,
   "heldOutSentences": {
    "commonVoice": 2053,
@@ -26879,30 +27791,93 @@
   "pairPrevWords": 20339,
   "pairs": 270118,
   "pairsFile": {
-   "bytes": 836263,
-   "sha256": "8d53d71037954e0cad256c9affd52d4ec232a8794043ba963f2afa7e952d5dd2"
+   "bytes": 836264,
+   "sha256": "4262272e1266fb698bc44aec9e49ca3443b0ddb1421a6d4431e5c3b19d3d8fe3"
   },
   "sizes": {
-   "pairsBytes": 836263,
-   "pairsGrowth": -0.0267,
+   "pairsBytes": 836264,
+   "pairsGrowth": 0.0,
    "pairsLimit": 2500000,
-   "previousPairsBytes": 859185,
-   "previousRelease": "0.6.9",
-   "previousWordsBytes": 585747,
-   "wordsBytes": 666267,
-   "wordsGrowth": 0.1375,
+   "previousPairsBytes": 836263,
+   "previousRelease": "0.7.0",
+   "previousWordsBytes": 666267,
+   "wordsBytes": 687302,
+   "wordsGrowth": 0.0316,
    "wordsGrowthLimit": 0.25,
    "wordsLimit": 2000000
   },
   "unattestedKeys": 203,
   "wordsFile": {
-   "bytes": 666267,
-   "sha256": "7789b8694bf8b5a6c40144f5868c6f07c70f44aa92fdf9823d4993338a54d921"
+   "bytes": 687302,
+   "sha256": "36ef21006285e2c88b54a136716bdb735eb3a5b6be7eb3ab949fa64288ce85ae"
   },
-  "wordsPayloadSha256": "e23da698e4af2c6c8173b4dc309260bd00f6ee504edbb5c1f96f467e7d7c27e8"
+  "wordsPayloadSha256": "2ab54c021493fa73db8641c268b2eff25a6c86539f4b7731a924a9c859753abc"
  },
  "pt-BR-extra": {
   "S": 15.463676049653197,
+  "abbreviationBitKeys": 84,
+  "abbreviationBitKeysTop60": [
+   "a 9075415 a:251",
+   "num 123722 num:184",
+   "srta 68973 Srta:136",
+   "dez 51943 dez:168",
+   "tv 41371 TV:170",
+   "mar 39881 mar:165",
+   "ex 36164 ex:172",
+   "sr 22114 sr:150 Sr:133",
+   "cia 12109 CIA:144",
+   "sra 7392 sra:126 Sra:121",
+   "pop 6407 pop:141",
+   "dr 4795 dr:138",
+   "jr 4204 Jr:138",
+   "etc 4049 etc:148",
+   "set 3977 set:128 Set:117",
+   "jan 3871 Jan:128",
+   "cat 3210 CAT:127",
+   "cap 3128 cap:123",
+   "apto 2049 apto:116",
+   "mai 1855 mai:116",
+   "aa 1550 aa:113",
+   "cel 1357 cel:112",
+   "av 1281 Av:122",
+   "qg 1258 qg:98",
+   "dra 1225 dra:114 Dra:104",
+   "jd 1225 Jd:108",
+   "jun 1225 jun:111",
+   "gal 1107 gal:104 Gal:87",
+   "id 989 ID:115",
+   "vs 933 vs:121",
+   "pe 855 Pe:124",
+   "ap 593 ap:109",
+   "séc 461 séc:101",
+   "ep 450 ep:115",
+   "pq 298 pq:108 Pq:91",
+   "ing 297 ing:89 Ing:72",
+   "ltda 279 Ltda:103",
+   "srs 274 srs:92 Srs:75",
+   "prof 223 prof:108 Prof:91",
+   "sm 199 sm:96",
+   "pp 189 pp:105",
+   "sto 133 Sto:84",
+   "lda 129 lda:86 Lda:69",
+   "sras 124 Sras:72",
+   "srtas 122 Srtas:51",
+   "bc 119 Bc:96",
+   "obs 114 obs:94",
+   "eng 104 Eng:90",
+   "ft 95 ft:88",
+   "univ 82 Univ:78",
+   "bras 81 bras:80",
+   "arq 77 arq:73 Arq:56",
+   "nov 73 nov:88",
+   "ref 72 ref:77",
+   "vd 64 Vd:76",
+   "lg 63 Lg:93",
+   "jul 57 jul:78",
+   "sf 53 sf:76",
+   "hb 51 Hb:78",
+   "pág 46 pág:84"
+  ],
   "abbreviationKeys": 46,
   "abbreviationKeysInWordList": 42,
   "abbreviationKeysTop60": [
@@ -27943,7 +28918,7 @@
   ],
   "accentMergedInflectedForms": 1246,
   "accentMergedPointerPages": 385,
-  "classChangedBy20": 9616,
+  "classChangedBy20": 0,
   "colloquialDropped": 24080,
   "colloquialDroppedApostropheFragmentTop100": [],
   "colloquialDroppedByCondition": {
@@ -28651,8 +29626,8 @@
    "bolseiro",
    "pla",
    "tamisa",
-   "sandes",
    "apanhámos",
+   "sandes",
    "lc",
    "sónia",
    "tempura",
@@ -28675,7 +29650,7 @@
    "afiador",
    "amram",
    "descordar",
-   "autoclismo",
+   "helsínquia",
    "oceânia"
   ],
   "europeanMarkerKeys": 4299,
@@ -28686,8 +29661,8 @@
   "hyphenTokens": 3703820,
   "keptNotAForm": 203,
   "keysBoth": 145194,
-  "keysLostAgainstPrevious": 24507,
-  "keysNewAgainstPrevious": 48214,
+  "keysLostAgainstPrevious": 0,
+  "keysNewAgainstPrevious": 0,
   "keysSpellingDictionaryOnly": 39703,
   "keysSpellingDictionaryOnlyTop100": [
    "michael 51937",
@@ -29556,8 +30531,8 @@
    "freqüentemente",
    "líqüido",
    "coréia",
-   "pôlo",
    "pólo",
+   "pôlo",
    "estréia",
    "jóia",
    "geléia",

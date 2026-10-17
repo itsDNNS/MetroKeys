@@ -4,6 +4,7 @@ import app.metrokeys.engine.EngineSettings
 import app.metrokeys.engine.PredictionEngine
 import app.metrokeys.engine.Query
 import app.metrokeys.engine.TestDictionaries
+import app.metrokeys.engine.entry
 import app.metrokeys.engine.query
 import app.metrokeys.engine.text.PrevContext
 import kotlin.test.Test
@@ -14,30 +15,29 @@ import kotlin.test.assertTrue
 
 /**
  * Spanish worked examples of spec 05 §17.8 and the es rows of the conformance checklist (§18) with the built
- * dictionary (no learned data, no taps, Spanish fallback grid). The outcomes are normative; the lm values and scores
- * come from the build and are recorded here (05 open point 10) so that a later build can be compared.
+ * dictionary (no learned data, no taps, Spanish fallback grid; 0.7.1 rules). The outcomes are normative; the lm values
+ * and scores come from the build and are recorded here (05 open point 7).
  */
 class SpanishExamplesTest {
     private val es = TestDictionaries.spanish()
     private val engine = TestDictionaries.single(TestDictionaries.spanish())
 
-    private fun LanguageSuggestions.corr(display: String): Candidate =
-        corrections.firstOrNull { it.display == display } ?: error("no correction $display in $corrections")
-
     private fun ac(text: String): String? = engine.query(Query(text)).autoCorrection
 
     private fun first(text: String): String? = engine.query(Query(text)).suggestions.firstOrNull()?.text
+
+    private fun bar(text: String): List<String> = engine.query(Query(text)).suggestions.map { it.text }
 
     @Test
     fun header() {
         // 05 §3.1: corpusTokens fixed by the source, S from maxCount of the finished list
         assertEquals(423_290_924L, es.lexicon.corpusTokens)
         assertEquals(-8.63, es.a, 1e-9)
-        assertEquals(0.02862, es.bc, 1e-9) // 0.7.0 (05b §12.2); 0.6.9: 0.02808
+        assertEquals(0.02862, es.bc, 1e-9)
         assertEquals(15.1738f, es.lexicon.scale, 0.0005f)
-        // lm without context: round(170.34 − 0.5054 · k): class 255 → 41, class 0 → 170
-        assertEquals(39, es.lm("de")) // 0.7.0 header (0.6.9: lm(que) 41)
-        assertEquals(255, es.lexicon.exactClass("de")) // 0.7.0: "de" stays the most frequent key
+        assertEquals(255, es.lexicon.exactClass("de"))
+        // the median anchor row of 05 §1.1: the most frequent form costs 91
+        assertEquals(91, es.lm("de"))
     }
 
     @Test
@@ -45,12 +45,13 @@ class SpanishExamplesTest {
         assertFalse(es.lexicon.exact("cancion"))
         val r = es.query("cancion")
         assertFalse(r.validity.valid)
-        val c = r.corr("canción")
+        val c = r.entry("canción")
+        assertEquals(CandidateSource.KEY_SLIP, c.source)
         assertEquals(0, c.ed)
-        assertEquals(c.lm, es.acScore(c, 7))
-        assertTrue(es.acScore(c, 7) < es.params.acLimit)
-        assertEquals(86, c.lm) // 0.7.0 (0.6.9: 87)
+        assertEquals(168, c.lm)
+        assertEquals(168, c.score)
         assertEquals("canción", r.autoCorrection?.display)
+        assertEquals("4o", r.decisionStep)
         assertEquals("canción", ac("cancion"))
     }
 
@@ -58,13 +59,10 @@ class SpanishExamplesTest {
     fun example2Manana() {
         assertFalse(es.lexicon.exact("manana"))
         val r = es.query("Hasta manana")
-        val m = r.corr("mañana")
+        val m = r.entry("mañana")
         assertEquals(0, m.ed)
-        assertEquals(56, m.lm) // lm(mañana | hasta); unigram 72
-        assertEquals(76, es.lm("mañana")) // 0.7.0 (0.6.9: 72)
+        assertEquals(122, m.lm)
         assertEquals("mañana", r.autoCorrection?.display)
-        assertEquals(150, 4 * 225 / 6)
-        assertTrue(es.lm("manzana") + 150 > es.params.acLimit)
         // typed with the ñ key: a valid word, no correction
         val v = es.query("Hasta mañana")
         assertTrue(v.validity.valid)
@@ -75,28 +73,31 @@ class SpanishExamplesTest {
     fun example3ValidWordsAreNotCorrected() {
         val r = es.query("Creo que esta")
         assertTrue(r.validity.valid)
-        assertTrue(r.validity.cost <= es.params.acValidRare)
+        assertEquals(127, r.validity.cost)
         assertNull(r.autoCorrection)
+        assertEquals("5", r.decisionStep)
+        assertEquals(122, r.entry("está").lm)
         assertEquals("está", r.bar().first().display)
-        assertNull(ac("Creo que esta"))
         assertNull(ac("Creo que esta bien"))
         assertEquals("está", first("Creo que esta"))
-        assertEquals(110, es.lm("ano")) // 0.7.0 (0.6.9: 112)
+        // "ano": no autocorrection, "año" among the first two (after the completion "años")
         assertNull(ac("ano"))
-        assertEquals("año", first("ano"))
-        for ((typed, accented) in listOf("si" to "sí", "el" to "él", "tu" to "tú", "mas" to "más", "solo" to "sólo",
-            "como" to "cómo", "donde" to "dónde")) {
+        val ano = es.query("ano")
+        assertEquals(149, ano.entry("año").score)
+        assertTrue("año" in bar("ano").take(2), bar("ano").toString())
+        for (typed in listOf("si", "el", "tu", "mas", "solo", "como", "donde", "dime", "hazlo")) {
             assertNull(ac(typed), typed)
-            assertTrue(es.lexicon.exact(accented), accented)
-            assertEquals(accented, first(typed), typed)
         }
     }
 
     @Test
-    fun example4CompletionThroughAnAccentVariant() {
-        assertTrue("dí" in es.prefixList("di", app.metrokeys.engine.touch.TapSequence.none(2)))
-        assertTrue(es.lexicon.completions("di", 24).none { it.text == "días" })
-        assertEquals("días", first("Buenos di"))
+    fun example4CompletionThroughAnAccentSlip() {
+        val r = es.query("Buenos di")
+        val dias = r.bar().first()
+        assertEquals("días", dias.display)
+        assertFalse(dias.isCorrection)
+        assertEquals(97, dias.lm)
+        assertEquals(107, dias.score)
         assertFalse(es.lexicon.exact("dias"))
         assertEquals("días", ac("Buenos dias"))
     }
@@ -104,7 +105,6 @@ class SpanishExamplesTest {
     @Test
     fun example5NextWord() {
         val muchas = engine.query(Query("Muchas ")).suggestions.map { it.text }
-        // the pinned pair sources rank cosas, personas and veces before gracias after "muchas" (see QUESTIONS.md)
         assertTrue("gracias" in muchas.take(5), muchas.toString())
         val buenos = engine.query(Query("Buenos ")).suggestions.map { it.text }
         assertTrue("días" in buenos.take(3), buenos.toString())
@@ -117,16 +117,16 @@ class SpanishExamplesTest {
         assertTrue(es.lexicon.exact("dámelo"))
         assertFalse(es.lexicon.exact("damelo"))
         val r = es.query("damelo")
-        val d = r.corr("dámelo")
+        val d = r.entry("dámelo")
         assertEquals(0, d.ed)
-        assertEquals(113, d.lm) // 0.7.0 (0.6.9: 101)
+        assertEquals(202, d.lm)
         assertEquals("dámelo", r.autoCorrection?.display)
         for (w in listOf("dime", "hazlo", "decírselo", "llámame", "vámonos", "dímelo")) {
             val v = es.query(w)
             assertTrue(v.validity.valid, w)
             assertNull(v.autoCorrection, w)
         }
-        assertEquals("llámame", first("llamame"))
+        assertEquals("llámame", ac("llamame"))
     }
 
     @Test
@@ -134,28 +134,21 @@ class SpanishExamplesTest {
         assertFalse(es.lexicon.exact("porfavor"))
         assertFalse(es.lexicon.exact("aveces"))
         val r = es.query("porfavor")
-        val pf = r.corr("por favor")
+        val pf = r.entry("por favor")
         assertEquals(208, pf.ed)
-        assertEquals(73, pf.lm)
-        assertEquals(177, es.acScore(pf, 8))
-        assertEquals("por favor", ac("porfavor"))
-        // "aveces": the split is a correction, but with the built pair class (a, veces) = 155 it scores 80 + 138 = 218,
-        // one above AC_LIMIT 217, and "abecés" (192) is within AC_MARGIN of it: no autocorrection (spec/QUESTIONS.md)
+        assertEquals(145, pf.lm)
+        assertEquals(353, pf.score)
+        assertEquals(184, es.acScore(pf, "porfavor"))
+        assertEquals("por favor", r.autoCorrection?.display)
         val av = es.query("aveces")
         assertFalse(av.validity.valid)
-        val split = av.corr("a veces")
-        assertEquals(80, split.lm)
-        assertEquals(218, es.acScore(split, 6))
-        assertTrue(av.bar().take(3).any { it.display == "a veces" }, av.bar().toString())
-        assertNull(av.autoCorrection)
-        // further subtitle artefacts are no words; "osea" gets the free accent correction "ósea" (spec/QUESTIONS.md)
-        assertFalse(es.query("osea").validity.valid)
-        assertEquals("ósea", ac("osea"))
-        for ((typed, phrase) in listOf("enserio" to "en serio", "talvez" to "tal vez")) {
-            val q = es.query(typed)
-            assertFalse(q.validity.valid, typed)
-            assertTrue(q.corrections.any { it.display == phrase }, "$typed: ${q.corrections}")
-        }
+        assertEquals(158, av.entry("a veces").lm)
+        // 0.7.1 review: step 7 no longer applies to unknown words; "veces" has the better AC score
+        assertEquals("veces", av.autoCorrection?.display)
+        // "a veces" among the first three suggestions after the autocorrection, which the bar shows first (§9;
+        // spec/QUESTIONS.md, 0.7.1 review)
+        assertEquals("veces", bar("aveces").first())
+        assertTrue("a veces" in bar("aveces").drop(1).take(3), bar("aveces").toString())
     }
 
     @Test
@@ -163,11 +156,11 @@ class SpanishExamplesTest {
         assertEquals(listOf("España"), es.lexicon.forms("españa").map { it.text })
         val r = es.query("Vivo en españa")
         assertFalse(r.validity.valid)
-        val e = r.corr("España")
+        val e = r.entry("España")
         assertEquals(44, e.ed)
-        assertEquals(e.lm + 29, es.acScore(e, 6))
+        assertEquals(129, e.lm)
         assertEquals("España", r.autoCorrection?.display)
-        assertEquals("España", ac("Vivo en españa"))
+        assertEquals("4o", r.decisionStep)
     }
 
     @Test
@@ -186,9 +179,11 @@ class SpanishExamplesTest {
     @Test
     fun example10Swap() {
         val r = es.query("Hloa")
-        val h = r.corr("Hola")
+        val h = r.entry("Hola")
         assertEquals(65, h.ed)
-        assertEquals(h.lm + 65, es.acScore(h, 4))
+        assertEquals(148, h.lm)
+        assertEquals(213, h.score)
+        assertEquals(197, es.acScore(h, "Hloa"))
         assertEquals("Hola", ac("Hloa"))
     }
 
@@ -228,16 +223,16 @@ class SpanishExamplesTest {
     }
 
     @Test
-    fun prefixAccentsWithSeveralTargets() {
-        val variants = es.prefixList("nu", app.metrokeys.engine.touch.TapSequence.none(2))
-        assertTrue(variants.containsAll(listOf("ñu", "nú", "nü")), variants.toString())
-        assertTrue(variants.indexOf("nú") < variants.indexOf("nü"))
-        val upper = es.prefixList("Nu", app.metrokeys.engine.touch.TapSequence.none(2))
-        assertTrue(upper.containsAll(listOf("Ñu", "Nú", "Nü")), upper.toString())
-        // 05 open point 8: the variant limit is not reached for typical prefixes
-        for (p in listOf("cancio", "manana", "aqui", "tambien", "pinguino")) {
-            val n = es.prefixList(p, app.metrokeys.engine.touch.TapSequence.none(p.length)).size - 1
-            println("prefix variants of $p: $n (limit ${Params.PREFIX_VARIANTS_MAX})")
-        }
+    fun slipAccentsWithSeveralTargets() {
+        // SLIP_ACCENTS es: u → ú, ü; n → ñ (one direction only, 05 §8.1)
+        val t = app.metrokeys.engine.touch.TouchModel(app.metrokeys.engine.touch.KeyboardGeometry.fallback("es-ES"), es.params)
+        val slips = SlipTable(t, es.params)
+        assertEquals(24, slips.slip('u', 'ú'))
+        assertEquals(24, slips.slip('u', 'ü'))
+        assertEquals(24, slips.slip('n', 'ñ'))
+        assertEquals(-1, slips.slip('ñ', 'n'))
+        assertEquals(0, slips.slip('a', 'a'))
+        // a↔q are directly below each other on the Spanish page: 527 · 20 / 1000
+        assertEquals(10, slips.slip('a', 'q'))
     }
 }

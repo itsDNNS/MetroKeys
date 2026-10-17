@@ -200,16 +200,14 @@ class ConformanceTest {
     }
 
     @Test
-    fun threeLetterWordsWithTwoNeighbourSubstitutions() {
-        // 05 §8.1 extension: u/i and z/t are neighbour keys
+    fun threeLetterWordsWithTwoNeighbourSlips() {
+        // 05 §8.1 (0.7.1): the key-slip search lets any number of positions slip; u/i and z/t are neighbour keys
         val e = de()
         assertEquals("ist", e.ac("Das usz"))
         assertEquals("Ist", e.ac("Usz"))
         assertTrue(e.query(Query("Das usz")).suggestions.any { it.text == "ist" })
         // p and q are not neighbours of i and s
         assertTrue(e.query(Query("Das pqt")).suggestions.none { it.text == "ist" })
-        assertTrue("ist" !in e.active.twoNeighbourSubstitutions("pqt"))
-        assertTrue("ist" in e.active.twoNeighbourSubstitutions("usz"))
     }
 
     @Test
@@ -228,12 +226,12 @@ class ConformanceTest {
     fun contactHansMueller() {
         val e = de()
         e.setContactNames(listOf("Hans Müller"))
-        // follower cost = surcharge + 10 + cost(λ(1) · 1 / 1) = surcharge + 10 + 37: 116 in a text field (behind
-        // the static pairs of "Hans"), 47 in a name field
+        // follower cost = surcharge + 10 + cost(λ(1) · 1 / 1) = surcharge + 10 + 102 (anchored scale, 05 §3.2): 181 in a
+        // text field (behind the static pairs of "Hans"), 112 in a name field
         val m = e.active.predictNext("Hallo Hans ")
-        assertTrue(m.none { it.text == "Müller" && it.cost != 116 })
+        assertTrue(m.none { it.text == "Müller" && it.cost != 181 })
         val nameField = e.query(Query("Hans ", field = FieldInfo(FieldPolicy.DEFAULT, nameField = true))).suggestions
         assertEquals("Müller", nameField.first().text)
-        assertEquals(-47, nameField.first().score)
+        assertEquals(-112, nameField.first().score)
     }
 }

@@ -36,8 +36,12 @@ internal class Outcome(
     val typed: String,
     /** The typed text is valid in the evaluated word list (05 §7 rules 1–2): collision bucket, not counted (§3.5). */
     val collision: Boolean,
-    /** The typed key is stored with class 0 (F2z, §3.7). */
+    /** The typed key is stored with class 0 (F2z, F5z, §3.7). */
     val classZero: Boolean,
+    /** The expected text of an error item is a form with the do-not-suggest flag: flagged bucket, not counted (§3.5, 0.7.1). */
+    val flagged: Boolean,
+    /** An F7 item autocorrected to the more frequent spelling (§3.7, 0.7.1): accepted replacement, no false correction. */
+    val acceptedReplacement: Boolean,
     val autoCorrection: String?,
     val bar: List<String>,
     val diagnostics: QueryDiagnostics?,
@@ -53,6 +57,11 @@ internal fun isErrorSet(set: String, language: String): Boolean =
  * language. Queries never change state, so items may run in any order and on any thread.
  */
 internal class ProfileRunner(val profile: String, val selected: LanguageData, languages: List<LanguageData>) {
+    private val lexicons = languages.associate { it.tag to it.lexicon }
+
+    /** pW of a trusted word of the selected language's evaluation lexicon (§2.1), 0 if unknown. */
+    private fun pW(key: String): Double = (lexicons[selected.tag]?.trusted?.get(key)?.pW) ?: 0.0
+
     private val engines = languages.map { LanguageEngine(LanguageParams.forLanguage(it.tag), it.dictionary) }
     val engine = PredictionEngine(
         engines,
@@ -82,7 +91,11 @@ internal class ProfileRunner(val profile: String, val selected: LanguageData, la
             item.set in VARIANT_COLLISION_SETS && CaseAccentFolds.of(le.lexicon).otherKey(typed, item.expected))
         val k = le.lexicon.keyIndex(le.stripElision(typed))
         val classZero = k >= 0 && le.lexicon.formClass(k, 0) == 0
-        return Outcome(item, language, typed, collision, classZero, p.autoCorrection,
+        val flagged = error && le.lexicon.isFlaggedWord(le.stripElision(item.expected))
+        val ac = p.autoCorrection
+        val accepted = item.set == "F7" && ac != null && toKey(le.stripElision(ac)).replace("'", "").replace("-", "") ==
+            item.baseKey.replace("'", "").replace("-", "") && pW(item.baseKey) > pW(toKey(le.stripElision(typed)))
+        return Outcome(item, language, typed, collision, classZero, flagged, accepted, ac,
             p.suggestions.take(Params.BAR_MAX).map { it.text }, d)
     }
 }
@@ -148,15 +161,23 @@ internal class Counts {
     var changed = 0
     var offer3 = 0
     var collisions = 0
+    var flagged = 0
+    var accepted = 0
 
     fun add(o: Counts) {
         n += o.n; fixed += o.fixed; wrong += o.wrong; kept += o.kept; top1 += o.top1; top3 += o.top3
-        offer += o.offer; changed += o.changed; offer3 += o.offer3; collisions += o.collisions
+        offer += o.offer; changed += o.changed; offer3 += o.offer3; collisions += o.collisions; flagged += o.flagged
+        accepted += o.accepted
     }
 
     fun record(o: Outcome, error: Boolean) {
         if (o.collision) {
             collisions++
+            return
+        }
+        // 0.7.1: items whose expected text the engine never offers by design (§3.5) are reported apart
+        if (o.flagged) {
+            flagged++
             return
         }
         n++
@@ -171,7 +192,8 @@ internal class Counts {
             if (x in o.bar.take(3)) top3++
             if (x in o.bar) offer++
         } else {
-            if (o.autoCorrection != null && o.autoCorrection != o.typed) changed++
+            if (o.acceptedReplacement) accepted++
+            else if (o.autoCorrection != null && o.autoCorrection != o.typed) changed++
             if (o.item.set == "F7" && o.bar.take(3).any { toKey(it) == o.item.baseKey }) offer3++
         }
     }
@@ -187,5 +209,9 @@ internal data class CellKey(
     val lengthBand: String,
 )
 
-/** The set an outcome is counted in: F2 items whose key the list stores with class 0 form F2z (§3.7). */
-internal fun countedSet(o: Outcome): String = if (o.item.set == "F2" && o.classZero) "F2z" else o.item.set
+/**
+ * The set an outcome is counted in: F2 items whose key the list stores with class 0 form F2z, F5 items (abbreviations)
+ * whose key is stored with class 0 (real-word typos, 0.7.1) form F5z (§3.7).
+ */
+internal fun countedSet(o: Outcome): String =
+    if ((o.item.set == "F2" || o.item.set == "F5") && o.classZero) o.item.set + "z" else o.item.set

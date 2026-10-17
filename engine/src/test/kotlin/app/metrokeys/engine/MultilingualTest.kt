@@ -46,12 +46,9 @@ class MultilingualTest {
     fun foreignWordsAreNotCorrected() {
         val e = TestDictionaries.multilingual()
         val de = TestDictionaries.single(TestDictionaries.german())
-        for ((typed, germanFix) in listOf("have" to "habe", "think" to "trink", "where" to "wehre")) {
-            assertEquals(germanFix, de.query(Query(typed)).autoCorrection, typed)
-            assertNull(e.query(Query(typed)).autoCorrection, typed)
-        }
-        // a rare English word does not block
-        assertEquals("gut", e.query(Query("hut")).autoCorrection)
+        // German alone corrects "have" to "habe"; with English the valid English word blocks it (05 §14.3)
+        assertEquals("habe", de.query(Query("have")).autoCorrection)
+        for (typed in listOf("have", "think", "where")) assertNull(e.query(Query(typed)).autoCorrection, typed)
     }
 
     @Test

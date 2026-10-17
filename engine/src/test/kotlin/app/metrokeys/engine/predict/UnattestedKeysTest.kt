@@ -43,12 +43,19 @@ class UnattestedKeysTest {
 
     /** "hallp" valid with a moderate class (not rare), "hallo" far more frequent; [unattested] keys flagged. */
     private fun engine(vararg unattested: String): LanguageEngine {
+        // classes chosen so that on the derived cost anchors (05b §1.1) "hallp", "fur" and "halle" are not rare (cost ≤
+        // AC_VALID_RARE) and "hallo", "für" frequent
         val entries = mapOf(
             "hallo" to listOf(WordForm("hallo", 250)),
-            "hallp" to listOf(WordForm("hallp", 140)),
-            "haus" to listOf(WordForm("Haus", 230)),
+            "hallp" to listOf(WordForm("hallp", 240)),
+            "haus" to listOf(WordForm("Haus", 245)),
+            // 0.7.1: a valid word is replaced only by an orthographic candidate that ranks above it (05 §10.1 step 4o)
+            "für" to listOf(WordForm("für", 248)),
+            "fur" to listOf(WordForm("fur", 182)),
             // a name-like unattested key: most frequent form capitalised, "Hallo" far more frequent
-            "halle" to listOf(WordForm("Halle", 140), WordForm("halle", 100)),
+            "halle" to listOf(WordForm("Halle", 240), WordForm("halle", 238)),
+            // a rare form, so that the anchors reach down to class 1
+            "zzzz" to listOf(WordForm("zzzz", 1)),
         )
         val lex = Lexicon.fromEntries("de-DE", 16.357883f, 5890279, 156169536, entries, unattested = unattested.toSet())
         return LanguageEngine(RULE_ON, Dictionary(lex, null))
@@ -68,14 +75,16 @@ class UnattestedKeysTest {
 
     @Test
     fun unattestedWordIsCorrected() {
-        val e = engine("hallp")
-        assertTrue(e.lexicon.isUnattestedWord("Hallp"))
+        val e = engine("fur")
+        assertTrue(e.lexicon.isUnattestedWord("Fur"))
         assertEquals(1, e.lexicon.unattestedCount)
-        val r = e.query("hallp")
+        val r = e.query("fur")
         assertTrue(r.validity.valid)
         assertTrue(r.validity.unattested)
-        assertEquals("hallo", r.autoCorrection?.display)
-        assertEquals("Hallo", e.query("Hallp").autoCorrection?.display)
+        assertEquals("für", r.autoCorrection?.display)
+        assertEquals("Für", e.query("Fur").autoCorrection?.display)
+        // without the flag the valid word is not rare and stays
+        assertNull(engine().query("fur").autoCorrection)
     }
 
     @Test
@@ -93,9 +102,9 @@ class UnattestedKeysTest {
 
     @Test
     fun noCorrectionToAnUnattestedWord() {
-        val e = engine("hallp", "hallo")
-        assertTrue(e.query("hallp").validity.unattested)
-        assertNull(e.query("hallp").autoCorrection)
+        val e = engine("fur", "für")
+        assertTrue(e.query("fur").validity.unattested)
+        assertNull(e.query("fur").autoCorrection)
     }
 
     @Test

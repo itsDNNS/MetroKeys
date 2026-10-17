@@ -57,3 +57,10 @@ object TestDictionaries {
 }
 
 fun LanguageEngine.query(before: String) = suggest(QueryContext.of(before))
+
+/** The entry of the ranked list (05 §8.4) with the display text [display]. */
+fun app.metrokeys.engine.predict.LanguageSuggestions.entry(display: String): app.metrokeys.engine.predict.Candidate =
+    ranked.firstOrNull { it.display == display } ?: error("no entry $display in $ranked")
+
+/** The display texts the bar of this language shows (05 §9, without emoji). */
+fun app.metrokeys.engine.predict.LanguageSuggestions.barTexts(): List<String> = bar().map { it.display }

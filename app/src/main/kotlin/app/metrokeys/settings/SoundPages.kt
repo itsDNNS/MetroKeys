@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.metrokeys.R
+import app.metrokeys.keyboard.SoundSlot
+import app.metrokeys.keyboard.SoundSource
 import app.metrokeys.settings.ui.BodyText
 import app.metrokeys.settings.ui.ButtonPair
 import app.metrokeys.settings.ui.FieldHeader
@@ -45,30 +47,43 @@ fun SoundPage() {
     val importer = remember { AssetImporter(context) }
     MetroPage(stringResource(R.string.page_sound)) {
         val sounds = store.bool(Prefs.KEY_SOUNDS, true)
-        PrefToggle(stringResource(R.string.key_sounds), Prefs.KEY_SOUNDS, true, note = stringResource(R.string.key_sounds_note))
+        val silent = store.bool(Prefs.KEY_SOUNDS_SILENT_MODE, false)
+        PrefToggle(
+            stringResource(R.string.key_sounds), Prefs.KEY_SOUNDS, true,
+            note = stringResource(if (silent) R.string.key_sounds_note_silent else R.string.key_sounds_note),
+        )
+        PrefToggle(
+            stringResource(R.string.key_sounds_silent), Prefs.KEY_SOUNDS_SILENT_MODE, false,
+            note = stringResource(R.string.key_sounds_silent_note), dimmed = !sounds,
+        )
         SteppedSlider(
             stringResource(R.string.key_sound_volume), store.int(Prefs.KEY_SOUND_VOLUME, 100).coerceIn(0, 100), 0, 100, 10,
             { v -> resources.getString(R.string.percent, v) },
             { v ->
                 store.set(Prefs.KEY_SOUND_VOLUME, v)
                 if (store.bool(Prefs.KEY_SOUNDS, true)) {
-                    preview.playSample(v, store.string(Prefs.SOUND_SOURCE, "system") == "custom", importer.soundFile("letter"))
+                    preview.playSample(v, store.soundSource(), store.bool(Prefs.KEY_SOUNDS_SILENT_MODE, false)) { importer.soundFile(it.file) }
                 }
             },
             dimmed = !sounds, note = stringResource(R.string.key_sound_volume_note),
         )
         PrefToggle(stringResource(R.string.vibration), Prefs.VIBRATION, false)
-        ListItem(stringResource(R.string.sound_pack), soundSourceName(store.string(Prefs.SOUND_SOURCE, "system")), { nav.open(Pages.SOUND_PACK) })
+        ListItem(stringResource(R.string.sound_pack), soundSourceName(store.soundSource()), { nav.open(Pages.SOUND_PACK) })
     }
 }
 
 @Composable
-private fun soundSourceName(v: String): String =
-    stringResource(if (v == "custom") R.string.sound_source_custom else R.string.sound_source_system)
+private fun soundSourceName(v: SoundSource): String = stringResource(
+    when (v) {
+        SoundSource.METROKEYS -> R.string.sound_source_metrokeys
+        SoundSource.SYSTEM -> R.string.sound_source_system
+        SoundSource.CUSTOM -> R.string.sound_source_custom
+    },
+)
 
 private val SOUND_MIME = arrayOf("audio/*", "application/octet-stream")
 
-/** Sound pack page (07 §9.9): the user's own WAV files for six slots. */
+/** Sound pack page (07 §9.9): the sound source and the user's own WAV files for seven slots. */
 @Composable
 fun SoundPackPage() {
     val store = LocalStore.current
@@ -96,12 +111,12 @@ fun SoundPackPage() {
 
     MetroPage(stringResource(R.string.sound_pack)) {
         BodyText(stringResource(R.string.sound_intro))
-        val values = listOf("system", "custom")
-        val source = store.string(Prefs.SOUND_SOURCE, "system")
+        val values = SoundSource.entries
+        val source = store.soundSource()
         ListPicker(
             stringResource(R.string.source),
-            listOf(PickerItem(stringResource(R.string.sound_source_system)), PickerItem(stringResource(R.string.sound_source_custom))),
-            values.indexOf(source).coerceAtLeast(0), { i -> store.set(Prefs.SOUND_SOURCE, values[i]) },
+            values.map { PickerItem(soundSourceName(it)) },
+            values.indexOf(source).coerceAtLeast(0), { i -> store.set(Prefs.SOUND_SOURCE, values[i].value) },
         )
         store.long(Prefs.CUSTOM_ASSETS_STAMP, 0)
         val present = ImportRules.SOUND_SLOTS.filter { importer.soundFile(it).isFile }.toSet()
@@ -109,7 +124,7 @@ fun SoundPackPage() {
             stringResource(R.string.sound_import), { multi.launch(SOUND_MIME) },
             stringResource(R.string.remove), {
                 importer.removeSounds()
-                importer.removed(store, Prefs.SOUND_SOURCE, "system")
+                importer.removed(store, Prefs.SOUND_SOURCE, SoundSource.METROKEYS.value)
             },
         )
         FieldHeader(stringResource(R.string.sound_slots))
@@ -117,6 +132,7 @@ fun SoundPackPage() {
         val names = mapOf(
             "letter" to R.string.slot_letter, "space" to R.string.slot_space, "function" to R.string.slot_function,
             "picker" to R.string.slot_picker, "candidate" to R.string.slot_candidate, "dictionary" to R.string.slot_dictionary,
+            "paste" to R.string.slot_paste,
         )
         for (slot in ImportRules.SOUND_SLOTS) {
             val has = slot in present
@@ -128,7 +144,7 @@ fun SoundPackPage() {
                     single.launch(SOUND_MIME)
                 },
                 onLongClick = if (has) {
-                    { preview.playFile(importer.soundFile(slot), store.int(Prefs.KEY_SOUND_VOLUME, 100)) }
+                    { SoundSlot.ofFile(slot)?.let { preview.playFile(it, importer.soundFile(slot), store.int(Prefs.KEY_SOUND_VOLUME, 100)) } }
                 } else {
                     null
                 },

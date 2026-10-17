@@ -235,6 +235,8 @@ fun ToggleBlock(
     note: String? = null,
     onLabel: String,
     offLabel: String,
+    /** Shown at 40 % alpha but still switchable (07 §9.8 item 2). */
+    dimmed: Boolean = false,
 ) {
     val m = LocalPageMargins.current
     val c = MetroTheme.colors
@@ -261,7 +263,7 @@ fun ToggleBlock(
             }
             if (note != null) Note(note)
         },
-        modifier = Modifier.block(BlockKind.TOGGLE, note != null).fillMaxWidth().alpha(if (enabled) 1f else DISABLED_ALPHA)
+        modifier = Modifier.block(BlockKind.TOGGLE, note != null).fillMaxWidth().alpha(if (enabled && !dimmed) 1f else DISABLED_ALPHA)
             .toggleable(checked, remember { MutableInteractionSource() }, null, enabled, Role.Switch, onChange)
             .margins(m),
     ) { measurables, constraints ->

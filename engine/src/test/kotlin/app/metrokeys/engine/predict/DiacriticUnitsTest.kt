@@ -6,7 +6,10 @@ import app.metrokeys.engine.query
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** 0.6.4: a diacritic difference counts 0 units (05 §5 UNITS, §8.1 fuzzy search); ED and costs are unchanged. */
+/**
+ * UNITS of 05 §5: from 0.7.1 a diacritic difference counts 1 unit in languages whose `ED_DIACRITIC` is not 0 (1:1),
+ * 0 units in the others (0.6.4 – 0.7.0: always 0); ED and costs are unchanged.
+ */
 class DiacriticUnitsTest {
     @Test
     fun units() {
@@ -23,10 +26,16 @@ class DiacriticUnitsTest {
     }
 
     @Test
-    fun fuzzySearchFoldsAccents() {
-        val m = TestDictionaries.de.lexicon.fuzzy("uberpeufe", 2, 48) { k -> EditDistance.units("uberpeufe", k) }
-        assertEquals("überprüfe", m.first().form.text.lowercase())
-        assertEquals(1, m.first().distance)
+    fun accentUnits() {
+        // 0.7.1: an accent counts one unit where ED_DIACRITIC is not 0 (de, pt, it, fr), an ACCENT_SWAP pair too
+        assertEquals(3, EditDistance.units("uberpeufe", "überprüfe", diacriticUnits = true))
+        assertEquals(2, EditDistance.units("uberprufe", "überprüfe", diacriticUnits = true))
+        assertEquals(1, EditDistance.units("perchè", "perché", accentSwap = true, diacriticUnits = true))
+        assertEquals(1, EditDistance.units("e", "è", diacriticUnits = true))
+        // the unaccented capital (fr) stays 0
+        assertEquals(0, EditDistance.units("Etat", "État", capsUnaccented = true, diacriticUnits = true))
+        // en, es: 0
+        assertEquals(0, EditDistance.units("cancion", "canción"))
     }
 
     @Test

@@ -15,15 +15,18 @@ import java.util.zip.GZIPInputStream
 /** A cased form of a dictionary key with its frequency class 0…255 (higher = more frequent). */
 public data class WordForm(val text: String, val frequencyClass: Int)
 
-/** Result of [Lexicon.fuzzy]: the best form of a key and its unit edit distance to the query. */
-public data class FuzzyMatch(val form: WordForm, val distance: Int)
-
 /**
  * Read-only word list of one language (spec 05b §6): keys (lower-cased words) with their cased forms, organised
  * as a prefix tree whose nodes know the best frequency class below them. Safe for concurrent reads.
  *
  * The tree is laid out breadth first: the children of a node are contiguous and sorted by character, so node
  * indices order nodes by (depth, text).
+ *
+ * 0.7.1 (05b §1.1, §6): every form carries its derived data — offered bit (suggestion lexicon), spelling class
+ * (05d §6) and do-not-suggest flag — in the upper bits of its kind byte; the header carries the cost anchors (05 §3.2)
+ * and the guard class (05 §10.1 step 7a). Nodes also know the highest class of the *offered* forms below them (the
+ * bound of the key-slip search, 05 §8.1) and which case kinds of forms lie below them, so that the cased forms can be
+ * walked in code-unit order without a second tree ([CasedForms], 05d §7).
  */
 public class Lexicon private constructor(
     public val languageTag: String,
@@ -35,10 +38,13 @@ public class Lexicon private constructor(
     public val formCount: Int,
     internal val payloadSha256: ByteArray,
     private val nodeChar: CharArray,
-    private val nodeFirstChild: IntArray,
-    private val nodeChildCount: ShortArray,
+    /** Children of node i are nodeStart[i] until nodeStart[i + 1] (breadth-first layout: the children follow each other). */
+    private val nodeStart: IntArray,
     private val nodeParent: IntArray,
-    private val nodeKey: IntArray,
+    /** Terminal nodes (a key ends there) as a bit set with a rank directory, and the key of each terminal in node order. */
+    private val terminalBits: LongArray,
+    private val terminalRank: IntArray,
+    private val terminalKey: IntArray,
     private val nodeMaxClass: ByteArray,
     private val keyNode: IntArray,
     private val formStart: IntArray,
@@ -52,7 +58,33 @@ public class Lexicon private constructor(
     private val prefixClasses: ByteArray = ByteArray(0),
     /** Keys kept by the count rule without being a form of the language (05b §3.6 step 7; 05 §10.1 step 5, 0.6.9). */
     private val unattestedKeys: BitSet = BitSet(),
+    /** Highest class of the offered forms below each node (0 if none; 05b §6 key trie bound). */
+    private val nodeMaxOffered: ByteArray,
+    /** Per node: bit k set if a form of kind k (0 key, 1 first upper, 2 all upper) ends at or below it. */
+    private val nodeCaseBits: ByteArray,
+    /** Cost anchors (05 §3.2, 05b §1.1): classes descending and their costs. */
+    private val anchorClassArray: IntArray,
+    private val anchorCostArray: IntArray,
+    /** Class of the form of frequency rank `AC_SPLIT_RANK` (05b §1.1 "Guard class"). */
+    public val guardClass: Int,
+    /** True if the derived data came from the file (version 3), false if this lexicon derived it itself. */
+    public val derivedFromFile: Boolean,
+    /** Keys that are abbreviations in the build's sources (05b §1.1 abbreviation bit, 0.7.1). */
+    private val abbreviationKeys: BitSet = BitSet(),
 ) {
+    /** The cost anchors (class, cost) of 05 §3.2, highest class first. */
+    public val costAnchors: List<Pair<Int, Int>> get() = anchorClassArray.indices.map { anchorClassArray[it] to anchorCostArray[it] }
+
+    /** The explicitly stored forms (kind 3) as a small cased tree, for the spelling source (05d §3). */
+    internal val explicitForms: CasedTrie by lazy {
+        val texts = ArrayList<Pair<String, Int>>()
+        for (x in explicitIndex.indices) texts.add(explicitText[x] to explicitIndex[x])
+        CasedTrie.build(texts) { a, b ->
+            val sa = spellingClassOfId(a)
+            val sb = spellingClassOfId(b)
+            sa != sb && CasedForms.better(sa, sb) == sa
+        }
+    }
     public val nodeCount: Int get() = nodeChar.size
 
     /** Number of unattested keys (05 §10.1 step 5). */
@@ -63,6 +95,18 @@ public class Lexicon private constructor(
 
     /** True if the key of [word] is in the word list and unattested. */
     public fun isUnattestedWord(word: String): Boolean = isUnattested(keyIndex(word))
+
+    /** Number of keys with the abbreviation bit (05b §1.1). */
+    public val abbreviationCount: Int get() = abbreviationKeys.cardinality()
+
+    /**
+     * True if key [keyIndex] carries the abbreviation bit (05b §1.1, 0.7.1): the key is an abbreviation in the build's
+     * sources. It changes no class and no validity (05 §2.1 `typedIsAbbreviation`, 04 §3.2 item 9).
+     */
+    public fun isAbbreviation(keyIndex: Int): Boolean = keyIndex >= 0 && abbreviationKeys.get(keyIndex)
+
+    /** True if the key of [word] is in the word list and carries the abbreviation bit. */
+    public fun isAbbreviationWord(word: String): Boolean = isAbbreviation(keyIndex(word))
 
     // ---- elision prefix table (05b §1.1, §6 `prefixClass`) ----
 
@@ -93,20 +137,80 @@ public class Lexicon private constructor(
 
     internal val root: Int get() = 0
 
-    internal fun childCount(node: Int): Int = nodeChildCount[node].toInt()
+    internal fun childCount(node: Int): Int = nodeStart[node + 1] - nodeStart[node]
 
-    internal fun firstChild(node: Int): Int = nodeFirstChild[node]
+    internal fun firstChild(node: Int): Int = nodeStart[node]
 
     internal fun charOf(node: Int): Char = nodeChar[node]
 
     internal fun maxClassOf(node: Int): Int = nodeMaxClass[node].toInt() and 0xFF
 
+    /** Highest class of the offered forms at or below [node], 0 if there is none (05 §8.1 bound). */
+    internal fun maxOfferedClassOf(node: Int): Int = nodeMaxOffered[node].toInt() and 0xFF
+
+    /** Case-kind bits of the forms at or below [node] (bit 0 kind 0, bit 1 kind 1, bit 2 kind 2). */
+    internal fun caseBitsOf(node: Int): Int = nodeCaseBits[node].toInt()
+
+    /** Kind (0 key, 1 first upper, 2 all upper, 3 explicit) of form [formIndex] of key [keyIndex]. */
+    internal fun formKindOf(keyIndex: Int, formIndex: Int): Int = formKind[formStart[keyIndex] + formIndex].toInt() and 3
+
+    /** Global index of form [formIndex] of key [keyIndex]. */
+    internal fun formId(keyIndex: Int, formIndex: Int): Int = formStart[keyIndex] + formIndex
+
+    /** Spelling class 0…3 of the form with global index [formId] (05d §6). */
+    internal fun spellingClassOfId(formId: Int): Int = (formKind[formId].toInt() shr 3) and 3
+
+    // ---- derived per-form data (0.7.1, 05b §1.1) ----
+
+    /** True if form [formIndex] of key [keyIndex] is offered: class ≥ 1 and frequency rank ≤ `SUGGEST_MAX_RANK`. */
+    public fun isOffered(keyIndex: Int, formIndex: Int): Boolean = formKind[formStart[keyIndex] + formIndex].toInt() and OFFERED != 0
+
+    /** Spelling class 0…3 of a form (05d §6). */
+    public fun spellingClass(keyIndex: Int, formIndex: Int): Int = (formKind[formStart[keyIndex] + formIndex].toInt() shr 3) and 3
+
+    /** True if a form carries the do-not-suggest flag (05b §2.16). */
+    public fun isFlagged(keyIndex: Int, formIndex: Int): Boolean = formKind[formStart[keyIndex] + formIndex].toInt() and NOSUGGEST != 0
+
+    /** Index of the form equal to [word] within its key, or −1. */
+    public fun formIndexOf(keyIndex: Int, word: String): Int {
+        if (keyIndex < 0) return -1
+        val key = keyString(keyIndex)
+        for (i in 0 until formCountOf(keyIndex)) if (formText(keyIndex, key, i) == word) return i
+        return -1
+    }
+
+    /** True if [word] is exactly a stored form with the do-not-suggest flag. */
+    public fun isFlaggedWord(word: String): Boolean {
+        val k = keyIndex(word)
+        val i = formIndexOf(k, word)
+        return i >= 0 && isFlagged(k, i)
+    }
+
+    /** True if [word] is exactly a stored, offered form. */
+    public fun isOfferedWord(word: String): Boolean {
+        val k = keyIndex(word)
+        val i = formIndexOf(k, word)
+        return i >= 0 && isOffered(k, i)
+    }
+
+    /** Number of forms with the do-not-suggest flag. */
+    public val flaggedCount: Int get() = (0 until formCount).count { formKind[it].toInt() and NOSUGGEST != 0 }
+
+    /** Number of offered forms. */
+    public val offeredCount: Int get() = (0 until formCount).count { formKind[it].toInt() and OFFERED != 0 }
+
     /** Key index of a terminal node, or −1. */
-    internal fun keyAt(node: Int): Int = nodeKey[node]
+    internal fun keyAt(node: Int): Int {
+        val w = node ushr 6
+        val bit = 1L shl (node and 63)
+        val word = terminalBits[w]
+        if (word and bit == 0L) return -1
+        return terminalKey[terminalRank[w] + java.lang.Long.bitCount(word and (bit - 1))]
+    }
 
     internal fun child(node: Int, c: Char): Int {
-        var lo = nodeFirstChild[node]
-        var hi = lo + nodeChildCount[node] - 1
+        var lo = nodeStart[node]
+        var hi = nodeStart[node + 1] - 1
         while (lo <= hi) {
             val mid = (lo + hi) ushr 1
             val mc = nodeChar[mid]
@@ -139,7 +243,7 @@ public class Lexicon private constructor(
         val key = toKey(word)
         var n = nodeOf(key)
         if (n < 0 && key.indexOf('-') >= 0) n = nodeOf(key.replace("-", "").replace("'", "").replace("’", ""))
-        return if (n < 0) -1 else nodeKey[n]
+        return if (n < 0) -1 else keyAt(n)
     }
 
     public fun keyString(keyIndex: Int): String {
@@ -158,7 +262,7 @@ public class Lexicon private constructor(
 
     private fun formText(keyIndex: Int, key: String, formIndex: Int): String {
         val f = formStart[keyIndex] + formIndex
-        return when (formKind[f].toInt()) {
+        return when (formKind[f].toInt() and KIND_MASK) {
             0 -> key
             1 -> capitalizeFirst(key)
             2 -> upperPerChar(key)
@@ -219,8 +323,12 @@ public class Lexicon private constructor(
         return formClass(k, 0)
     }
 
-    /** Best forms of the keys starting with [prefix] (case-insensitive), highest class first. */
-    public fun completions(prefix: String, limit: Int): List<WordForm> {
+    /**
+     * Best forms of the keys starting with [prefix] (case-insensitive), highest class first; with [skipFlagged] a key
+     * whose best form carries the do-not-suggest flag is left out (05 §11 item 4).
+     */
+    @JvmOverloads
+    public fun completions(prefix: String, limit: Int, skipFlagged: Boolean = false): List<WordForm> {
         if (limit <= 0) return emptyList()
         val start = nodeOf(toKey(prefix))
         if (start < 0) return emptyList()
@@ -232,80 +340,18 @@ public class Lexicon private constructor(
             val e = queue.poll()
             val node = (e and 0xFFFFFFFFL).toInt()
             if ((e ushr 32) and 1L == 0L) {
-                out.add(bestForm(nodeKey[node]))
+                if (!(skipFlagged && isFlagged(keyAt(node), 0))) out.add(bestForm(keyAt(node)))
                 continue
             }
-            val k = nodeKey[node]
+            val k = keyAt(node)
             if (k >= 0) queue.add(entry(255 - formClass(k, 0), 0, node))
-            val first = nodeFirstChild[node]
-            for (c in first until first + nodeChildCount[node]) queue.add(entry(255 - maxClassOf(c), 1, c))
+            for (c in nodeStart[node] until nodeStart[node + 1]) queue.add(entry(255 - maxClassOf(c), 1, c))
         }
         return out
     }
 
     private fun entry(inverseClass: Int, subtree: Int, node: Int): Long =
         ((inverseClass * 2 + subtree).toLong() shl 32) or node.toLong()
-
-    /**
-     * All keys within [maxEdits] optimal-string-alignment unit edits of the lower-cased [word], compared on
-     * accent-folded letters ([EditDistance.fold]: a diacritic difference costs nothing, 05 §8.1, 0.6.4); ordered by
-     * [rank] of the key (the unit distance; the folded distance when null), then class (descending), then key index;
-     * their best forms, at most [limit]. Prunes the tree walk by the row minimum.
-     */
-    public fun fuzzy(word: String, maxEdits: Int, limit: Int, rank: ((String) -> Int)? = null): List<FuzzyMatch> {
-        val w = toKey(word)
-        val n = w.length
-        val wf = CharArray(n) { EditDistance.fold(w[it]) }
-        val hits = ArrayList<Long>()
-        val rows = Array(MAX_DEPTH + 2) { IntArray(n + 1) }
-        for (j in 0..n) rows[0][j] = j
-        fuzzyWalk(0, 0, wf, maxEdits, rows, hits)
-        val ranked = if (rank == null) hits else hits.map { h ->
-            val k = (h and 0xFFFFFFFFFFL).toInt()
-            (rank(toKey(formText(k, 0))).toLong() shl 40) or k.toLong()
-        }
-        // sort by rank, then class descending, then key index
-        val sorted = ranked.sortedWith(compareBy<Long>({ it ushr 40 }, { 255 - formClass(((it and 0xFFFFFFFFFFL)).toInt(), 0) },
-            { it and 0xFFFFFFFFFFL }))
-        val out = ArrayList<FuzzyMatch>(minOf(limit, sorted.size))
-        for (h in sorted) {
-            if (out.size >= limit) break
-            out.add(FuzzyMatch(bestForm((h and 0xFFFFFFFFFFL).toInt()), (h ushr 40).toInt()))
-        }
-        return out
-    }
-
-    private fun fuzzyWalk(node: Int, depth: Int, w: CharArray, maxEdits: Int, rows: Array<IntArray>, hits: MutableList<Long>) {
-        if (depth >= MAX_DEPTH) return
-        val n = w.size
-        val prev = rows[depth]
-        val prevPrev = if (depth > 0) rows[depth - 1] else null
-        val prevChar = if (depth > 0) EditDistance.fold(nodeChar[node]) else '\u0000'
-        val row = rows[depth + 1]
-        val first = nodeFirstChild[node]
-        for (child in first until first + nodeChildCount[node]) {
-            val ch = EditDistance.fold(nodeChar[child])
-            row[0] = prev[0] + 1
-            var rowMin = row[0]
-            for (j in 1..n) {
-                val tj = w[j - 1]
-                var v = minOf(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + if (tj == ch) 0 else 1)
-                if (prevPrev != null && j > 1 && ch == w[j - 2] && prevChar == tj && ch != tj) {
-                    v = minOf(v, prevPrev[j - 2] + 1)
-                }
-                row[j] = v
-                if (v < rowMin) rowMin = v
-            }
-            if (row[n] <= maxEdits && nodeKey[child] >= 0) {
-                hits.add((row[n].toLong() shl 40) or nodeKey[child].toLong())
-            }
-            var prevMin = Int.MAX_VALUE
-            for (v in prev) if (v < prevMin) prevMin = v
-            if (rowMin <= maxEdits || prevMin + 1 <= maxEdits) {
-                fuzzyWalk(child, depth + 1, w, maxEdits, rows, hits)
-            }
-        }
-    }
 
     /**
      * Keys that equal the lower-cased [word], where a position with [loose] set may also hold any letter whose base
@@ -317,7 +363,7 @@ public class Lexicon private constructor(
         fun walk(node: Int, i: Int) {
             if (out.size >= limit) return
             if (i == w.length) {
-                val k = nodeKey[node]
+                val k = keyAt(node)
                 if (k >= 0) out.add(k)
                 return
             }
@@ -327,8 +373,7 @@ public class Lexicon private constructor(
                 if (ch >= 0) walk(ch, i + 1)
                 return
             }
-            val first = nodeFirstChild[node]
-            for (ch in first until first + nodeChildCount[node]) {
+            for (ch in nodeStart[node] until nodeStart[node + 1]) {
                 val x = nodeChar[ch]
                 if (x == c || app.metrokeys.engine.predict.EditDistance.stripDiacritic(x) == c) walk(ch, i + 1)
             }
@@ -350,7 +395,18 @@ public class Lexicon private constructor(
 
         /** Bit 7 of a key's form-count byte: the key is unattested (0.6.9). */
         private const val UNATTESTED_FLAG = 0x80
+
+        /** Bit 6 of a key's form-count byte in version 3: the abbreviation bit (05b §1.1, 0.7.1). */
+        private const val ABBREVIATION_FLAG = 0x40
         private const val FORM_COUNT_MASK = 0x7F
+
+        /** Form count of a version-3 key (bits 0-5; bit 6 is the abbreviation bit). */
+        private const val FORM_COUNT_MASK_V3 = 0x3F
+
+        /** Bits of a form's kind byte (version 3, 0.7.1): bits 0-1 kind, 2 offered, 3-4 spelling class, 5 do-not-suggest. */
+        private const val KIND_MASK = 0x03
+        private const val OFFERED = 0x04
+        private const val NOSUGGEST = 0x20
 
         /**
          * Reads a gzip-compressed word list (format: tools/dictbuild/common.py). The data is decoded as it streams
@@ -363,13 +419,26 @@ public class Lexicon private constructor(
             val r = ByteReader(DigestInputStream(GZIPInputStream(input, 1 shl 16), digest))
             r.expectMagic("MKWL")
             val version = r.u8()
-            if (version != 1 && version != 2) throw IOException("unsupported word list version $version")
+            if (version !in 1..3) throw IOException("unsupported word list version $version")
             val tag = r.ascii()
             val scale = r.f32()
             val maxCount = r.varint()
             val corpus = r.varint()
             val keyCount = r.varintInt()
             val formCount = r.varintInt()
+            var anchors: Pair<IntArray, IntArray>? = null
+            var guard = -1
+            if (version == 3) {
+                val na = r.u8()
+                val ac = IntArray(na)
+                val co = IntArray(na)
+                for (i in 0 until na) {
+                    ac[i] = r.u8()
+                    co[i] = r.u8()
+                }
+                anchors = ac to co
+                guard = r.u8()
+            }
             val keys = KeyBuffer(keyCount)
             val formStart = IntArray(keyCount + 1)
             val formClass = ByteArray(formCount)
@@ -377,6 +446,8 @@ public class Lexicon private constructor(
             val explicitIndex = GrowableInts()
             val explicitText = ArrayList<String>()
             val unattested = BitSet()
+            val abbreviation = BitSet()
+            val countMask = if (version == 3) FORM_COUNT_MASK_V3 else FORM_COUNT_MASK
             var f = 0
             for (k in 0 until keyCount) {
                 val shared = r.varintInt()
@@ -385,13 +456,16 @@ public class Lexicon private constructor(
                 // bit 7 of the form count marks an unattested key (0.6.9); files written before never set it
                 val countByte = r.u8()
                 if (countByte and UNATTESTED_FLAG != 0) unattested.set(k)
-                val nf = countByte and FORM_COUNT_MASK
+                // bit 6 (version 3, 0.7.1): the abbreviation bit; earlier versions use it for the form count
+                if (version == 3 && countByte and ABBREVIATION_FLAG != 0) abbreviation.set(k)
+                val nf = countByte and countMask
                 if (f + nf > formCount) throw IOException("form count mismatch")
                 repeat(nf) {
                     formClass[f] = r.u8().toByte()
-                    val kind = r.u8()
-                    formKind[f] = kind.toByte()
-                    if (kind == 3) {
+                    val kindByte = r.u8()
+                    // files before version 3 carry no derived bits (the kind byte is 0…3)
+                    formKind[f] = (if (version == 3) kindByte else kindByte and KIND_MASK).toByte()
+                    if (kindByte and KIND_MASK == 3) {
                         explicitIndex.add(f)
                         explicitText.add(r.utf8())
                     }
@@ -402,7 +476,7 @@ public class Lexicon private constructor(
             if (f != formCount) throw IOException("form count mismatch")
             var prefixTexts = emptyArray<String>()
             var prefixClasses = ByteArray(0)
-            if (version == 2) {
+            if (version >= 2) {
                 val n = r.varintInt()
                 if (n > 255) throw IOException("too many elision prefixes")
                 prefixTexts = Array(n) { "" }
@@ -414,7 +488,8 @@ public class Lexicon private constructor(
             }
             r.drain()
             return build(tag, scale, maxCount, corpus, digest.digest(), keys, formStart, formClass, formKind,
-                explicitIndex.toArray(), explicitText.toTypedArray(), prefixTexts, prefixClasses, unattested)
+                explicitIndex.toArray(), explicitText.toTypedArray(), prefixTexts, prefixClasses, unattested, anchors, guard,
+                abbreviation)
         }
 
         /** An elision prefix as stored: lower case with the ASCII apostrophe (`L’` → `l'`). */
@@ -433,6 +508,10 @@ public class Lexicon private constructor(
             entries: Map<String, List<WordForm>>,
             prefixes: List<Pair<String, Int>> = emptyList(),
             unattested: Set<String> = emptySet(),
+            /** Forms with the do-not-suggest flag (05b §2.16); the other derived data are computed from the classes. */
+            flagged: Set<String> = emptySet(),
+            /** Keys with the abbreviation bit (05b §1.1). */
+            abbreviations: Set<String> = emptySet(),
         ): Lexicon {
             val sorted = entries.keys.sorted()
             val keys = KeyBuffer(sorted.size)
@@ -453,7 +532,7 @@ public class Lexicon private constructor(
                 formStart[k] = f
                 for (form in entries.getValue(key)) {
                     formClass[f] = form.frequencyClass.toByte()
-                    formKind[f] = 3
+                    formKind[f] = (3 or if (form.text in flagged) NOSUGGEST else 0).toByte()
                     explicitText.add(form.text)
                     f++
                 }
@@ -462,7 +541,8 @@ public class Lexicon private constructor(
             return build(tag, scale, maxCount, corpusTokens, ByteArray(32), keys, formStart, formClass, formKind,
                 IntArray(total) { it }, explicitText.toTypedArray(),
                 prefixes.map { it.first }.toTypedArray(), ByteArray(prefixes.size) { prefixes[it].second.toByte() },
-                BitSet().also { b -> for ((k, key) in sorted.withIndex()) if (key in unattested) b.set(k) })
+                BitSet().also { b -> for ((k, key) in sorted.withIndex()) if (key in unattested) b.set(k) }, null, -1,
+                BitSet().also { b -> for ((k, key) in sorted.withIndex()) if (key in abbreviations) b.set(k) })
         }
 
         /**
@@ -485,17 +565,28 @@ public class Lexicon private constructor(
             prefixTexts: Array<String>,
             prefixClasses: ByteArray,
             unattested: BitSet,
+            anchors: Pair<IntArray, IntArray>?,
+            guard: Int,
+            abbreviation: BitSet,
         ): Lexicon {
             val keyCount = keys.size
             val n = keys.nodeCount
             val ch = CharArray(n)
-            val firstChild = IntArray(n)
-            val childCount = ShortArray(n)
+            // start[i + 1] counts the children of node i while the tree is built; the prefix sum below makes it the
+            // children range (breadth-first layout: the children of node i + 1 follow those of node i)
+            val start = IntArray(n + 1)
             val parent = IntArray(n)
-            val nodeKey = IntArray(n) { -1 }
+            // terminal nodes (a key ends there) as a bit set, and their keys in node order (nodes are created in order)
+            val words = (n + 63) ushr 6
+            val bits = LongArray(words)
+            val termKey = IntArray(keyCount)
+            var t = 0
+            for (i in 0 until keyCount) if (keys.length(i) == 0) {
+                bits[0] = bits[0] or 1L
+                termKey[t++] = i
+            }
             var active = IntArray(keyCount) { it }
             var activeSize = keyCount
-            for (i in 0 until keyCount) if (keys.length(i) == 0) nodeKey[0] = i
             var levelStart = 0
             var next = 1
             var d = 0
@@ -512,11 +603,11 @@ public class Lexicon private constructor(
                         val node = next++
                         ch[node] = keys.charAt(i, d)
                         parent[node] = parentNode
-                        if (childCount[parentNode].toInt() == 0) firstChild[parentNode] = node
-                        val c = childCount[parentNode] + 1
-                        if (c > Short.MAX_VALUE) throw IOException("too many children")
-                        childCount[parentNode] = c.toShort()
-                        if (keys.length(i) == d + 1) nodeKey[node] = i
+                        start[parentNode + 1]++
+                        if (keys.length(i) == d + 1) {
+                            bits[node ushr 6] = bits[node ushr 6] or (1L shl (node and 63))
+                            termKey[t++] = i
+                        }
                     }
                     active[kept++] = i
                 }
@@ -526,26 +617,64 @@ public class Lexicon private constructor(
             }
             @Suppress("UNUSED_VALUE")
             active = IntArray(0)
-            if (next != n) throw IOException("bad key order")
-            val maxClass = ByteArray(n)
+            keys.release()
+            if (next != n || t != keyCount) throw IOException("bad key order")
+            start[0] = 1
+            for (i in 0 until n) start[i + 1] += start[i]
+            if (start[n] != n) throw IOException("bad tree layout")
+            val rank = IntArray(words + 1)
+            var r = 0
+            for (w in 0 until words) {
+                rank[w] = r
+                r += java.lang.Long.bitCount(bits[w])
+            }
+            rank[words] = r
             val keyNode = IntArray(keyCount)
-            for (node in 0 until n) {
-                val k = nodeKey[node]
-                if (k >= 0) {
-                    keyNode[k] = node
-                    var best = 0
-                    for (x in formStart[k] until formStart[k + 1]) best = maxOf(best, formClass[x].toInt() and 0xFF)
-                    maxClass[node] = best.toByte()
+            run {
+                var x = 0
+                for (w in 0 until words) {
+                    var word = bits[w]
+                    while (word != 0L) {
+                        val b = java.lang.Long.numberOfTrailingZeros(word)
+                        keyNode[termKey[x++]] = (w shl 6) + b
+                        word = word and (word - 1)
+                    }
                 }
+            }
+            val maxClass = ByteArray(n)
+            val maxOffered = ByteArray(n)
+            val caseBits = ByteArray(n)
+            val derived = DerivedData.of(tag, formStart, formClass, formKind, keyNode, ch, parent, explicitIndex,
+                explicitText, anchors, guard)
+            for (k in 0 until keyCount) {
+                val node = keyNode[k]
+                var best = 0
+                var bestOffered = 0
+                var cb = 0
+                for (x in formStart[k] until formStart[k + 1]) {
+                    val c = formClass[x].toInt() and 0xFF
+                    best = maxOf(best, c)
+                    val kb = formKind[x].toInt()
+                    if (kb and OFFERED != 0) bestOffered = maxOf(bestOffered, c)
+                    val kind = kb and KIND_MASK
+                    if (kind < 3) cb = cb or (1 shl kind)
+                }
+                maxClass[node] = best.toByte()
+                maxOffered[node] = bestOffered.toByte()
+                caseBits[node] = cb.toByte()
             }
             for (node in n - 1 downTo 1) {
                 val p = parent[node]
                 if ((maxClass[node].toInt() and 0xFF) > (maxClass[p].toInt() and 0xFF)) maxClass[p] = maxClass[node]
+                if ((maxOffered[node].toInt() and 0xFF) > (maxOffered[p].toInt() and 0xFF)) maxOffered[p] = maxOffered[node]
+                caseBits[p] = (caseBits[p].toInt() or caseBits[node].toInt()).toByte()
             }
             return Lexicon(
                 tag, scale, maxCount, corpus, keyCount, formStart[keyCount], digest,
-                ch, firstChild, childCount, parent, nodeKey, maxClass,
+                ch, start, parent, bits, rank, termKey, maxClass,
                 keyNode, formStart, formClass, formKind, explicitIndex, explicitText, prefixTexts, prefixClasses, unattested,
+                maxOffered, caseBits, derived.anchorClasses, derived.anchorCosts, derived.guardClass, anchors != null,
+                abbreviation,
             )
         }
 
@@ -559,13 +688,21 @@ public class Lexicon private constructor(
             if (keys.isEmpty()) return emptySet()
             val r = ByteReader(GZIPInputStream(input, 1 shl 16))
             r.expectMagic("MKWL")
-            if (r.u8() !in 1..2) throw IOException("unsupported word list version")
+            val version = r.u8()
+            if (version !in 1..3) throw IOException("unsupported word list version")
             r.ascii()
             r.f32()
             r.varint()
             r.varint()
             val keyCount = r.varintInt()
             r.varintInt()
+            if (version == 3) {
+                repeat(r.u8()) {
+                    r.u8()
+                    r.u8()
+                }
+                r.u8()
+            }
             val found = HashSet<String>()
             val prev = StringBuilder()
             for (k in 0 until keyCount) {
@@ -575,9 +712,9 @@ public class Lexicon private constructor(
                 prev.append(r.utf8())
                 val key = prev.toString()
                 if (key in keys) found.add(key)
-                repeat(r.u8() and FORM_COUNT_MASK) {
+                repeat(r.u8() and if (version == 3) FORM_COUNT_MASK_V3 else FORM_COUNT_MASK) {
                     r.u8()
-                    if (r.u8() == 3) r.utf8()
+                    if (r.u8() and KIND_MASK == 3) r.utf8()
                 }
             }
             return found
@@ -589,9 +726,9 @@ public class Lexicon private constructor(
      * characters after that prefix (the rest equals the previous key), so the buffer holds one character per node.
      */
     private class KeyBuffer(capacity: Int) {
-        private val len = IntArray(capacity)
-        private val lcps = IntArray(capacity)
-        private val start = IntArray(capacity + 1)
+        private var len = IntArray(capacity)
+        private var lcps = IntArray(capacity)
+        private var start = IntArray(capacity + 1)
         private var chars = CharArray(maxOf(16, capacity * 4))
         private var prev = CharArray(MAX_DEPTH * 4)
         private var prevLen = 0
@@ -628,6 +765,15 @@ public class Lexicon private constructor(
         }
 
         fun length(i: Int): Int = len[i]
+
+        /** Frees the buffer once the tree is built (05b §6: no transient copy beyond what loading needs). */
+        fun release() {
+            len = IntArray(0)
+            lcps = IntArray(0)
+            start = IntArray(0)
+            chars = CharArray(0)
+            prev = CharArray(0)
+        }
 
         /** Common prefix length with the previous key; −1 for the first key. */
         fun lcp(i: Int): Int = lcps[i]

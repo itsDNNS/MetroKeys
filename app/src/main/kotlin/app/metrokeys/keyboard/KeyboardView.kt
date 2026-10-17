@@ -624,7 +624,9 @@ class KeyboardView(context: Context, val controller: KeyboardController) : View(
         override val shapeWritingActive: Boolean get() = controller.shapeWritingActive
         override fun keyChoiceAllowed(): Boolean = controller.keyChoiceAllowed() && controller.currentWordNonEmpty()
         override fun prefixClass(k: Key): Int = app.metrokeys.ime.Perf.section("mk:chooseKey") { controller.prefixClass(k.output!!.lowercase()) }
+        override fun keySound(k: Key) = controller.keySound(k)
         override fun touchDown(k: Key) = controller.keyDown(k)
+        override fun shiftHold() = controller.shiftHold()
         override fun pickerTap() = controller.pickerTapFeedback()
         override fun commit(k: Key, x: Float, y: Float) = controller.keyCommit(k, x, y)
         override fun repeat(k: Key) = controller.keyRepeat(k)

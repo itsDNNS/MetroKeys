@@ -10,7 +10,7 @@ object ImportRules {
     const val MAX_FONT_BYTES = 40L * 1024 * 1024
 
     /** Sound slots in the order of 07 §9.9. */
-    val SOUND_SLOTS = listOf("letter", "space", "function", "picker", "candidate", "dictionary")
+    val SOUND_SLOTS = listOf("letter", "space", "function", "picker", "candidate", "dictionary", "paste")
 
     /** Font slots in the order of 07 §9.11. */
     val FONT_SLOTS = listOf("light", "semilight", "regular", "semibold", "bold", "emoji")
@@ -25,6 +25,7 @@ object ImportRules {
         return when {
             "dictionary" in s -> "dictionary"
             "candidate" in s || "suggestion" in s -> "candidate"
+            "paste" in s || "clipboard" in s -> "paste"
             "picker" in s || "accent" in s || "alternate" in s -> "picker"
             "space" in s -> "space"
             "function" in s -> "function"

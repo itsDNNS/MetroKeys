@@ -109,6 +109,14 @@ class TextRulesTest {
     }
 
     @Test
+    fun periodKeepsAnAbbreviation() {
+        // 04 §3.2 item 9 (0.7.1): no autocorrection on "." when the engine reports the typed word as an abbreviation
+        assertTrue(TextRules.keepsAbbreviation('.', typedIsAbbreviation = true))
+        assertFalse(TextRules.keepsAbbreviation('.', typedIsAbbreviation = false))
+        for (t in listOf(' ', ',', '!', '?', ';', ':', ')', '"', '\n')) assertFalse(TextRules.keepsAbbreviation(t, true), "$t")
+    }
+
+    @Test
     fun trailingSpaceAndSmartSpace() {
         assertEquals(TrailingSpaceAction.INSERT_SPACE, TextRules.trailingSpace(""))
         assertEquals(TrailingSpaceAction.NOTHING, TextRules.trailingSpace(", ok"))

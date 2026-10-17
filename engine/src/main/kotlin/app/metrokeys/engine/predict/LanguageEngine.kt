@@ -15,6 +15,7 @@ import app.metrokeys.engine.text.upperDisplay
 import app.metrokeys.engine.touch.KeyboardGeometry
 import app.metrokeys.engine.touch.TapSequence
 import app.metrokeys.engine.touch.TouchModel
+import java.text.Normalizer
 import kotlin.math.floor
 import kotlin.math.pow
 
@@ -23,35 +24,55 @@ public enum class CaseMode { AS_TYPED, FIRST_UPPER, ALL_CAPS }
 
 /**
  * Validity of a typed word (spec 05 §7) with its validity cost (255 if invalid). [unattested]: valid only through an
- * unattested dictionary key and no learned or contact word (05 §10.1 step 5, 0.6.9).
+ * unattested dictionary key and no learned or contact word (05 §10.1 step 5, rule off). [classZero]: valid only as a
+ * stored form of frequency class 0 (rules 1–2), which counts as not valid for the autocorrection decision (05 §7,
+ * §10.1 step 4, 0.7.1).
  */
-public data class Validity(val valid: Boolean, val cost: Int, val rule: Int = 0, val unattested: Boolean = false) {
+public data class Validity(
+    val valid: Boolean,
+    val cost: Int,
+    val rule: Int = 0,
+    val unattested: Boolean = false,
+    val classZero: Boolean = false,
+) {
     public companion object {
         @JvmField
         public val INVALID: Validity = Validity(false, 255, 0)
     }
 }
 
-/** One candidate of a per-language query (05 §8). Costs are [INF] when absent. */
+/** Where a candidate came from (05 §8; diagnostics of 05c §5). */
+public enum class CandidateSource(public val label: String) {
+    KEY_SLIP("key-slip search"),
+    USER_WORDS("user words"),
+    SPELLING("spelling source"),
+    TRANSLITERATION("transliteration"),
+    SPLIT("split"),
+    ELISION("elision"),
+    SINGLE_LETTER("single-letter fix"),
+}
+
+/** One entry of the ranked list of a per-language query (05 §8.3, §8.4). */
 public class Candidate internal constructor(
-    word: String,
+    /** The dictionary/learned/contact word behind the display form. */
+    public val word: String,
     /** Display form (shown in the bar). */
     public val display: String,
-    lm: Int,
+    /** lm of 05 §3.5 in the query's context (or the cost given by the source). */
+    public val lm: Int,
+    /** True for a correction, false for a completion (05 §8). */
+    public val isCorrection: Boolean,
+    /** ED of the correction, or ED of the completion prefix plus `COMP_SURCHARGE` (05 §8.3). */
+    public val ed: Int,
+    /** UNITS of 05 §5 (of the completion prefix for a completion). */
+    public val units: Int,
+    public val source: CandidateSource,
 ) {
-    /** The dictionary/learned/contact word behind the display form. */
-    public var word: String = word
-        internal set
-    public var lm: Int = lm
-        internal set
-    public var correctionCost: Int = INF
-        internal set
-    public var completionCost: Int = INF
-        internal set
+    /** The ranking score lm + ed (05 §8.3; lower is better). */
+    public val score: Int get() = lm + ed
 
-    /** Edit cost of the correction. */
-    public var ed: Int = INF
-        internal set
+    /** Same as [score]. */
+    public val cost: Int get() = score
 
     /**
      * True for a prefix candidate (05 §8.2.1 item 3): the display is an elision prefix ("l'"), picked without a trailing
@@ -60,13 +81,40 @@ public class Candidate internal constructor(
     public var isElisionPrefix: Boolean = false
         internal set
 
-    public val cost: Int get() = minOf(correctionCost, completionCost)
+    /** True for an unpaired elision candidate (05 §8.2.1 item 1a): offered, never applied. */
+    public var isUnpairedElision: Boolean = false
+        internal set
 
-    public val isCorrection: Boolean get() = correctionCost <= completionCost
+    /** For an elision split or unpaired elision (05 §8.2.1 items 1, 1a): the display after the prefix, else null. */
+    public var elisionRemainder: String? = null
+        internal set
 
-    override fun toString(): String = "$display(lm=$lm, corr=${c(correctionCost)}, comp=${c(completionCost)}, ed=${c(ed)})"
+    /** True if the form carries the do-not-suggest flag and is not a learned word with count ≥ 2 (05 §8). */
+    public var isFlagged: Boolean = false
+        internal set
 
-    private fun c(v: Int) = if (v == INF) "-" else v.toString()
+    /** True if the display text equals the typed word: kept in the ranked list, never shown (05 §8.4). */
+    public var isTyped: Boolean = false
+        internal set
+
+    /** The AC edit distance and AC score of 05 §10.1 step 4 (set for the corrections of the decision). */
+    public var acEd: Int = INF
+        internal set
+    public var acScore: Int = INF
+        internal set
+
+    override fun toString(): String = "$display(${if (isCorrection) "corr" else "comp"}, lm=$lm, ed=$ed, score=$score)"
+
+    internal fun copyWithDisplay(newDisplay: String): Candidate =
+        Candidate(word, newDisplay, lm, isCorrection, ed, units, source).also {
+            it.isElisionPrefix = isElisionPrefix
+            it.isUnpairedElision = isUnpairedElision
+            it.elisionRemainder = elisionRemainder
+            it.isFlagged = isFlagged
+            it.isTyped = isTyped
+            it.acEd = acEd
+            it.acScore = acScore
+        }
 
     public companion object {
         public const val INF: Int = Int.MAX_VALUE / 4
@@ -84,19 +132,29 @@ public class QueryContext internal constructor(
     public val preceding: List<String>,
     public val taps: TapSequence,
     public val nameField: Boolean,
+    /** Checked by the long-running parts of the query (05 §2.3); null = never cancelled. */
+    public val cancel: CancellationCheck? = null,
 ) {
+    internal fun with(prev: PrevContext = this.prev, word: String = this.word, wordStart: Int = this.wordStart, taps: TapSequence = this.taps) =
+        QueryContext(before, word, wordStart, charBefore, prev, preceding, taps, nameField, cancel)
+
     public companion object {
         /** Builds the context for the current word at the end of [before]. */
         @JvmStatic
         @JvmOverloads
-        public fun of(before: String, taps: List<app.metrokeys.engine.touch.Tap>? = null, nameField: Boolean = false): QueryContext {
+        public fun of(
+            before: String,
+            taps: List<app.metrokeys.engine.touch.Tap>? = null,
+            nameField: Boolean = false,
+            cancel: CancellationCheck? = null,
+        ): QueryContext {
             val start = TextModel.currentWordStart(before)
             val word = before.substring(start)
             return QueryContext(
                 before, word, start, if (start > 0) before[start - 1] else null,
                 TextModel.previousWordForPairs(before, start),
                 TextModel.precedingWords(before, start, Params.LANG_WORDS),
-                TapSequence.align(word, taps), nameField,
+                TapSequence.align(word, taps), nameField, cancel,
             )
         }
 
@@ -112,31 +170,41 @@ public class LanguageSuggestions internal constructor(
     public val languageTag: String,
     public val typed: String,
     public val validity: Validity,
-    /** All candidates with a finite cost, by cost then display text (05 §8.5). */
+    /** The ranked list of 05 §8.4 (the typed word and flagged entries included), after §8.5. */
     public val ranked: List<Candidate>,
-    /** Candidates that kept a correction cost, by correction cost then text. */
-    public val corrections: List<Candidate>,
     /** Autocorrection decided by this language (05 §10.1), or null. */
     public val autoCorrection: Candidate?,
     /** True if the typed word is the letters of an elision prefix and [ranked] starts with that prefix (05 §8.5). */
     public val prefixFirst: Boolean = false,
     /**
-     * The step of 05 §10.1 that ended the autocorrection decision: "1", "2", "2a", "3" … "8" ("8" = applied), "-" when
-     * no decision was made (corrections only, empty or too long word). Diagnostics of the dictionary evaluation (05c §5);
-     * not part of the public API.
+     * The step of 05 §10.1 that ended the autocorrection decision ("1", "2", "2a", "3", "4", "4t", "4f", "4o", "4m",
+     * "5", "6", "7", "7e", "7o", "7r", "7s", "8"), "-" when no decision was made. Diagnostics of 05c §5; not public API.
      */
     internal val decisionStep: String = "-",
+    /** Node visits of the spelling source (05d §7), for the latency measurements. */
+    internal val spellingVisits: Int = 0,
 ) {
-    /** Candidate-bar entries of this language alone (05 §9), without emoji. */
+    /** The correction entries of the ranked list without the typed word and flagged entries (05 §16, 03 §6.4). */
+    public val corrections: List<Candidate> get() = ranked.filter { it.isCorrection && !it.isTyped && !it.isFlagged }
+
+    /**
+     * Candidate-bar entries of this language alone (05 §9), without emoji: the autocorrection first, then the ranked
+     * list; of the first `BAR_MAX` entries of that order the typed word and flagged entries are not shown.
+     */
     public fun bar(): List<Candidate> {
         val out = ArrayList<Candidate>()
         val seen = HashSet<String>()
+        var examined = 0
         autoCorrection?.let {
             out.add(it)
             seen.add(it.display)
+            examined++
         }
         for (c in ranked) {
-            if (out.size >= Params.BAR_MAX) break
+            if (examined >= Params.BAR_MAX) break
+            if (c === autoCorrection || (autoCorrection != null && c.display == autoCorrection.display)) continue
+            examined++
+            if (c.isTyped || c.isFlagged) continue
             if (seen.add(c.display)) out.add(c)
         }
         return out
@@ -164,11 +232,20 @@ public class LanguageEngine @JvmOverloads constructor(
     /** Bc = round(1 / (S ln 10), 5). */
     public val bc: Double = LmCost.constantBc(lexicon.scale)
 
+    /** The anchored cost scale of 05 §3.2 of this word list. */
+    public val scale: LmScale = LmScale.of(lexicon, a, bc)
+
+    /** The spelling source of 05d (§8.1b). */
+    public val spelling: SpellingSource = SpellingSource(lexicon, SpellingParams.forLanguage(params.languageTag))
+
     @Volatile
     private var touchModel: TouchModel = TouchModel(KeyboardGeometry.fallback(params.languageTag), params)
 
     @Volatile
     private var editDistance: EditDistance = EditDistance(params, touchModel)
+
+    @Volatile
+    private var slipTable: SlipTable = SlipTable(touchModel, params)
 
     @Volatile
     public var contacts: ContactNames = ContactNames.EMPTY
@@ -178,6 +255,7 @@ public class LanguageEngine @JvmOverloads constructor(
         set(value) {
             val t = TouchModel(value, params)
             editDistance = EditDistance(params, t)
+            slipTable = SlipTable(t, params)
             touchModel = t
         }
 
@@ -187,6 +265,9 @@ public class LanguageEngine @JvmOverloads constructor(
 
     /** log10 p_uni of frequency class [k]. */
     public fun unigramLog10(k: Int): Double = a + k * bc
+
+    /** cost(p) of 05 §3.2 on this list's scale. */
+    public fun cost(p: Double): Int = scale.cost(p)
 
     /** log10 p_uni of [word] for the language vote (05 §14.1): unknown → −9. */
     public fun languageLog10(word: String): Double {
@@ -198,17 +279,22 @@ public class LanguageEngine @JvmOverloads constructor(
     public fun staticProbability(word: String, prev: PrevContext): Double {
         val k = lexicon.exactClass(word)
         if (k < 0) return 0.0
+        val key = prev.pairKey
+        val b = if (key == null) -1 else dictionary.pairs?.bigram(key, word) ?: -1
+        return staticProbability(k, b)
+    }
+
+    private fun staticProbability(k: Int, pairClass: Int): Double {
         val pUni = 10.0.pow(unigramLog10(k))
-        val key = prev.pairKey ?: return pUni
-        val b = dictionary.pairs?.bigram(key, word) ?: -1
-        if (b < 0) return pUni
-        val pPair = LmCost.pairProbability(b)
+        if (pairClass < 0) return pUni
+        val pPair = LmCost.pairProbability(pairClass)
         return maxOf(pUni, Params.PAIR_LAMBDA * pPair + (1 - Params.PAIR_LAMBDA) * pUni)
     }
 
     /** p after the user interpolation of §3.4. */
-    public fun probability(word: String, prev: PrevContext): Double {
-        val pStatic = staticProbability(word, prev)
+    public fun probability(word: String, prev: PrevContext): Double = interpolate(word, staticProbability(word, prev), lexicon.exact(word))
+
+    private fun interpolate(word: String, pStatic: Double, inDictionary: Boolean): Double {
         val n = user.count(word)
         val r = user.recentCount(word)
         val c = n + Params.RECENT_FACTOR * r
@@ -216,7 +302,7 @@ public class LanguageEngine @JvmOverloads constructor(
         val lambda = minOf(c * Params.USER_LAMBDA_STEP, Params.USER_LAMBDA_CAP)
         val pUser = c.toDouble() / (user.totalCount + Params.USER_TOTAL_OFFSET)
         return when {
-            lexicon.exact(word) -> maxOf(pStatic, lambda * pUser + (1 - lambda) * pStatic)
+            inDictionary -> maxOf(pStatic, lambda * pUser + (1 - lambda) * pStatic)
             user.isKnownLearned(word) -> lambda * pUser
             else -> 0.0
         }
@@ -225,10 +311,19 @@ public class LanguageEngine @JvmOverloads constructor(
     /** lm(w) of §3.5: min(cost(p), contactCost(w)). */
     @JvmOverloads
     public fun lm(word: String, prev: PrevContext = PrevContext.None, nameField: Boolean = false): Int {
-        val c = LmCost.cost(probability(word, prev))
-        val contact = contacts.cost(word, nameField)
+        val c = scale.cost(probability(word, prev))
+        val contact = contacts.cost(word, nameField, scale)
         return minOf(c, contact)
     }
+
+    /** lm of a dictionary form of class [k] whose pair class after the previous word is [pairClass] (−1: none). */
+    private fun lmOf(word: String, k: Int, pairClass: Int, nameField: Boolean): Int {
+        val c = scale.cost(interpolate(word, staticProbability(k, pairClass), true))
+        return minOf(c, contacts.cost(word, nameField, scale))
+    }
+
+    /** True if [word] carries the do-not-suggest flag and is not a learned word with count ≥ `LEARN_MIN_COUNT` (05 §8). */
+    public fun isFlagged(word: String): Boolean = lexicon.isFlaggedWord(word) && user.count(word) < Params.LEARN_MIN_COUNT
 
     // ------------------------------------------------------------------ case and validity (§6, §7)
 
@@ -257,8 +352,11 @@ public class LanguageEngine @JvmOverloads constructor(
     public fun validity(word: String, mode: CaseMode, prev: PrevContext = PrevContext.None, nameField: Boolean = false): Validity {
         if (word.isEmpty()) return Validity.INVALID
         val decap = if (startsUpper(word) && mode != CaseMode.ALL_CAPS) decapitalize(word) else null
-        fun dictionary(form: String, rule: Int) =
-            Validity(true, lm(form, prev, nameField), rule, params.unattestedKeysRule && unattestedLowerCase(form) && !learnedOrContact(word, decap))
+        fun dictionary(form: String, rule: Int): Validity {
+            val zero = lexicon.exactClass(form) == 0 && !learnedOrContact(word, decap) && !user.isRejected(word)
+            return Validity(true, lm(form, prev, nameField), rule,
+                params.unattestedKeysRule && unattestedLowerCase(form) && !learnedOrContact(word, decap), zero)
+        }
         // 1 exact form
         if (lexicon.exact(word)) return dictionary(word, 1)
         if (decap != null && lexicon.exact(decap)) return dictionary(decap, 1)
@@ -304,7 +402,7 @@ public class LanguageEngine @JvmOverloads constructor(
 
     /**
      * True if the key of [form] is unattested and its most frequent form (the first stored form) is all lower case
-     * (05 §10.1 step 5, 0.6.9): unattested keys written mainly with a capital (names) keep blocking corrections.
+     * (05 §10.1 step 5, rule off): unattested keys written mainly with a capital (names) keep blocking corrections.
      */
     private fun unattestedLowerCase(form: String): Boolean {
         val k = lexicon.keyIndex(form)
@@ -312,7 +410,7 @@ public class LanguageEngine @JvmOverloads constructor(
         return lexicon.formText(k, 0).none { Character.isUpperCase(it) }
     }
 
-    /** True if [word] (or [decap]) is also a known learned word or a contact name (05 §10.1 step 5, 0.6.9). */
+    /** True if [word] (or [decap]) is also a known learned word or a contact name. */
     private fun learnedOrContact(word: String, decap: String?): Boolean =
         user.isKnownLearned(word) || (decap != null && user.isKnownLearned(decap)) ||
             contacts.contains(word) || (decap != null && contacts.contains(decap))
@@ -387,30 +485,6 @@ public class LanguageEngine @JvmOverloads constructor(
         return null
     }
 
-    // ------------------------------------------------------------------ candidates (§8)
-
-    private class Builder(val engine: LanguageEngine, val ctx: QueryContext, val mode: CaseMode) {
-        val lmCache = HashMap<String, Int>()
-        val byDisplay = LinkedHashMap<String, Candidate>()
-
-        fun lm(word: String): Int = lmCache.getOrPut(word) { engine.lm(word, ctx.prev, ctx.nameField) }
-
-        fun candidate(word: String, display: String): Candidate {
-            val l = lm(word)
-            val c = byDisplay[display]
-            if (c == null) {
-                val n = Candidate(word, display, l)
-                byDisplay[display] = n
-                return n
-            }
-            if (l < c.lm) {
-                c.word = word
-                c.lm = l
-            }
-            return c
-        }
-    }
-
     // ------------------------------------------------------------------ elided prefix (§2.2, extension)
 
     /**
@@ -445,6 +519,13 @@ public class LanguageEngine @JvmOverloads constructor(
         val n = elisionPrefixLength(word)
         return if (n in 1 until word.length) word.substring(n) else word
     }
+
+    /**
+     * 05 §2.1 `typedIsAbbreviation` (0.7.1): the key of [word] (of an elided word, its remainder) carries the
+     * abbreviation bit of 05b §1.1. The text rules then do not apply an autocorrection on a typed period (04 §3.2
+     * item 9); the decision of 05 §10.1 itself does not depend on it.
+     */
+    public fun isAbbreviation(word: String): Boolean = word.isNotEmpty() && lexicon.isAbbreviationWord(stripElision(word))
 
     /**
      * Previous word for pairs of a word that follows an elided word ("dell'anno" → "anno"), as the pair build counts
@@ -552,41 +633,31 @@ public class LanguageEngine @JvmOverloads constructor(
     }
 
     /**
-     * Runs the candidate generation of §8 and the autocorrection decision of §10.1 for the current word. A current word
-     * with an elided prefix (§2.2) is predicted as its remainder with the prefix as previous word; every candidate is the
-     * prefix as typed followed by the remainder's candidate. The prefix alone gives the elided words of §2.2 "bare
-     * prefix" as completions.
+     * Runs the candidate generation of §8 and the autocorrection decision of §10.1 for the current word ([correctionsOnly]:
+     * no decision). A current word with an elided prefix (§2.2) is predicted as its remainder with the prefix as
+     * previous word; every candidate is the prefix as typed followed by the remainder's candidate. The prefix alone gives
+     * the elided words of §2.2 "bare prefix" as completions.
      */
     @JvmOverloads
     public fun suggest(ctx: QueryContext, correctionsOnly: Boolean = false): LanguageSuggestions {
         val n = elisionPrefixLength(ctx.word)
         if (n == 0) {
             val prev = pairPrev(ctx.prev)
-            val c = if (prev === ctx.prev) ctx else QueryContext(ctx.before, ctx.word, ctx.wordStart, ctx.charBefore, prev,
-                ctx.preceding, ctx.taps, ctx.nameField)
-            return suggestWord(c, correctionsOnly, null)
+            return suggestWord(if (prev === ctx.prev) ctx else ctx.with(prev = prev), correctionsOnly, null)
         }
         if (n == ctx.word.length) {
             val ranked = if (correctionsOnly) emptyList() else barePrefixCompletions(ctx)
-            return LanguageSuggestions(languageTag, ctx.word, Validity.INVALID, ranked, emptyList(), null)
+            return LanguageSuggestions(languageTag, ctx.word, Validity.INVALID, ranked, null)
         }
         val prefix = ctx.word.substring(0, n)
-        val sub = QueryContext(
-            ctx.before, ctx.word.substring(n), ctx.wordStart + n, ctx.charBefore,
-            PrevContext.Word(Lexicon.normalizePrefix(prefix)), ctx.preceding, ctx.taps.drop(n), ctx.nameField,
-        )
+        val sub = ctx.with(prev = PrevContext.Word(Lexicon.normalizePrefix(prefix)), word = ctx.word.substring(n),
+            wordStart = ctx.wordStart + n, taps = ctx.taps.drop(n))
         val r = suggestWord(sub, correctionsOnly, prefix)
         val mapped = HashMap<Candidate, Candidate>()
-        fun map(c: Candidate): Candidate = mapped.getOrPut(c) {
-            Candidate(c.word, prefix + c.display, c.lm).also {
-                it.correctionCost = c.correctionCost
-                it.completionCost = c.completionCost
-                it.ed = c.ed
-            }
-        }
+        fun map(c: Candidate): Candidate = mapped.getOrPut(c) { c.copyWithDisplay(prefix + c.display) }
         return LanguageSuggestions(
-            languageTag, ctx.word, r.validity, r.ranked.map(::map), r.corrections.map(::map), r.autoCorrection?.let(::map),
-            decisionStep = r.decisionStep,
+            languageTag, ctx.word, r.validity, r.ranked.map(::map), r.autoCorrection?.let(::map),
+            decisionStep = r.decisionStep, spellingVisits = r.spellingVisits,
         )
     }
 
@@ -611,12 +682,13 @@ public class LanguageEngine @JvmOverloads constructor(
             val sum = followers.values.sum().toDouble()
             val weight = if (k == longest) 1.0 else Params.NEXT_BACKOFF
             for ((f, c) in followers) {
-                if (c >= Params.LEARN_MIN_COUNT && (user.dictionaryKnows(f) || user.isKnownLearned(f))) put(f, LmCost.cost(weight * c / sum))
+                if (c >= Params.LEARN_MIN_COUNT && (user.dictionaryKnows(f) || user.isKnownLearned(f))) put(f, scale.cost(weight * c / sum))
             }
         }
         dictionary.pairs?.let { pairs ->
             for (f in pairs.followers(prefix, Params.NEXT_PAIR_FETCH)) {
-                put(f.text, LmCost.cost(LmCost.pairProbability(f.pairClass)) + Params.COMP_SURCHARGE)
+                if (isFlagged(f.text)) continue
+                put(f.text, scale.cost(LmCost.pairProbability(f.pairClass)) + Params.COMP_SURCHARGE)
             }
         }
         // all caps only for a prefix of two or more capitals ("DELL'"; a single capital is a sentence start, "C'" →
@@ -627,58 +699,238 @@ public class LanguageEngine @JvmOverloads constructor(
         for ((w, c) in costs) {
             val d = typed + if (allCaps) upperDisplay(w) else w
             val old = merged[d]
-            if (old == null || c < old.completionCost) {
-                merged[d] = Candidate(typed + w, d, c - Params.COMP_SURCHARGE).also { it.completionCost = c }
+            if (old == null || c < old.score) {
+                merged[d] = Candidate(typed + w, d, c - Params.COMP_SURCHARGE, false, Params.COMP_SURCHARGE, 0, CandidateSource.ELISION)
             }
         }
-        return merged.values.sortedWith(compareBy<Candidate>({ it.cost }, { it.display })).take(Params.BAR_MAX)
+        return merged.values.sortedWith(compareBy<Candidate>({ it.score }, { it.display })).take(Params.BAR_MAX)
     }
+
+    // ------------------------------------------------------------------ candidates (§8)
+
+    /** The candidates of one query before merging (05 §8.3): every entry with its display, kind, lm, ed and units. */
+    private inner class Builder(val ctx: QueryContext, val w: String, val mode: CaseMode) {
+        val len = w.length
+        val maxUnits = maxOf(Params.UNIT_FLOOR, floor(len * Params.UNIT_SLOPE).toInt())
+        val ed = editDistance
+        private val lmCache = HashMap<String, Int>()
+        val all = ArrayList<Candidate>()
+
+        fun lm(word: String): Int = lmCache.getOrPut(word) { this@LanguageEngine.lm(word, ctx.prev, ctx.nameField) }
+
+        private fun units(cand: String): Int = EditDistance.units(w, cand, params.capsUnaccented, params.accentSwap,
+            params.umlautTranslit, params.edDiacritic != 0)
+
+        /**
+         * Scores and filters one candidate (05 §8.3): a correction against its display [d], a completion against its
+         * display [prefix]; returns it if it passes the filters.
+         */
+        fun add(word: String, d: String, lm: Int, correction: Boolean, prefix: String?, source: CandidateSource, flagged: Boolean): Candidate? {
+            val target = if (correction) d else prefix ?: d
+            val u = units(target)
+            if (u > maxUnits) return null
+            if (lm + Params.COMP_EDIT_FACTOR * u / len > Params.COMP_LIMIT) return null
+            val e = ed.weighted(w, target, ctx.taps) + if (correction) 0 else Params.COMP_SURCHARGE
+            val c = Candidate(word, d, lm, correction, e, u, source)
+            c.isFlagged = flagged
+            c.isTyped = d == w
+            all.add(c)
+            return c
+        }
+
+        /** Merge by display text (lower score kept, equal: the correction) and order (05 §8.4). */
+        fun ranked(): List<Candidate> {
+            val by = HashMap<String, Candidate>()
+            for (c in all) {
+                val old = by[c.display]
+                if (old == null || c.score < old.score || (c.score == old.score && c.isCorrection && !old.isCorrection)) by[c.display] = c
+            }
+            return by.values.sortedWith { x, y ->
+                if (x.score != y.score) x.score.compareTo(y.score) else y.display.compareTo(x.display)
+            }
+        }
+    }
+
+    /**
+     * Dictionary forms whose lm in this query is below their static cost (05 §8.1): the stored pair followers of the
+     * previous word, forms with learned counts and contact words that are dictionary forms.
+     */
+    private fun specialForms(ctx: QueryContext): List<KeySlipSearch.Special> {
+        val out = ArrayList<KeySlipSearch.Special>()
+        val seen = HashSet<Long>()
+        fun add(k: Int, f: Int, lm: Int) {
+            if (k < 0 || f < 0) return
+            val id = (k.toLong() shl 8) or f.toLong()
+            if (seen.add(id)) out.add(KeySlipSearch.Special(k, f, lm))
+        }
+        val key = ctx.prev.pairKey
+        val pairs = dictionary.pairs
+        if (key != null && pairs != null) {
+            for (pf in pairs.followers(key, Int.MAX_VALUE)) {
+                if (pf.isPrefix) continue
+                val f = lexicon.formIndexOf(pf.keyIndex, pf.text)
+                if (f < 0) continue
+                add(pf.keyIndex, f, lmOf(pf.text, lexicon.formClass(pf.keyIndex, f), pf.pairClass, ctx.nameField))
+            }
+        }
+        for ((word, _) in user.learnedWords(1)) {
+            val k = lexicon.keyIndex(word)
+            val f = lexicon.formIndexOf(k, word)
+            if (f >= 0) add(k, f, lm(word, ctx.prev, ctx.nameField))
+        }
+        for (word in contacts.words) {
+            val k = lexicon.keyIndex(word)
+            val f = lexicon.formIndexOf(k, word)
+            if (f >= 0) add(k, f, lm(word, ctx.prev, ctx.nameField))
+        }
+        return out
+    }
+
+    /**
+     * The key-slip search of 05 §8.1 on [low] (the typed word or a transliterated spelling of it), handed over. A run
+     * on a transliterated spelling ([source] `TRANSLITERATION`) hands over a completion only if its form is longer than
+     * the typed word (05 §8.1c, 0.7.1): shorter and equally long ones do not continue what was typed and are dropped
+     * (the walk on W and the spelling source deliver them as corrections).
+     */
+    private fun slipCandidates(b: Builder, low: String, specials: List<KeySlipSearch.Special>, source: CandidateSource) {
+        val search = KeySlipSearch(lexicon, slipTable, params, scale::classCost)
+        for (e in search.search(low, specials, b.ctx.cancel).handOver()) {
+            if (e.completion && source == CandidateSource.TRANSLITERATION && e.text.length <= b.w.length) continue
+            val d = display(e.text, b.mode)
+            val flagged = isFlagged(e.text)
+            if (e.completion) {
+                val key = if (e.keyIndex >= 0) lexicon.keyString(e.keyIndex) else toKey(e.text)
+                val prefix = display(KeySlipSearch.formPrefix(e.text, key, e.prefixKeyLength), b.mode)
+                b.add(e.text, d, b.lm(e.text), false, prefix, source, flagged)
+            } else {
+                b.add(e.text, d, b.lm(e.text), true, null, source, flagged)
+            }
+        }
+    }
+
+    /**
+     * 05 §8.1a: the same walk over the learned words that count as known, the dictionary forms with a learned count ≥
+     * `LEARN_MIN_COUNT` and the contact words, with its own lists and hand-over; never flagged.
+     */
+    private fun userWordCandidates(b: Builder, low: String) {
+        val words = LinkedHashSet<String>()
+        // a learned case error ("haus" for "Haus") never counts as known (§7 rule 3), so it is no user word either
+        for ((lw, _) in user.knownLearnedWords()) if (!isCaseError(lw, CaseMode.AS_TYPED)) words.add(lw)
+        for (cw in contacts.words) words.add(cw)
+        if (words.isEmpty()) return
+        val same = SlipList(Params.SLIP_SAME_KEEP)
+        val comp = SlipList(Params.SLIP_COMP_KEEP)
+        val table = slipTable
+        for (word in words) {
+            val key = toKey(word)
+            val m = KeySlipSearch.matchKey(key, low, table, params.slipFiller) ?: continue
+            val l = b.lm(word)
+            val cls = maxOf(0, lexicon.exactClass(word))
+            val allExact = key == low || (low.none { SlipTable.isFiller(it) } && key.filterNot { SlipTable.isFiller(it) } == low)
+            if (m.sameSlip >= 0) same.offer(word, cls, if (allExact) 1 else l + m.sameSlip, false, 0)
+            if (m.compSlip >= 0) comp.offer(word, cls, l + m.compSlip, true, m.compPrefix)
+        }
+        for (e in SlipResult(same, comp).handOver()) {
+            val d = display(e.text, b.mode)
+            if (e.completion) {
+                b.add(e.text, d, b.lm(e.text), false, display(KeySlipSearch.formPrefix(e.text, toKey(e.text), e.prefixKeyLength), b.mode),
+                    CandidateSource.USER_WORDS, false)
+            } else {
+                b.add(e.text, d, b.lm(e.text), true, null, CandidateSource.USER_WORDS, false)
+            }
+        }
+    }
+
+    /** 05 §8.1c: the transliterated spellings of [w] (ß for ss; œ/æ for oe/ae where `SLIP_ACCENTS` list them; umlauts). */
+    internal fun transliterations(w: String): List<String> {
+        val out = ArrayList<String>()
+        if (w.contains("ss", ignoreCase = true)) out.add(replaceDigraphs(w, mapOf("ss" to 'ß')))
+        if (ligatures && (w.contains("oe", ignoreCase = true) || w.contains("ae", ignoreCase = true))) {
+            out.add(replaceDigraphs(w, mapOf("oe" to 'œ', "ae" to 'æ')))
+        }
+        if (params.umlautTranslit && (w.contains("ae", true) || w.contains("oe", true) || w.contains("ue", true))) {
+            out.add(replaceDigraphs(w, mapOf("ae" to 'ä', "oe" to 'ö', "ue" to 'ü')))
+        }
+        return out.filter { it != w }.distinct()
+    }
+
+    private fun replaceDigraphs(w: String, map: Map<String, Char>): String {
+        val sb = StringBuilder(w.length)
+        var i = 0
+        while (i < w.length) {
+            if (i + 1 < w.length) {
+                val pair = toKey(w.substring(i, i + 2))
+                val r = map[pair]
+                if (r != null) {
+                    sb.append(if (Character.isUpperCase(w[i]) && r != 'ß') Character.toUpperCase(r) else r)
+                    i += 2
+                    continue
+                }
+            }
+            sb.append(w[i])
+            i++
+        }
+        return sb.toString()
+    }
+
+    private val ligatures: Boolean = params.slipAccents.values.any { 'œ' in it || 'æ' in it }
+
+    /** 05 §8.1b: the first `SPELL_SLOTS` words of the spelling source as corrections. */
+    private fun spellingCandidates(b: Builder, validity: Validity): Int {
+        val res = spelling.suggest(b.w, validity.valid, b.ctx.cancel)
+        for (word in res.words.take(Params.SPELL_SLOTS)) {
+            if (word.length == 1 && word[0].isDigit()) continue
+            val spaces = word.count { it == ' ' }
+            if (spaces > 0) {
+                if (!params.missingSpaceSplit || spaces > 1) continue
+                val a = word.substringBefore(' ')
+                val c = word.substringAfter(' ')
+                val l = splitLm(splitPart(a), splitPart(c))
+                val flagged = isFlagged(splitPart(a)) || isFlagged(splitPart(c))
+                b.add(word, display(word, b.mode), l, true, null, CandidateSource.SPELLING, flagged)
+                continue
+            }
+            val k = lexicon.keyIndex(word)
+            var form: String? = null
+            if (k >= 0) {
+                val fi = lexicon.formIndexOf(k, word)
+                form = if (fi >= 0) word else lexicon.formText(k, 0)
+            }
+            if (form != null && lexicon.isOfferedWord(form)) {
+                b.add(form, display(form, b.mode), b.lm(form), true, null, CandidateSource.SPELLING, isFlagged(form))
+            } else {
+                // no form, or a form that is not offered: the word as suggested with the unknown cost (05 §8.1b item 3)
+                val flagged = form != null && isFlagged(form)
+                b.add(form ?: word, display(form ?: word, b.mode), Params.SPELL_UNKNOWN_LM, true, null, CandidateSource.SPELLING, flagged)
+            }
+        }
+        return res.visits
+    }
+
+    /** A part of a two-word spelling suggestion as a form of the list: as given, else decapitalised. */
+    private fun splitPart(p: String): String = if (lexicon.exact(p)) p else decapitalize(p).takeIf { lexicon.exact(it) } ?: p
 
     /** [elidedPrefix]: the prefix as typed when [ctx] is the remainder of an elided word (05 §2.2), else null. */
     private fun suggestWord(ctx: QueryContext, correctionsOnly: Boolean, elidedPrefix: String?): LanguageSuggestions {
         val w = ctx.word
         val len = w.length
         val mode = caseMode(w, ctx.preceding)
-        val b = Builder(this, ctx, mode)
         val validity = validity(w, mode, ctx.prev, ctx.nameField).let { v ->
             if (elidedPrefix != null) remainderValidity(elidedPrefix, w, v) else v
         }
         if (len == 0 || len > Params.WORD_MAX_LEN) {
-            return LanguageSuggestions(languageTag, w, validity, emptyList(), emptyList(), null)
+            return LanguageSuggestions(languageTag, w, validity, emptyList(), null)
         }
         val low = toKey(w)
-        val maxUnits = maxOf(Params.UNIT_FLOOR, floor(len * Params.UNIT_SLOPE).toInt())
-        val maxEdits = if (len <= 3) 1 else 2
-        val ed = editDistance
-        val taps = ctx.taps
+        val b = Builder(ctx, w, mode)
+        val specials = specialForms(ctx)
 
-        // 8.1 correction pool
-        val pool = LinkedHashSet<String>()
-        val unitsOf = { key: String ->
-            EditDistance.units(low, key, accentSwap = params.accentSwap, umlautTranslit = params.umlautTranslit)
-        }
-        for (m in lexicon.fuzzy(low, maxEdits, Params.FUZZY_POOL, unitsOf)) pool.add(m.form.text)
-        if (len == 3) pool.addAll(twoNeighbourSubstitutions(low))
-        if ("ss" in low) for (m in lexicon.fuzzy(low.replace("ss", "ß"), 1, 8)) pool.add(m.form.text)
-        lexicon.canonical(w)?.let { pool.add(it) }
-        for ((lw, _) in user.knownLearnedWords()) {
-            if (kotlin.math.abs(lw.length - len) <= maxEdits && unitsOf(toKey(lw)) <= maxEdits) pool.add(lw)
-        }
-        for (cw in contacts.words) {
-            if (kotlin.math.abs(cw.length - len) <= maxEdits && unitsOf(toKey(cw)) <= maxEdits) pool.add(cw)
-        }
-        for (word in pool) {
-            if (hidden(word)) continue
-            val d = display(word, mode)
-            if (EditDistance.units(w, d, params.capsUnaccented, params.accentSwap, params.umlautTranslit) > maxUnits) continue
-            val e = ed.weighted(w, d, taps)
-            val c = b.candidate(word, d)
-            val cost = b.lm(word) + e
-            if (cost < c.correctionCost) {
-                c.correctionCost = cost
-                c.ed = e
-            }
-        }
+        // 8.1 key-slip search, 8.1a user words, 8.1c transliterated spellings
+        slipCandidates(b, low, specials, CandidateSource.KEY_SLIP)
+        userWordCandidates(b, low)
+        for (t in transliterations(w)) slipCandidates(b, toKey(t), specials, CandidateSource.TRANSLITERATION)
+        // 8.1b spelling source
+        val visits = spellingCandidates(b, validity)
 
         // 8.2 missing space: none for compounding languages, at most one split otherwise
         if (params.missingSpaceSplit && !validity.valid && len >= 4 && w.all { Character.isLetter(it) }) {
@@ -696,62 +948,20 @@ public class LanguageEngine @JvmOverloads constructor(
                 }
             }
             if (bestText != null) {
-                val existing = b.byDisplay[bestText]
-                val c = existing ?: Candidate(bestText, bestText, bestLm).also { b.byDisplay[bestText] = it }
-                if (bestLm < c.lm) {
-                    c.lm = bestLm
-                    c.word = bestText
-                }
-                val cost = bestLm + params.edSpace
-                if (cost < c.correctionCost) {
-                    c.correctionCost = cost
-                    c.ed = params.edSpace
-                }
+                val parts = bestText.split(' ')
+                b.add(bestText, display(bestText, mode), bestLm, true, null, CandidateSource.SPLIT,
+                    parts.any { isFlagged(it) })
             }
         }
 
-        // 8.2.1 elision: apostrophe split, elided completions, prefix candidates
+        // 8.2.1 elision: apostrophe split, unpaired elision, elided completions, prefix candidates
         if (elidedPrefix == null && lexicon.hasPrefixTable && w.all { Character.isLetter(it) }) {
-            elisionCandidates(w, mode, validity, ctx, b, correctionsOnly)
+            elisionCandidates(b, validity)
         }
 
-        // 8.3 completions
-        if (!correctionsOnly) {
-            val words = LinkedHashSet<String>()
-            for ((i, prefix) in prefixList(w, taps).withIndex()) {
-                val limit = if (i == 0) Params.COMPLETIONS_TYPED else Params.COMPLETIONS_VARIANT
-                for (f in lexicon.completions(prefix, limit)) words.add(f.text)
-            }
-            for ((lw, _) in user.knownLearnedWords()) if (lw.startsWith(w, ignoreCase = true)) words.add(lw)
-            for (cw in contacts.words) if (cw.startsWith(w, ignoreCase = true)) words.add(cw)
-            for (word in words) {
-                if (hidden(word)) continue
-                val d = display(word, mode)
-                val prefix = completionPrefix(d, len) ?: continue
-                val u = EditDistance.units(w, prefix, params.capsUnaccented, params.accentSwap, params.umlautTranslit)
-                if (u > maxUnits) continue
-                val l = b.lm(word)
-                if (l + Params.COMP_EDIT_FACTOR * u / len > Params.COMP_LIMIT) continue
-                val cost = l + Params.COMP_SURCHARGE + ed.weighted(w, prefix, taps)
-                val c = b.candidate(word, d)
-                if (cost < c.completionCost) c.completionCost = cost
-            }
-        }
-
-        // 8.5 final filtering
-        b.byDisplay.remove(w)
-        val all = b.byDisplay.values.toList()
-        val byCorrection = all.filter { it.correctionCost < Candidate.INF }
-            .sortedWith(compareBy<Candidate>({ it.correctionCost }, { it.display }))
-        for ((i, c) in byCorrection.withIndex()) {
-            if (i >= Params.CORR_KEEP) {
-                c.correctionCost = Candidate.INF
-                c.ed = Candidate.INF
-            }
-        }
-        val corrections = byCorrection.take(Params.CORR_KEEP)
-        var ranked = all.filter { it.cost < Candidate.INF }.sortedWith(compareBy<Candidate>({ it.cost }, { it.display }))
-        // letters of an elision prefix with at least two letters ("qu", "jusqu", "dell"): the prefix candidate first (§8.5)
+        // 8.3, 8.4 scoring, filters, merge and order
+        var ranked = b.ranked()
+        // 8.5 letters of an elision prefix with at least two letters ("qu", "jusqu", "dell"): the prefix candidate first
         var prefixFirst = false
         if (elidedPrefix == null && lexicon.hasPrefixTable && low.length >= 2 && isPrefixLetters(low)) {
             val i = ranked.indexOfFirst { it.isElisionPrefix }
@@ -760,20 +970,21 @@ public class LanguageEngine @JvmOverloads constructor(
                 prefixFirst = true
             }
         }
-        val decision = if (correctionsOnly) null else decideAutocorrection(ctx, w, validity, corrections, b, elidedPrefix != null)
-        return LanguageSuggestions(languageTag, w, validity, ranked, corrections, decision?.candidate, prefixFirst,
-            decision?.step ?: "-")
+        val decision = if (correctionsOnly) null else decideAutocorrection(ctx, w, validity, ranked, b, elidedPrefix != null)
+        return LanguageSuggestions(languageTag, w, validity, ranked, decision?.candidate, prefixFirst, decision?.step ?: "-", visits)
     }
 
     /**
-     * 05 §8.2.1 for the typed letters [w]: (1) elision splits as corrections, also for a valid [w]; (2) elided
-     * completions for an invalid [w]; (3) the prefix candidate when [w] is the letters of a prefix. Elided words are
-     * costed as one word: log10 p = log10 p_pre(P′) + log10 P(F | P′).
+     * 05 §8.2.1 for the typed letters of [b]: (1) elision splits as corrections, also for a valid word; (1a) the unpaired
+     * elision when no follower matched; (2) elided completions for an invalid word; (3) the prefix candidate when the
+     * word is the letters of a prefix. Elided words are costed as one word: log10 p = log10 p_pre(P′) + log10 P(F | P′).
      */
-    private fun elisionCandidates(w: String, mode: CaseMode, validity: Validity, ctx: QueryContext, b: Builder, correctionsOnly: Boolean) {
+    private fun elisionCandidates(b: Builder, validity: Validity) {
+        val w = b.w
+        val mode = b.mode
+        val ctx = b.ctx
         val low = toKey(w)
         val stripped = stripAll(low)
-        val ed = editDistance
         for (prefix in params.elisionPrefixes) {
             val letters = prefix.dropLast(1)
             if (!low.startsWith(letters)) continue
@@ -781,45 +992,56 @@ public class LanguageEngine @JvmOverloads constructor(
             if (preLog == Double.NEGATIVE_INFINITY) continue
             if (low.length == letters.length) {
                 // 3 prefix candidate
-                if (correctionsOnly) continue
                 val d = display(prefix, mode)
-                val l = LmCost.cost(10.0.pow(preLog))
-                val c = b.byDisplay[d] ?: Candidate(prefix, d, l).also { b.byDisplay[d] = it }
-                c.isElisionPrefix = true
-                if (l < c.lm) c.lm = l
-                val cost = l + Params.COMP_SURCHARGE
-                if (cost < c.completionCost) c.completionCost = cost
+                val l = scale.cost(10.0.pow(preLog))
+                b.add(prefix, d, l, false, d, CandidateSource.ELISION, false)?.isElisionPrefix = true
                 continue
             }
             val rest = stripped.substring(letters.length)
+            var matched = false
             for (f in prefixFollowers(prefix)) {
                 val fs = stripAll(toKey(f.text))
                 val split = fs == rest
-                val completion = !split && !correctionsOnly && !validity.valid && rest.length >= 2 && fs.length > rest.length &&
-                    fs.startsWith(rest)
+                val completion = !split && !validity.valid && rest.length >= 2 && fs.length > rest.length && fs.startsWith(rest)
                 if (!split && !completion) continue
                 val word = prefix + f.text
                 val d = display(word, mode)
-                val l = LmCost.cost(10.0.pow(preLog + f.log10p))
-                if (split && validity.valid && params.elisionValidSlack != null &&
-                    l + ed.weighted(w, d, ctx.taps) > validity.cost + params.elisionValidSlack
-                ) continue
-                val c = b.byDisplay[d] ?: Candidate(word, d, l).also { b.byDisplay[d] = it }
-                if (l < c.lm) {
-                    c.lm = l
-                    c.word = word
-                }
+                val l = scale.cost(10.0.pow(preLog + f.log10p))
                 if (split) {
+                    matched = true
                     // 1 elision split: a correction candidate (for a valid W only within ELISION_VALID_SLACK, fr)
-                    val e = ed.weighted(w, d, ctx.taps)
-                    if (l + e < c.correctionCost) {
-                        c.correctionCost = l + e
-                        c.ed = e
-                    }
+                    if (validity.valid && params.elisionValidSlack != null &&
+                        l + b.ed.weighted(w, d, ctx.taps) > validity.cost + params.elisionValidSlack
+                    ) continue
+                    b.add(word, d, l, true, null, CandidateSource.ELISION, isFlagged(f.text))?.elisionRemainder = d.substring(prefix.length)
                 } else if (d.length > w.length) {
                     // 2 elided completion (the first len + 1 characters of D)
-                    val cost = l + Params.COMP_SURCHARGE + ed.weighted(w, d.substring(0, w.length + 1), ctx.taps)
-                    if (cost < c.completionCost) c.completionCost = cost
+                    b.add(word, d, l, false, d.substring(0, w.length + 1), CandidateSource.ELISION, isFlagged(f.text))
+                }
+            }
+            // 1a unpaired elision (offered, never applied)
+            if (!matched && rest.length >= 2) {
+                val r = low.substring(letters.length)
+                val form = if (lexicon.exact(r)) r else lexicon.canonical(r)
+                if (form != null && startsVowelYOrH(form)) {
+                    val pairs = dictionary.pairs
+                    val full = params.elisionFullWords[prefix] ?: listOf(letters)
+                    val paired = pairs != null && full.any { pairs.bigram(it, form) >= 0 }
+                    if (!paired) {
+                        val k = lexicon.exactClass(form)
+                        val pre = scale.cost(10.0.pow(unigramLog10(lexicon.prefixClass(prefix))))
+                        val stat = if (k < 0) Params.SPLIT_UNKNOWN else scale.classCost(k)
+                        val l = Math.floorDiv(pre + stat, 2) + Params.SPLIT_SURCHARGE
+                        val d = display(prefix + form, mode)
+                        // a valid W keeps it, like an elision split, only within ELISION_VALID_SLACK (fr; spec/QUESTIONS.md)
+                        if (validity.valid && params.elisionValidSlack != null &&
+                            l + b.ed.weighted(w, d, ctx.taps) > validity.cost + params.elisionValidSlack
+                        ) continue
+                        b.add(prefix + form, d, l, true, null, CandidateSource.ELISION, isFlagged(form))?.let {
+                            it.isUnpairedElision = true
+                            it.elisionRemainder = d.substring(prefix.length)
+                        }
+                    }
                 }
             }
         }
@@ -853,145 +1075,16 @@ public class LanguageEngine @JvmOverloads constructor(
         val kb = lexicon.exactClass(b)
         if (ka >= 0 && kb >= 0) {
             val pair = dictionary.pairs?.bigram(a, b) ?: -1
-            if (pair >= 0) return LmCost.cost(10.0.pow(unigramLog10(ka) + LmCost.pairLog10(pair)))
+            if (pair >= 0) return scale.costLog10(unigramLog10(ka) + LmCost.pairLog10(pair))
         }
-        val la = if (ka < 0) Params.SPLIT_UNKNOWN else LmCost.cost(10.0.pow(unigramLog10(ka)))
-        val lb = if (kb < 0) Params.SPLIT_UNKNOWN else LmCost.cost(10.0.pow(unigramLog10(kb)))
+        val la = if (ka < 0) Params.SPLIT_UNKNOWN else scale.classCost(ka)
+        val lb = if (kb < 0) Params.SPLIT_UNKNOWN else scale.classCost(kb)
         return Math.floorDiv(la + lb, 2) + Params.SPLIT_SURCHARGE
     }
 
     /**
-     * Extension of 05 §8.1 for three-letter words: dictionary words of length 3 that differ from [low] by exactly two
-     * substitutions whose letters are both direct neighbour keys of the typed letters (touch-model neighbours at the
-     * key centres), each as its best cased form.
-     */
-    internal fun twoNeighbourSubstitutions(low: String): List<String> {
-        if (low.length != 3) return emptyList()
-        val t = touchModel
-        val letters = t.geometry.letters
-        val near = Array(3) { i ->
-            val c = low[i]
-            if (t.geometry.touchKey(c) == null) emptyList()
-            else letters.filter { it != c && t.proximity(c, Float.NaN, Float.NaN, it) >= 0 }
-        }
-        val out = LinkedHashSet<String>()
-        val chars = low.toCharArray()
-        for (i in 0 until 3) for (j in i + 1 until 3) {
-            for (a in near[i]) for (b in near[j]) {
-                val k = chars.copyOf()
-                k[i] = a
-                k[j] = b
-                val idx = lexicon.keyIndex(String(k))
-                if (idx < 0) continue
-                val form = lexicon.bestForm(idx).text
-                if (form.length == 3) out.add(form)
-            }
-        }
-        return out.toList()
-    }
-
-    /** A class-0 dictionary form of a language with `hideClassZero` that is not also a known learned word. */
-    internal fun hidden(word: String): Boolean =
-        params.hideClassZero && lexicon.exactClass(word) == 0 && !user.isKnownLearned(word)
-
-    /** The prefix list of §8.4. */
-    internal fun prefixList(w: String, taps: TapSequence): List<String> {
-        val out = ArrayList<String>()
-        out.add(w)
-        val len = w.length
-        if (len in 2..Params.VARIANT_MAX_LEN) {
-            class Variant(val text: String, val cost: Int, val accent: Boolean = false)
-            val variants = ArrayList<Variant>()
-            val letters = touchModel.geometry.letters
-            for (i in 0 until len) {
-                val ch = w[i]
-                if (!Character.isLetter(ch)) continue
-                val lowc = Character.toLowerCase(ch)
-                val upper = Character.isUpperCase(ch)
-                val near = ArrayList<Pair<Char, Int>>()
-                for (l in letters) {
-                    if (l == lowc) continue
-                    val v = touchModel.proximity(lowc, taps.x(i), taps.y(i), l)
-                    if (v in 0..Params.VARIANT_NEAR_MAX) near.add(l to v)
-                }
-                near.sortWith(compareBy({ it.second }, { it.first }))
-                for ((l, v) in near.take(Params.VARIANT_NEIGHBOURS)) {
-                    val r = if (upper) Character.toUpperCase(l) else l
-                    variants.add(Variant(w.substring(0, i) + r + w.substring(i + 1), v))
-                }
-                params.prefixAccents[lowc]?.forEach { acc ->
-                    val r = if (upper) Character.toUpperCase(acc) else acc
-                    variants.add(Variant(w.substring(0, i) + r + w.substring(i + 1), 0, accent = true))
-                }
-            }
-            for (i in 0 until len - 1) {
-                if (w[i] != w[i + 1]) variants.add(Variant(w.substring(0, i) + w[i + 1] + w[i] + w.substring(i + 2), params.edSwap))
-            }
-            // stable; accent variants (cost 0) come first, so the limit never removes them (05 §1.1 notes on pt-BR)
-            variants.sortWith(compareBy<Variant>({ it.cost }, { !it.accent }))
-            for (v in variants.take(Params.PREFIX_VARIANTS_MAX)) out.add(v.text)
-        }
-        if (w.contains("ss", ignoreCase = true)) out.add(w.replace("ss", "ß").replace("SS", "ß").replace("Ss", "ß").replace("sS", "ß"))
-        // 4 "oe"/"ae" → "œ"/"æ" in languages whose PREFIX_ACCENTS list the ligatures (fr)
-        if (ligatures && (w.contains("oe", ignoreCase = true) || w.contains("ae", ignoreCase = true))) out.add(withLigatures(w))
-        // 5 "ae"/"oe"/"ue" → "ä"/"ö"/"ü" in languages with UMLAUT_TRANSLIT (de); the plain W stays a prefix
-        if (params.umlautTranslit) withUmlauts(w)?.let { out.add(it) }
-        return out
-    }
-
-    /**
-     * [w] with every "ae", "oe" and "ue" replaced by ä, ö, ü, the case of the first letter kept ("Ue" → "Ü"); null if
-     * [w] has none of them.
-     */
-    private fun withUmlauts(w: String): String? {
-        val sb = StringBuilder(w.length)
-        var changed = false
-        var i = 0
-        while (i < w.length) {
-            val a = w[i]
-            val la = Character.toLowerCase(a)
-            val umlaut = when (la) {
-                'a' -> 'ä'
-                'o' -> 'ö'
-                'u' -> 'ü'
-                else -> null
-            }
-            if (umlaut != null && i + 1 < w.length && Character.toLowerCase(w[i + 1]) == 'e') {
-                sb.append(if (Character.isUpperCase(a)) Character.toUpperCase(umlaut) else umlaut)
-                changed = true
-                i += 2
-            } else {
-                sb.append(a)
-                i++
-            }
-        }
-        return if (changed) sb.toString() else null
-    }
-
-    private val ligatures: Boolean = params.prefixAccents.values.any { 'œ' in it || 'æ' in it }
-
-    /** [w] with every "oe" replaced by "œ" and "ae" by "æ", the case of the first letter kept ("Oe" → "Œ"). */
-    private fun withLigatures(w: String): String {
-        val sb = StringBuilder(w.length)
-        var i = 0
-        while (i < w.length) {
-            val a = w[i]
-            val la = Character.toLowerCase(a)
-            if (i + 1 < w.length && Character.toLowerCase(w[i + 1]) == 'e' && (la == 'o' || la == 'a')) {
-                val lig = if (la == 'o') 'œ' else 'æ'
-                sb.append(if (Character.isUpperCase(a)) Character.toUpperCase(lig) else lig)
-                i += 2
-            } else {
-                sb.append(a)
-                i++
-            }
-        }
-        return sb.toString()
-    }
-
-    /**
-     * The completion prefix of §8.3: the shortest beginning of [d] that holds [len] characters when the fillers `'` `.`
-     * `-` are not counted and a ligature œ/æ counts as two; null if [d] is too short.
+     * The completion prefix of a display text: the shortest beginning of [d] that holds [len] characters when the
+     * fillers `'` `.` `-` are not counted and a ligature œ/æ counts as two; null if [d] is too short.
      */
     internal fun completionPrefix(d: String, len: Int): String? {
         var n = 0
@@ -1014,8 +1107,11 @@ public class LanguageEngine @JvmOverloads constructor(
 
     // ------------------------------------------------------------------ autocorrection (§10.1)
 
-    /** score(c) = lm(c) + AC_EDIT_FACTOR · ed(c) / len. */
-    public fun acScore(c: Candidate, len: Int): Int = c.lm + params.acEditFactor * c.ed / len
+    /** The AC score of 05 §10.1 step 4: lm + AC_EDIT_FACTOR · ed_ac / len (ed_ac with the AC edit weights). */
+    public fun acScore(c: Candidate, typed: String, taps: TapSequence? = null): Int {
+        val e = editDistance.weighted(typed, c.display, taps, ac = true)
+        return c.lm + params.acEditFactor * e / maxOf(1, typed.length)
+    }
 
     /** The autocorrection decision of §10.1 with the step that ended it (diagnostics of 05c §5). */
     private class Decision(val candidate: Candidate?, val step: String)
@@ -1024,7 +1120,7 @@ public class LanguageEngine @JvmOverloads constructor(
         ctx: QueryContext,
         w: String,
         validity: Validity,
-        corrections: List<Candidate>,
+        ranked: List<Candidate>,
         b: Builder,
         elidedRemainder: Boolean,
     ): Decision {
@@ -1034,28 +1130,108 @@ public class LanguageEngine @JvmOverloads constructor(
         if (len == 1 && !elidedRemainder) {
             if (user.isRejected(w)) return Decision(null, "2")
             val fix = params.singleLetterFix[w] ?: return Decision(null, "2")
-            val c = b.byDisplay[fix] ?: b.candidate(fix, fix)
-            if (c.correctionCost == Candidate.INF) {
-                c.ed = 0
-            }
+            val c = ranked.firstOrNull { it.display == fix && it.isCorrection }
+                ?: Candidate(fix, fix, lm(fix, ctx.prev, ctx.nameField), true, 0, 0, CandidateSource.SINGLE_LETTER)
             return Decision(c, "2")
         }
         // 2a letters of an elision prefix ("qu", "jusqu", "dell") that are no valid word: never autocorrected
         if (!elidedRemainder && !validity.valid && isPrefixLetters(toKey(w))) return Decision(null, "2a")
         if (w.any { it.isDigit() || TextModel.isOrdinalIndicator(it) } || user.isRejected(w)) return Decision(null, "3")
-        val best = corrections.firstOrNull() ?: return Decision(null, "4")
-        if (validity.valid) {
-            // a word valid only through an unattested key counts as rare unless the correction is unattested too (0.6.9)
-            val rare = validity.cost > params.acValidRare || (validity.unattested && !lexicon.isUnattestedWord(best.word))
-            if (!(rare && best.lm < params.acValidTarget)) return Decision(null, "5")
+        // 4 class-0 typed forms count as not valid; their own entry is no correction candidate. The entry of the typed
+        // word's key includes its other class-0 case forms ("zi" → "Zi", the all-exact key of §8.1): the whole key is
+        // the real-word typo (05b §3.6), so "zi" + space gives "zu" (05 §17.7a; spec/QUESTIONS.md, 0.7.1 review)
+        val valid = validity.valid && !validity.classZero
+        val wKey = letterKey(w)
+        val ownKey = toKey(w)
+        fun ownEntry(c: Candidate): Boolean =
+            c.isTyped || (toKey(c.word) == ownKey && lexicon.exactClass(c.word) == 0)
+        val corr = ranked.filter { c ->
+            c.isCorrection && !c.isUnpairedElision && !(validity.classZero && ownEntry(c)) &&
+                (' ' !in c.display || letterKey(c.display.replace(" ", "")) == wKey)
         }
-        val sb = acScore(best, len)
-        if (sb > params.acLimit) return Decision(null, "6")
-        val second = corrections.getOrNull(1)
-        if (second != null && kotlin.math.abs(sb - acScore(second, len)) <= params.acMargin &&
+        if (corr.isEmpty()) return Decision(null, "4")
+        // 4o orthographic candidates first
+        val ortho = corr.filter { ' ' !in it.display && keepsTypedLetters(w, it.display) }
+        if (ortho.isNotEmpty()) {
+            val best = ortho[0]
+            if (best.isTyped) return Decision(null, "4t")
+            if (best.isFlagged) return Decision(null, "4f")
+            if (valid && !(rareValid(validity, best) && best.lm < params.acValidTarget)) return Decision(null, "5")
+            val second = ortho.getOrNull(1)
+            if (second != null && kotlin.math.abs(second.score - best.score) <= params.acMargin &&
+                !best.display.equals(second.display, ignoreCase = true)
+            ) return Decision(null, "4m")
+            return Decision(best, "4o")
+        }
+        for (c in corr) {
+            c.acEd = editDistance.weighted(w, c.display, ctx.taps, ac = true)
+            c.acScore = c.lm + params.acEditFactor * c.acEd / len
+        }
+        val order = corr.withIndex().sortedWith(compareBy({ it.value.acScore }, { it.index })).map { it.value }
+        val best = order[0]
+        if (best.isTyped) return Decision(null, "4t")
+        if (best.isFlagged) return Decision(null, "4f")
+        // 5 valid word
+        if (valid && !(rareValid(validity, best) && best.lm < params.acValidTarget)) return Decision(null, "5")
+        // 6 limit
+        if (best.acScore > params.acLimit) return Decision(null, "6")
+        // 7 runner-up: only for a typed word that is valid for the decision; an unknown word or a class-0 form never
+        // stays because two corrections are close (owner decision 0.7.1 review)
+        val second = order.getOrNull(1)
+        if (valid && second != null && kotlin.math.abs(best.acScore - second.acScore) <= params.acMargin &&
             !best.display.equals(second.display, ignoreCase = true)
         ) return Decision(null, "7")
+        // 7a guards, only for a best entry that differs from W in more than case and diacritics
+        if (foldText(best.display) != foldText(w)) {
+            if (lexicon.hasPrefixTable) {
+                val bl = toKey(best.display)
+                if (ranked.any { it.elisionRemainder != null && toKey(it.elisionRemainder!!) == bl }) return Decision(null, "7e")
+            }
+            val wl = toKey(w)
+            // omission guard; not applied when W is not valid for the decision and best itself is W with one letter
+            // inserted: best is then already the omission reading (0.7.1 review)
+            val omissionLm = best.lm + Params.AC_OMISSION_MARGIN
+            val bestIsOmission = !valid && isOneLetterInserted(wl, toKey(best.display))
+            if (!bestIsOmission &&
+                ranked.any { it !== best && isOneLetterInserted(wl, toKey(it.display)) && it.lm <= omissionLm }
+            ) {
+                // for a W that is not valid for the decision the guard applies the omission reading: the first
+                // correction in AC-score order that is W with one letter inserted, within the guard's lm margin and
+                // AC_LIMIT ("Kanst" → "Kannst" although "Knast" ranks first); none only if there is no such entry
+                // (0.7.1 review)
+                if (!valid) {
+                    val reading = order.firstOrNull {
+                        it !== best && !it.isTyped && !it.isFlagged && isOneLetterInserted(wl, toKey(it.display)) &&
+                            it.lm <= omissionLm && it.acScore <= params.acLimit
+                    }
+                    if (reading != null) return Decision(reading, "7r")
+                }
+                return Decision(null, "7o")
+            }
+            if (!params.missingSpaceSplit && splitsIntoFrequentKeys(wl)) return Decision(null, "7s")
+        }
         return Decision(best, "8")
+    }
+
+    /**
+     * §10.1 step 5: the valid typed word counts as rare when its cost is above `AC_VALID_RARE`, or (rule switched off by
+     * the owner decision of 0.7.0, `UNATTESTED_KEYS_RULE`) when it is valid only through an unattested key and [best] is
+     * not unattested itself.
+     */
+    private fun rareValid(validity: Validity, best: Candidate): Boolean =
+        validity.cost > params.acValidRare || (validity.unattested && !lexicon.isUnattestedWord(best.word))
+
+    /** Missing-space guard (§10.1 step 7a): [low] cut into two parts of ≥ 2 letters, both keys whose best form has the guard class. */
+    private fun splitsIntoFrequentKeys(low: String): Boolean {
+        if (low.length < 4) return false
+        val g = lexicon.guardClass
+        for (k in 2..low.length - 2) {
+            val a = lexicon.keyIndex(low.substring(0, k))
+            if (a < 0 || lexicon.formClass(a, 0) < g) continue
+            val c = lexicon.keyIndex(low.substring(k))
+            if (c >= 0 && lexicon.formClass(c, 0) >= g) return true
+        }
+        return false
     }
 
     // ------------------------------------------------------------------ next word (§11)
@@ -1070,7 +1246,7 @@ public class LanguageEngine @JvmOverloads constructor(
             val old = costs[word]
             if (old == null || cost < old) costs[word] = cost
         }
-        // 1 learned n-grams
+        // 1 learned n-grams (offered whatever their flag)
         val pw = contextWords(preceding).takeLast(Params.LEARN_CONTEXT).map { toKey(it) }
         val longest = minOf(pw.size, Params.LEARN_CONTEXT)
         for (k in longest downTo 1) {
@@ -1078,24 +1254,25 @@ public class LanguageEngine @JvmOverloads constructor(
             val sum = followers.values.sum().toDouble()
             val weight = if (k == longest) 1.0 else Params.NEXT_BACKOFF
             for ((f, c) in followers) {
-                if (c >= Params.LEARN_MIN_COUNT && (user.dictionaryKnows(f) || user.isKnownLearned(f))) put(f, LmCost.cost(weight * c / sum))
+                if (c >= Params.LEARN_MIN_COUNT && (user.dictionaryKnows(f) || user.isKnownLearned(f))) put(f, scale.cost(weight * c / sum))
             }
         }
-        // 2 static pairs
+        // 2 static pairs (flagged forms skipped)
         val prev = pairPrev(TextModel.previousWordForPairs(before, end))
         val key = prev.pairKey
         val pairs = dictionary.pairs
         if (key != null && pairs != null) {
             for (f in pairs.followers(key, Params.NEXT_PAIR_FETCH)) {
-                put(f.text, LmCost.cost(LmCost.pairProbability(f.pairClass)) + Params.COMP_SURCHARGE)
+                if (isFlagged(f.text)) continue
+                put(f.text, scale.cost(LmCost.pairProbability(f.pairClass)) + Params.COMP_SURCHARGE)
             }
         }
         // 3 contact name runs
         for ((f, c) in contactRunFollowers(before, nameField)) put(f, c)
-        // 4 filler
+        // 4 filler (flagged forms skipped)
         if (costs.size < Params.BAR_MAX) {
             val floor = (costs.values.maxOrNull() ?: -1) + 1
-            for (f in lexicon.completions("", Params.NEXT_FILLER)) {
+            for (f in lexicon.completions("", Params.NEXT_FILLER, skipFlagged = true)) {
                 put(f.text, maxOf(floor, lm(f.text) + 2 * Params.COMP_SURCHARGE))
             }
         }
@@ -1138,7 +1315,7 @@ public class LanguageEngine @JvmOverloads constructor(
             val sum = f.values.sum()
             val out = LinkedHashMap<String, Int>()
             for ((w, c) in f) {
-                out[w] = ContactNames.surcharge(nameField) + Params.COMP_SURCHARGE + LmCost.cost(ContactNames.lambda(c) * c / sum)
+                out[w] = ContactNames.surcharge(nameField) + Params.COMP_SURCHARGE + scale.cost(ContactNames.lambda(c) * c / sum)
             }
             if (out.isNotEmpty()) return out
         }
@@ -1160,7 +1337,7 @@ public class LanguageEngine @JvmOverloads constructor(
         return if (n > 0) remainderValidity(word.substring(0, n), w, v).valid else v.valid
     }
 
-    private companion object {
+    internal companion object {
         /** Lower-case text with every diacritic removed and the ligatures expanded (œ → oe, æ → ae; 05 §8.2.1). */
         fun stripAll(s: String): String {
             val sb = StringBuilder(s.length)
@@ -1181,6 +1358,70 @@ public class LanguageEngine @JvmOverloads constructor(
             if (low == 'œ' || low == 'æ') return true
             val c = Character.toLowerCase(EditDistance.stripDiacritic(low))
             return c in "aeiouyh"
+        }
+
+        /** 05 §8.2.1 item 1a: the first letter, diacritics removed, is a vowel, y or h. */
+        fun startsVowelYOrH(w: String): Boolean = startsVowelOrH(w)
+
+        private fun decompose(c: Char): Char {
+            val d = Normalizer.normalize(c.toString(), Normalizer.Form.NFD)
+            return if (d.isEmpty()) c else d[0]
+        }
+
+        /**
+         * Letter units of 05 §10.1 step 4o: each character lower-cased with its case, ß written "ss", œ "oe", æ "ae",
+         * diacritics removed (canonical decomposition), the characters `'` `’` `-` `.` dropped.
+         */
+        private fun letterUnits(s: String, keys: StringBuilder, upper: MutableList<Boolean>) {
+            for (ch in s) {
+                if (ch == '\'' || ch == '’' || ch == '-' || ch == '.') continue
+                val up = Character.isUpperCase(ch)
+                when (val l = Character.toLowerCase(ch)) {
+                    'ß' -> { keys.append("ss"); upper.add(up); upper.add(up) }
+                    'œ' -> { keys.append("oe"); upper.add(up); upper.add(up) }
+                    'æ' -> { keys.append("ae"); upper.add(up); upper.add(up) }
+                    else -> { keys.append(decompose(l)); upper.add(up) }
+                }
+            }
+        }
+
+        /** The letter key of 05 §10.1 step 4o. */
+        fun letterKey(s: String): String {
+            val sb = StringBuilder()
+            letterUnits(s, sb, ArrayList())
+            return sb.toString()
+        }
+
+        /**
+         * 05 §10.1 step 4o: [cand] keeps every typed letter of [w]: equal letter keys and, the fillers dropped, the same
+         * case at every aligned letter except the first.
+         */
+        fun keepsTypedLetters(w: String, cand: String): Boolean {
+            val ka = StringBuilder()
+            val ua = ArrayList<Boolean>()
+            letterUnits(w, ka, ua)
+            val kb = StringBuilder()
+            val ub = ArrayList<Boolean>()
+            letterUnits(cand, kb, ub)
+            if (ka.toString() != kb.toString()) return false
+            for (i in 1 until ua.size) if (ua[i] != ub[i]) return false
+            return true
+        }
+
+        /** Lower case with diacritics removed (05 §10.1 step 7a: "more than case and diacritics"). */
+        fun foldText(s: String): String {
+            val sb = StringBuilder(s.length)
+            for (c in s) sb.append(EditDistance.stripDiacritic(Character.toLowerCase(c)))
+            return sb.toString()
+        }
+
+        /** True if [longer] is [w] with exactly one letter inserted (both lower-cased). */
+        fun isOneLetterInserted(w: String, longer: String): Boolean {
+            if (longer.length != w.length + 1) return false
+            var i = 0
+            while (i < w.length && w[i] == longer[i]) i++
+            if (!Character.isLetter(longer[i])) return false
+            return longer.regionMatches(i + 1, w, i, w.length - i)
         }
     }
 }

@@ -6,6 +6,7 @@ import app.metrokeys.engine.Proofreader
 import app.metrokeys.engine.Query
 import app.metrokeys.engine.SuggestionKind
 import app.metrokeys.engine.TextRange
+import app.metrokeys.engine.predict.QueryCancelledException
 import app.metrokeys.engine.swipe.ShapeResult
 import app.metrokeys.engine.swipe.ShiftState
 import app.metrokeys.engine.text.FieldPolicy
@@ -107,6 +108,8 @@ class InputLogic(
     private val marked = ArrayList<TextRange>()
     private var stylesSupported: Boolean? = null
 
+    // read by the query thread to stop a typing query that a newer keystroke made outdated (05 §2.3)
+    @Volatile
     private var generation = 0
     private var cancelQuery: (() -> Unit)? = null
     private var cancelSpell: (() -> Unit)? = null
@@ -462,7 +465,8 @@ class InputLogic(
             )
             if (may) {
                 val p = predictionNow(before, after)
-                val ac = p?.autoCorrection
+                // 04 §3.2 item 9: an abbreviation typed with its period stays
+                val ac = p?.autoCorrection?.takeUnless { TextRules.keepsAbbreviation(c, p.typedIsAbbreviation) }
                 if (ac != null && ac != word) {
                     correction = TextRules.correctionText(ac, c)
                     val start = selStart - word.length
@@ -1144,7 +1148,10 @@ class InputLogic(
             // replaced by a newer word state, or claimed by the main thread
             if (ahead !== a || !a.state.compareAndSet(AheadQuery.PENDING, AheadQuery.RUNNING)) return@query
             try {
-                a.result = Perf.section("mk:aheadQuery") { engine.query(q) }
+                // stops as soon as a newer word state replaces this query (05 §2.3, 05d §7)
+                a.result = Perf.section("mk:aheadQuery") { engine.query(q) { ahead !== a } }
+            } catch (_: QueryCancelledException) {
+                a.result = null
             } finally {
                 a.state.set(AheadQuery.DONE)
                 a.done.countDown()
@@ -1163,7 +1170,12 @@ class InputLogic(
         val a = ahead?.takeIf { it.query == q }
         // after the ahead query on the same thread: its result is ready unless it was skipped or claimed
         scheduler.query {
-            val p = a?.takeIf { it.state.get() == AheadQuery.DONE }?.result ?: engine.query(q)
+            val p = a?.takeIf { it.state.get() == AheadQuery.DONE }?.result
+                ?: try {
+                    engine.query(q) { gen != generation }
+                } catch (_: QueryCancelledException) {
+                    return@query
+                }
             scheduler.main(0) {
                 if (gen != generation) return@main
                 lastPrediction = p

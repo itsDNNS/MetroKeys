@@ -14,6 +14,7 @@ The output is deterministic: identical inputs give identical bytes.
 
 import bz2
 import json
+import math
 import os
 import sys
 import tarfile
@@ -41,6 +42,7 @@ import wiktionary_es  # noqa: E402
 import wiktionary_fr  # noqa: E402
 import wiktionary_it  # noqa: E402
 import wiktionary_pt  # noqa: E402
+import wiktionary_register  # noqa: E402
 
 ROOT = os.path.dirname(HERE)
 SRC = os.path.join(ROOT, "build-data", "src")
@@ -212,7 +214,7 @@ PAIRS_LIMIT = 2_500_000
 TOTAL_LIMIT = 17_000_000
 GROWTH_LIMIT = 0.25
 # the data files of the previous release (copied there before the first build of a release; 05b §6, §12.7)
-PREVIOUS_RELEASE = "0.6.9"
+PREVIOUS_RELEASE = "0.7.0"
 PREVIOUS = os.path.join(ROOT, "build-data", f"previous-{PREVIOUS_RELEASE}")
 SIZE_PROBLEMS = []
 
@@ -236,14 +238,60 @@ def previous_list(tag):
     return common.read_word_list(path)
 
 
-def write_outputs(tag, scale, max_count, corpus_tokens, entries, table, stats, prefixes=None, unattested=None):
+_register = {}
+
+
+def register_flags(tag):
+    """05b §2.16 (0.7.1): {title: deciding label} of the titles the register labels of the English Wiktionary flag for
+    the language of [tag] (one cached pass over the English dump for all six languages)."""
+    code = tag.split("-")[0]
+    if code not in _register:
+        path = wiktionary_register.cache_path(CACHE)
+        if not os.path.exists(path):
+            print("English Wiktionary pass, register labels (about 15 minutes)")
+            wiktionary_register.extract(os.path.join(SRC, EN_WIKT_DUMP), path)
+        _register[code] = wiktionary_register.flagged(wiktionary_register.load(path, code))
+    return _register[code]
+
+
+# 05b §2.16: the flagged forms of frequency rank <= this are listed in the build report
+NOSUGGEST_REPORT_RANK = 20000
+# tag -> the forms with the do-not-suggest flag of the last write_outputs (for the source-form export, 05b §2 item 1)
+NOSUGGEST = {}
+
+
+def write_outputs(tag, scale, max_count, corpus_tokens, entries, table, stats, prefixes=None, unattested=None,
+                  form_counts=None, abbreviation=None):
     """[unattested]: the keys kept by the colloquial path (05b §12.4; flagged, used by the evaluation of 05c); only
-    those in [entries] are flagged. Checks the size limits of 05b §6 against the previous release."""
+    those in [entries] are flagged. [abbreviation]: the keys of the abbreviation bit (05b §1.1, 0.7.1); only those in
+    [entries] get it. [form_counts]: (key, form) -> form count (combined count x form share) for the
+    frequency ranks of the derived data of 05b §1.1 (0.7.1; a form without one counts e^(class / S)). Checks the size
+    limits of 05b §6 against the previous release."""
     os.makedirs(OUT, exist_ok=True)
     words_path = os.path.join(OUT, f"{tag}.words.gz")
     pairs_path = os.path.join(OUT, f"{tag}.pairs.gz")
     flagged = {k for k in (unattested or ()) if k in entries}
-    digest, keys = common.write_word_list(words_path, tag, scale, max_count, corpus_tokens, entries, prefixes, flagged)
+    abbr = {k for k in (abbreviation or ()) if k in entries}
+    titles = register_flags(tag)
+    nosuggest = {f for fs in entries.values() for f, _ in fs if f in titles}
+    NOSUGGEST[tag] = nosuggest
+    fc = form_counts or {}
+
+    def count_of(key, form, cls):
+        c = fc.get((key, form))
+        if c is not None:
+            return c
+        return math.exp(cls / scale) if cls > 0 else 0.0
+
+    anchors, guard, bits, derived_report, rank = common.derived_data(tag, entries, count_of, nosuggest)
+    missing_counts = sum(1 for k, fs in entries.items() for f, _ in fs if (k, f) not in fc)
+    derived_report["formsWithoutFormCount"] = missing_counts
+    derived_report["doNotSuggestForms"] = sum(1 for k, fs in entries.items() for f, _ in fs if f in nosuggest)
+    derived_report["doNotSuggestTop"] = [
+        f"{f} rank {r} ({titles[f]})" for (k, f), r in sorted(rank.items(), key=lambda kv: (kv[1], kv[0]))
+        if r <= NOSUGGEST_REPORT_RANK and f in nosuggest]
+    digest, keys = common.write_word_list(words_path, tag, scale, max_count, corpus_tokens, entries, prefixes, flagged,
+                                          derived=(anchors, guard, bits), abbreviation=abbr)
     common.write_pair_table(pairs_path, tag, digest, keys, entries, table, [p for p, _ in prefixes] if prefixes else None)
     words_bytes = os.path.getsize(words_path)
     pairs_bytes = os.path.getsize(pairs_path)
@@ -271,6 +319,7 @@ def write_outputs(tag, scale, max_count, corpus_tokens, entries, table, stats, p
         "corpusTokens": int(corpus_tokens),
         "keys": len(keys),
         "unattestedKeys": len(flagged),
+        "abbreviationBitKeys": len(abbr),
         "forms": sum(len(v) for v in entries.values()),
         "pairPrevWords": len(table),
         "pairs": sum(len(v) for v in table.values()),
@@ -279,6 +328,7 @@ def write_outputs(tag, scale, max_count, corpus_tokens, entries, table, stats, p
         "pairsFile": {"bytes": pairs_bytes, "sha256": common.sha256_file(pairs_path)},
         "sizes": sizes,
         "heldOutSentences": HELD_OUT.get(tag, {}),
+        "derived": derived_report,
     }
     print(tag, json.dumps(stats[tag], indent=1))
     return keys
@@ -468,6 +518,29 @@ def abbreviations(lang, dumps, ending="."):
 GUARDED = {}  # language -> dump -> keys whose abbreviation titles the English guard ignored (report)
 
 
+def abbreviation_bit(lang, dumps, pos=None):
+    """05b §1.1 abbreviation bit (0.7.1, all languages): the keys of every abbreviation title (a title ending with a
+    period) with a section of [lang] in [dumps], the Wiktionary dumps the build of that language uses (before the
+    English guard, which only decides whether a title makes a form), and (German) of every title whose German section
+    has the part of speech abbreviation ([pos]: {title: parts of speech}, "Abkürzung")."""
+    keys = set()
+    for dump in dumps:
+        path = wiktionary_affix.cache_path(CACHE, dump)
+        if not os.path.exists(path):
+            abbreviations(lang, [dump])
+        keys |= {common.jlower(f) for f in wiktionary_affix.load([path], lang, ".")}
+    if pos:
+        keys |= {common.jlower(t) for t, p in pos.items() if "Abkürzung" in p}
+    return keys
+
+
+def abbreviation_bit_report(bit, entries, count):
+    """Build report of the abbreviation bit (05b §1.1): the number of keys with it and the 60 most frequent of them."""
+    kept = sorted((k for k in bit if k in entries), key=lambda k: (-count(k), k))
+    return {"abbreviationBitKeys": len(kept),
+            "abbreviationBitKeysTop60": [f"{k} {int(count(k))} {forms_text(entries[k])}" for k in kept[:60]]}
+
+
 def abbreviation_report(keys, entries, count, titles, lang=None, is_form=None, dumps=None):
     """Build report of the keys that are forms only by the abbreviation rule, most frequent first, and of the keys the
     English guard kept from becoming forms (with their decision: stored forms, or dropped)."""
@@ -518,6 +591,9 @@ def build_german(stats, dry=False):
     de.setup_foreign(foreign_lower("de-DE"))
     pos = wiktionary_de.load_pos(pos_cache)
     rule = names.NameRule(names.german(pos), set(de.forms_by_key), de.abbreviation_keys, spelling)
+    # §1.1 abbreviation bit (0.7.1): abbreviation titles of the German dump and German sections "Abkürzung"; it changes
+    # no class (the exemption of the real-word typo rule of the 0.7.1 draft is withdrawn, §3.6)
+    de_bit = abbreviation_bit("de", ["de"], pos)
     de_entries = de.build(os.path.join(ROOT, "spec", "data", "layouts-de.json"), rule.is_name)
     spelling.save()
     if dry:
@@ -551,6 +627,11 @@ def build_german(stats, dry=False):
         "realWordTypos": len(de.typos),
         "realWordTyposTop150": [f"{k} {de.count(k)} -> {w} {de.count(w)}"
                                 for k, w in sorted(de.typos.items(), key=lambda kw: (-de.count(kw[0]), kw[0]))[:150]],
+        # 0.7.1: the real-word typos that carry the abbreviation bit (05b §1.1, §3.6)
+        "realWordTyposWithAbbreviationBit": len([k for k in de.typos if k in de_bit]),
+        "realWordTyposWithAbbreviationBitList": [f"{k} {de.count(k)} -> {w} {de.count(w)}"
+                                                 for k, w in sorted(de.typos.items()) if k in de_bit],
+        **abbreviation_bit_report(de_bit, de_entries, de.count),
         "dictionaryOnlyForms": dict_only,
         **abbreviation_report(de.abbreviation_keys, de_entries, de.count, len(de_abbr), "de", de.is_german_form),
         "abbreviationKeysDictionaryOnly": sorted(k for k in added if k in de.abbreviation_keys),
@@ -561,8 +642,9 @@ def build_german(stats, dry=False):
         **report_070("de-DE", de, de_entries),
     }
     spelling.save()
-    write_outputs("de-DE", de.scale, de.max_count, de.corpus_tokens, de_entries, de_table, stats, unattested=de.colloquial)
-    provenance.write(EXPORT, "de-DE", de, de_entries, SRC, lemma_keys=set(added))
+    write_outputs("de-DE", de.scale, de.max_count, de.corpus_tokens, de_entries, de_table, stats, unattested=de.colloquial,
+                  form_counts=de.form_counts, abbreviation=de_bit)
+    provenance.write(EXPORT, "de-DE", de, de_entries, SRC, lemma_keys=set(added), nosuggest=NOSUGGEST.get("de-DE", ()))
     provenance.write_pairs(EXPORT, "de-DE", de_entries, de_table, de_counter)
     write_licenses(tags=["de-DE"])
 
@@ -604,8 +686,13 @@ def build_english(stats, dry=False):
                                                        if k in prev[1] and abs(fs[0][1] - prev[1][k][0][1]) > 20)
         stats["en-US-extra"]["keysLostAgainstPrevious"] = len(set(prev[1]) - set(en_entries))
         stats["en-US-extra"]["keysNewAgainstPrevious"] = len(set(en_entries) - set(prev[1]))
-    write_outputs("en-US", en.scale, en.max_count, en.corpus_tokens, en_entries, en_table, stats)
-    provenance.write(EXPORT, "en-US", en, en_entries, SRC)
+    # §1.1 abbreviation bit (0.7.1): abbreviation titles of the English sections of the English dump (the English
+    # build takes no forms from Wiktionary; the bit changes no form or class)
+    en_bit = abbreviation_bit("en", ["en"])
+    stats["en-US-extra"].update(abbreviation_bit_report(en_bit, en_entries, en_count))
+    write_outputs("en-US", en.scale, en.max_count, en.corpus_tokens, en_entries, en_table, stats,
+                  form_counts=getattr(en, "form_counts", None), abbreviation=en_bit)
+    provenance.write(EXPORT, "en-US", en, en_entries, SRC, nosuggest=NOSUGGEST.get("en-US", ()))
     provenance.write_pairs(EXPORT, "en-US", en_entries, en_table, en_counter)
     write_licenses(copyright_path, tags=["en-US"])
 
@@ -686,9 +773,12 @@ def build_spanish(stats, dry=False):
                                       dumps))
     report.update(report_070("es-ES", es, es_entries))
     spelling.save()
+    es_bit = abbreviation_bit("es", dumps)  # §1.1 (0.7.1): the dumps of the abbreviation forms
+    report.update(abbreviation_bit_report(es_bit, es_entries, es.count))
     stats["es-ES-extra"] = report
-    write_outputs("es-ES", es.scale, es.max_count, es.corpus_tokens, es_entries, es_table, stats, unattested=es.colloquial)
-    provenance.write(EXPORT, "es-ES", es, es_entries, SRC)
+    write_outputs("es-ES", es.scale, es.max_count, es.corpus_tokens, es_entries, es_table, stats, unattested=es.colloquial,
+                  form_counts=es.form_counts, abbreviation=es_bit)
+    provenance.write(EXPORT, "es-ES", es, es_entries, SRC, nosuggest=NOSUGGEST.get("es-ES", ()))
     provenance.write_pairs(EXPORT, "es-ES", es_entries, es_table, es_counter)
     write_licenses(tags=["es-ES"])
 
@@ -780,9 +870,12 @@ def build_portuguese(stats, dry=False):
                                       pt.is_form))
     report.update(report_070("pt-BR", pt, pt_entries))
     spelling.save()
+    pt_bit = abbreviation_bit("pt", ["pt", "en"])  # §1.1 (0.7.1): the dumps of the abbreviation forms
+    report.update(abbreviation_bit_report(pt_bit, pt_entries, pt.count))
     stats["pt-BR-extra"] = report
-    write_outputs("pt-BR", pt.scale, pt.max_count, pt.corpus_tokens, pt_entries, pt_table, stats, unattested=pt.colloquial)
-    provenance.write(EXPORT, "pt-BR", pt, pt_entries, SRC)
+    write_outputs("pt-BR", pt.scale, pt.max_count, pt.corpus_tokens, pt_entries, pt_table, stats, unattested=pt.colloquial,
+                  form_counts=pt.form_counts, abbreviation=pt_bit)
+    provenance.write(EXPORT, "pt-BR", pt, pt_entries, SRC, nosuggest=NOSUGGEST.get("pt-BR", ()))
     provenance.write_pairs(EXPORT, "pt-BR", pt_entries, pt_table, counter)
     write_licenses(tags=["pt-BR"])
 
@@ -881,10 +974,12 @@ def build_italian(stats, dry=False):
                                       it.is_form))
     report.update(report_070("it-IT", it, it_entries, subtitle))
     spelling.save()
+    it_bit = abbreviation_bit("it", ["it", "en"])  # §1.1 (0.7.1): the dumps of the abbreviation forms
+    report.update(abbreviation_bit_report(it_bit, it_entries, it.count))
     stats["it-IT-extra"] = report
     write_outputs("it-IT", it.scale, it.max_count, it.corpus_tokens, it_entries, it_table, stats, it.prefix_table,
-                  unattested=it.colloquial)
-    provenance.write(EXPORT, "it-IT", it, it_entries, SRC)
+                  unattested=it.colloquial, form_counts=it.form_counts, abbreviation=it_bit)
+    provenance.write(EXPORT, "it-IT", it, it_entries, SRC, nosuggest=NOSUGGEST.get("it-IT", ()))
     provenance.write_pairs(EXPORT, "it-IT", it_entries, it_table, counter)
     provenance.write_prefixes(EXPORT, "it-IT", it.prefix_table, it.prefix_counts)
     write_licenses(tags=["it-IT"])
@@ -1014,10 +1109,12 @@ def build_french(stats, dry=False):
                                       ["fr", "en"] if use_en else ["fr"]))
     report.update(report_070("fr-FR", fr, fr_entries, subtitle))
     spelling.save()
+    fr_bit = abbreviation_bit("fr", ["fr", "en"] if use_en else ["fr"])  # §1.1 (0.7.1): the dumps of the abbreviation forms
+    report.update(abbreviation_bit_report(fr_bit, fr_entries, fr.count))
     stats["fr-FR-extra"] = report
     write_outputs("fr-FR", fr.scale, fr.max_count, fr.corpus_tokens, fr_entries, fr_table, stats, fr.prefix_table,
-                  unattested=fr.colloquial)
-    provenance.write(EXPORT, "fr-FR", fr, fr_entries, SRC)
+                  unattested=fr.colloquial, form_counts=fr.form_counts, abbreviation=fr_bit)
+    provenance.write(EXPORT, "fr-FR", fr, fr_entries, SRC, nosuggest=NOSUGGEST.get("fr-FR", ()))
     provenance.write_pairs(EXPORT, "fr-FR", fr_entries, fr_table, counter)
     provenance.write_prefixes(EXPORT, "fr-FR", fr.prefix_table, fr.prefix_counts)
     write_licenses(tags=["fr-FR"])

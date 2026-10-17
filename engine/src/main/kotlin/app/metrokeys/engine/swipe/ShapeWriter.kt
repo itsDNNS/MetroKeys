@@ -180,6 +180,8 @@ public class ShapeWriter @JvmOverloads constructor(
         val traceRu = trimmedTrace(trace, sx, sy)
         val out = ArrayList<ShapeCandidate>()
         for ((text, pair) in found) {
+            // forms with the do-not-suggest flag are no swipe results unless the user has typed them (06 §4.1, 0.7.1)
+            if (engine.isFlagged(text)) continue
             val (searchCost, cls) = pair
             val template = template(text, g, sx, sy) ?: continue
             val shape = dtw(traceRu, template)
@@ -199,9 +201,11 @@ public class ShapeWriter @JvmOverloads constructor(
             for (w in cn.words) {
                 if (w.length < 2 || !w.all { Character.isLetter(it) || it in JOINERS }) continue
                 if (engine.lexicon.exact(w)) continue
-                val cost = cn.cost(w, false)
-                val log10p = (Params.LM_COST_AT_P1 - cost) / Params.LM_COST_PER_DECADE
-                val cls = LmCost.roundHalfAway((log10p - engine.a) / engine.bc).coerceIn(0, 255)
+                // the class whose probability the contact cost implies, by the inverse of the anchored map (06 §4.1, 0.7.1)
+                val cost = cn.cost(w, false, engine.scale)
+                val log10p = engine.scale.inverseLog10(cost.toDouble())
+                val cls = if (log10p == null) engine.lexicon.costAnchors.last().first.coerceIn(1, 255)
+                else LmCost.roundHalfAway((log10p - engine.a) / engine.bc).coerceIn(1, 255)
                 entries.getOrPut(toKey(w)) { ArrayList() }.add(WordForm(w, cls))
             }
             contactIndex = if (entries.isEmpty()) null else Lexicon.fromEntries(

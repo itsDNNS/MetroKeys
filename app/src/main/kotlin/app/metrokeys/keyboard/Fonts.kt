@@ -70,7 +70,4 @@ object UserAssets {
     fun fontsDir(context: Context): File = File(context.noBackupFilesDir, "fonts")
 
     fun soundsDir(context: Context): File = File(context.noBackupFilesDir, "sounds")
-
-    /** Sound slots of spec 07 §9.9; files are named "<slot>.wav". */
-    val SOUND_SLOTS = listOf("letter", "space", "function", "picker", "candidate", "dictionary")
 }

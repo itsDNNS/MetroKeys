@@ -63,6 +63,7 @@ and the build report with every input hash. The archive is attached to the GitHu
 | English Wiktionary, French sections | dump `20261001` (the file of the Spanish row) | `enwiktionary-20261001-pages-articles.xml.bz2` | `37e414002bdf72ccf6518b83116ec36df36af4aabbf4477d49871849b737de42` | CC BY-SA 4.0 (also GFDL) | optional (§11.2 point 3): read for the coverage report only; not used for the data, because the French dump alone recognises 95.05 % of the top 20 000 keys |
 | Tatoeba | export of 2026-10-10 (Last-Modified `Sat, 10 Oct 2026 06:30:50 GMT`, downloaded 2026-10-16) | `per_language/fra/fra_sentences.tsv.bz2` | `fac31d82b216c95affee7dffcee6c0ae59c45f254ebbfbbf8abb9e66da86ee8f` | CC BY 2.0 FR | French pairs (weight 3), running-text case evidence, sentence counts of §11.4–§11.7 |
 | Mozilla Common Voice | same commit, `server/data/fr/` (463 files, 11 used) | `sentence-collector.txt`, `global-sprint-fr.txt`, `vfvv1.1.txt`, `vfvv2.txt` … `vfvv6.txt` weight 3; `issue2259_deleted_export_readd_fixed.txt`, `wiki-1.fr.txt`, `wiki-2.fr.txt` weight 1 (hashes as in spec 05b §2.13 and sources.json) | see sources.json | CC0 1.0 | French pairs, running-text case evidence, sentence counts |
+| English Wiktionary, register labels (0.7.1) | dump `20261001` (the file of the Spanish row) | `enwiktionary-20261001-pages-articles.xml.bz2`; derived cache `build-data/cache/enwiktionary-20261001-register.tsv.gz` (sha256 `8a4c5aee8508072adfd69d290c5b76fdcb18dec22709bc83d8a41349bdea78d5`) | `37e414002bdf72ccf6518b83116ec36df36af4aabbf4477d49871849b737de42` | CC BY-SA 4.0 (also GFDL) | do-not-suggest flag of all six languages (05b §2.16): label templates vulgar, derogatory, pejorative, offensive, slur of the German, English, Spanish, Portuguese, Italian and French sections |
 All hashes equal the ones listed in the specification (for the Wiktionary dumps the specification gives the sha1 of
 the dump status; the sha256 values above were recorded at download). The directory `server/data/es/` of Common Voice
 holds exactly the three files listed, `server/data/pt/` exactly the two named above, `server/data/it/` exactly the four
@@ -856,6 +857,52 @@ Memory (`MemoryBudgetTest.eachLanguageAlone`, retained JVM heap after loading on
 swipe; 0.6.9 → 0.7.0): de-DE 28.3 → 32.8 MB, en-US 14.5 → 14.4, es-ES 16.6 → 17.3, fr-FR 16.7 → 18.6, it-IT 15.5 →
 17.6, pt-BR 12.5 → 13.7 MB. All two- and three-language sets load within the test heaps of 56 and 68 MB (largest:
 fr+de+it 64.1 MB; 0.6.9: 59.7 MB).
+
+### 0.7.1 build: derived data, do-not-suggest flag, abbreviation bit (05b §1.1, §2.16, §3.6)
+
+Same sources and selection as 0.7.0; `tools/build_dictionaries.py` now also writes the derived data of 05b §1.1 into
+every word list (format version 3, docs/ENGINE.md), reads the register labels of the English Wiktionary
+(`tools/dictbuild/wiktionary_register.py`, one pass over the dump of the Spanish row, cached) and sets the
+abbreviation bit of every key that is an abbreviation in the build's sources. Unit tests: `python3 -m unittest discover -s tools/dictbuild -p 'test_*.py'`
+(`test_build_071.py`). Two builds in a row give identical bytes.
+
+- **Derived data** (§1.1): the frequency rank of every form with class ≥ 1 (by form count), the cost anchors of the
+  anchored LM cost (05 §3.2: the class of the forms at the anchor ranks with their fixed costs, then the lowest class
+  ≥ 1 at `LM_TAIL_COST` 254), the guard class (class of the form at rank `AC_SPLIT_RANK`), the offered bit (class ≥ 1
+  within `SUGGEST_MAX_RANK` 90 000), the spelling class of 05d §3.1 (bits 3–4) and the do-not-suggest bit (bit 5).
+- **Do-not-suggest flag** (§2.16): a form is flagged when its Wiktionary section of the language has sense lines and
+  all of them carry one of the five register labels, a form-of line counting through its lemma (one level). Flagged
+  forms stay valid; they are offered only after the user has typed them (05 §8, 06).
+- **Abbreviation bit** (§1.1, 0.7.1 review; owner decision): one bit per key (bit 6 of the form count) when an
+  abbreviation title (ending with a period) of the Wiktionary dumps the language's build uses has the key — before
+  the English guard, which only decides whether a title makes a form —, or (German) a German section of one of its
+  titles has the part of speech "Abkürzung"; en-US uses the English sections of the English dump. It changes no
+  class. Keys with the bit (`abbreviationBitKeys`, the 60 most frequent in `<tag>-extra.abbreviationBitKeysTop60`):
+  de 3 796, en 846, es 157, fr 157, it 58, pt 84; many frequent words carry it through acronym or symbol pages ("DAS",
+  "MIT", "DU"), which matters only for a word typed with a period that would otherwise be autocorrected.
+- **Real-word typos without the abbreviation exemption**: the exemption of the 0.7.1 draft (§3.6 item 4) is
+  withdrawn, so the 32 German keys it exempted are class 0 again (179 real-word typos instead of 147): ak, apl, aux,
+  bab, brn, cas, dh, dis, dor, dz, fag, fem, geg, germ, hag, hist, hom, iber, ide, ind, jur, kh, lb, lett, nir, obb,
+  schwed, sp, sus, unf, zi, zz. All 32 carry the abbreviation bit (`realWordTyposWithAbbreviationBitList`), so typed
+  with their period they stay (04 §3.2 item 9). No other key, form or class changes in any language.
+
+| Language | Words 0.7.0 → 0.7.1 (bytes) | Growth | Pairs 0.7.0 → 0.7.1 | Do-not-suggest forms | Guard class | Last offered class | Spelling classes 1 / 2 / 3 |
+|---|---|---|---|---|---|---|---|
+| de-DE | 1 696 370 → 1 729 188 | +1.93 % | 1 867 310 → 1 867 308 | 873 | 126 | 49 | 3 250 / 5 300 / 18 546 |
+| en-US | 537 526 → 553 606 | +2.99 % | 1 876 202 → 1 876 205 | 287 | 134 | 35 | 1 000 / 37 000 / 18 045 |
+| es-ES | 870 189 → 896 217 | +2.99 % | 1 172 828 → 1 172 825 | 487 | 130 | 49 | 1 000 / 37 000 / 29 357 |
+| fr-FR | 753 352 → 766 359 | +1.73 % | 1 479 369 → 1 479 367 | 580 | 129 | 42 | 0 / 0 / 5 259 |
+| it-IT | 750 291 → 774 247 | +3.19 % | 1 240 825 → 1 240 830 | 519 | 129 | 40 | 1 000 / 37 000 / 25 710 |
+| pt-BR | 666 267 → 687 302 | +3.16 % | 836 263 → 836 264 | 329 | 133 | 39 | 1 000 / 37 000 / 21 773 |
+
+Each word list offers 90 000 forms. Every growth is below the limit of 05b §6, so no approval was needed. The pairs
+change only by a few bytes of the gzip stream (identical content). The most frequent flagged forms are listed in
+`tools/dictionary-build.json` (`derived.doNotSuggestTop`; e.g. pt "sub" through the form-of rule, spec/QUESTIONS.md).
+Heap (`MemoryBudgetTest`, with the engine's compacted trie arrays of 0.7.1): German alone 29.8 MB (0.7.0: 32.8 MB), the
+largest three-language set fr + de + it 59.3 MB (0.7.0: 64.1 MB). After the review fixes (abbreviation bit, a bit
+set over the keys, ≈ 50 KB for German) the same test measured German alone 32.0 MB and fr + de + it 61.6 MB; every
+pair and set of three stays within the test heaps of 56 and 68 MB. All data files together: 13 879 718 bytes (limit
+17 MB; before the review fixes 13 876 140).
 
 # App data sources
 

@@ -145,8 +145,8 @@ class EmojiPanel(private val v: KeyboardView) {
         downY = y
         dragging = false
         scroller?.touchDown(now)
+        // a cell highlights without a sound; the release that inserts plays it (03 §8.2 item 3)
         pressed = indexAt(x, y)
-        if (pressed >= 0) v.controller.feedback.play(SoundKind.LETTER)
         v.invalidate()
     }
 
@@ -179,7 +179,7 @@ class EmojiPanel(private val v: KeyboardView) {
         s.releaseWithoutDrag(now)
         val p = pressed
         pressed = -1
-        if (p >= 0 && p == indexAt(x, y)) v.controller.emojiPicked(items[p])
+        if (p >= 0 && p == indexAt(x, y)) insert(items[p])
         v.invalidate()
     }
 
@@ -206,7 +206,13 @@ class EmojiPanel(private val v: KeyboardView) {
     fun item(i: Int): String? = items.getOrNull(i)
 
     fun pick(i: Int) {
-        items.getOrNull(i)?.let { v.controller.emojiPicked(it) }
+        items.getOrNull(i)?.let { insert(it) }
+    }
+
+    /** Inserts an emoji of the grid with the letter sound (03 §1.4 "Emoji cell"). */
+    private fun insert(emoji: String) {
+        v.controller.feedback.play(SoundKind.LETTER)
+        v.controller.emojiPicked(emoji)
     }
 
     fun scrollPage(forward: Boolean) {

@@ -80,14 +80,15 @@ class ItalianInputLogicTest {
 
     @Test
     fun typedApostropheAndOneLetterRemainder() {
-        // the apostrophe is a word character and never a trigger; "c'e" + space → "c'è"
+        // the apostrophe is a word character and never a trigger; from 0.7.1 "c'e" + space stays (05 §17.10 example 3,
+        // open point 21: the candidate "è" has one accent unit for one letter and is filtered, as in the reference)
         type("c'e ")
-        assertEquals("c'è |", editor.toString())
+        assertEquals("c'e |", editor.toString())
         type("l'acqua e ")
-        assertEquals("c'è l'acqua e |", editor.toString())
-        assertEquals(listOf("c'è"), corrected)
+        assertEquals("c'e l'acqua e |", editor.toString())
+        assertEquals(emptyList<String>(), corrected)
         type("un po ")
-        assertEquals("c'è l'acqua e un po' |", editor.toString())
+        assertEquals("c'e l'acqua e un po' |", editor.toString())
     }
 
     @Test

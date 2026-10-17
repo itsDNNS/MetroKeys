@@ -3,6 +3,86 @@
 All notable changes to MetroKeys are listed here. Versions follow [semantic versioning](https://semver.org/);
 before 1.0 a minor version may change behaviour.
 
+## 0.7.1 – unreleased
+
+### Suggestions and autocorrection
+- New way of finding the words you meant, built like the original keyboard's: one search follows the keys you hit and
+  their neighbours (also letters without their accent), a second one looks for spelling slips — a missing, extra,
+  doubled or swapped letter, or a common confusion such as "ie" for "i" or "k" for "ck". Both feed one list of
+  suggestions.
+- Missing and extra letters are now corrected ("Das ist wirklch" → "wirklich", "das ist infach" → "einfach").
+- A word that is not in the dictionary, or a known typo, is always corrected to the best fitting word, even when a
+  second word fits almost as well: "das mchte" → "möchte", "das ist scon" → "schon", "Ich habe nir" → "mir", "ind" →
+  "und". Sometimes the choice is wrong ("ich habe es gesen" → "gegen"; "gesehen" is offered right next to it), but a
+  typo that stays is no better. A correctly spelled word is still only replaced when the better word is clearly ahead.
+- Corrections that only add accents, umlauts, an apostrophe, a hyphen or a capital letter are made reliably, even for
+  rare words ("haus" → "Haus", "voce" → "você", "cest" → "c'est", "estce" → "est-ce"); two such spellings that are
+  both likely ("hut": "Hut" or "hüt") are offered instead.
+- A rare word that is almost always a typo of a far more frequent spelling is corrected ("Das ist ein Stuck" →
+  "Stück", "ihr fuhrt" → "führt"); two common spellings never replace each other ("schon"/"schön").
+- When a word with one more letter fits about as well as a different correction, the word with the added letter is
+  chosen: "Kanst" → "Kannst", not "Knast". If that word is only a completion of what you typed, nothing is forced
+  ("diees": "diese" and "dieses" are offered). Guards also stop a correction when the typed letters are two frequent
+  German words without the space ("alsein" stays), or when an apostrophe was left out ("détincelle" stays and
+  "d'étincelle" is offered). Measured on the evaluation's typos, the share of typos corrected rises in every language
+  (German from 48 % to about 82 %, the other languages to 83–89 %), and wrong autocorrections drop from 5–7 % to about
+  5–6 %.
+- Old Brazilian spellings ("idéia", "vôo") are corrected to the current spelling; undoing it once keeps yours for good.
+- Abbreviations typed with their period stay as typed ("Zi.", "fem.", "usw."). Without the period, a German
+  abbreviation that is almost always a typo of a very frequent word is treated like any other typo: "zi" → "zu",
+  "fem" → "dem", "wie geht es dor" → "dir", "ind" → "und".
+- "das ist fue" no longer becomes "die": typing "ue" for "ü" only completes to words longer than what you typed, so
+  it becomes "für".
+- The suggestions bar offers the 90 000 most frequent words of each language. Rarer words stay valid (no spelling
+  mark) and are still found by the spelling search, but no longer crowd the bar with rare compounds and inflections.
+- Offensive words (vulgar words, insults, slurs, as labelled by Wiktionary) are no longer suggested, completed,
+  predicted or swiped unless you have typed them yourself twice; they stay valid words without a spelling mark.
+- As on the original keyboard, "à" and "è" are no longer offered for a typed "a" or "e", and "c'e" or "jusqu'a" are no
+  longer corrected; type the accented letter with the accent picker.
+- When the word you typed is itself among the first suggestions, it is not shown and the bar shows at most ten
+  entries, as on the original keyboard.
+- Typing stays responsive: a search that the next keystroke makes outdated stops at once.
+
+### Sounds
+- MetroKeys now has its own key sounds: a soft, low "thock" close to the original keyboard's instead of Android's
+  click, plus own sounds for opening an accent picker, choosing a suggestion, adding a word to the dictionary and
+  pasting. They are computed when the keyboard starts; no sound files are shipped. They are the new default
+  ("MetroKeys" under sound pack); Android's clicks and your own sound files can still be chosen. If you used Android's
+  clicks before, the keyboard switches to its own sounds once; choosing Android's clicks again is kept.
+- Which sound a key plays now follows its look, as on the original keyboard: letters, digits and symbols play the
+  letter sound; Shift, backspace, Enter, the page, emoji and language keys and the grey punctuation keys such as
+  "," and "." play the function sound; the space bar plays its own sound.
+- Sounds play the moment your finger touches a key, never on release, and again on every repeat of a held
+  backspace, space or Enter. Choosing a suggestion and every autocorrection play the pick sound; a swipe that is not
+  recognised plays the add-to-dictionary sound, louder; the paste button and the recently-copied chip play the paste
+  sound. An emoji plays the letter sound when it is inserted.
+- As on the original keyboard, key sounds are quieter than the pick, add-to-dictionary and paste sounds, and a new
+  key sound cuts off one that is still playing.
+- New setting "Key sounds in silent mode": with it, sounds also play when the phone is on silent or vibrate, through
+  the media volume. Do not disturb mutes all keyboard sounds.
+- With Android's clicks, the accent picker, add-to-dictionary and paste sounds (which Android has no click for) use
+  MetroKeys' own sounds. With your own sounds, a slot without a file now plays MetroKeys' own sound for it; there is a
+  new seventh slot for pasting (files named with "paste" or "clipboard").
+- The volume preview on the sounds page plays the letter sound of the chosen source.
+
+### Keyboard
+- Holding Shift locks capitals, as on the original keyboard: hold it until the second function sound.
+
+### Dictionaries
+- Every word list now stores the frequency rank of each form, which words are offered, the spelling classes of the
+  spelling search, the do-not-suggest flag and, for every word, whether it is an abbreviation (from Wiktionary, in all
+  six languages); the words and their frequencies are unchanged.
+
+### Dictionary evaluation
+- New baseline 0.7.1 (reason: "0.7.1 pipeline", the new candidate search and autocorrection policy): missing letters are judged by whether the word is offered among the first
+  three and by wrong corrections; accented words replaced by the more frequent spelling count as accepted; items
+  whose expected word is a do-not-suggest word are reported apart. Abbreviations that are corrected by design without
+  their period ("zi", "fem") are reported apart as well (F5z). The baseline was recomputed after the review changes
+  (abbreviations and "ue" completions), again after the rule that unknown words are always corrected (reason:
+  "unknown words are always corrected"; more typos fixed, more wrong corrections, accepted by the owner), and again
+  after the omission reading of the omission guard ("Kanst" → "Kannst"; reason: "omission guard applies the omission
+  reading").
+
 ## 0.7.0 – unreleased
 
 ### Dictionaries

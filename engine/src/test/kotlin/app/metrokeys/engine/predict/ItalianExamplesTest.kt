@@ -4,6 +4,8 @@ import app.metrokeys.engine.EngineSettings
 import app.metrokeys.engine.PredictionEngine
 import app.metrokeys.engine.Query
 import app.metrokeys.engine.TestDictionaries
+import app.metrokeys.engine.barTexts
+import app.metrokeys.engine.entry
 import app.metrokeys.engine.lexicon.Lexicon
 import app.metrokeys.engine.query
 import app.metrokeys.engine.touch.TapSequence
@@ -15,16 +17,12 @@ import kotlin.test.assertTrue
 
 /**
  * Italian worked examples of spec 05 §17.10 and the it rows of the conformance checklist (§18) with the built
- * dictionary (no learned data, no taps, Italian fallback grid = the English one). The outcomes are asserted as the
- * spec words them; the lm values and scores come from the build and are printed (05 §17.10: to be computed by the
- * implementation).
+ * dictionary (no learned data, no taps, Italian fallback grid = the English one; 0.7.1 rules). The outcomes are
+ * asserted as the spec words them; the lm values and scores come from the build (informative, 05 §17.10).
  */
 class ItalianExamplesTest {
     private val it = TestDictionaries.italian()
     private val engine = TestDictionaries.single(TestDictionaries.italian())
-
-    private fun LanguageSuggestions.corr(display: String): Candidate =
-        corrections.firstOrNull { c -> c.display == display } ?: error("no correction $display in $corrections")
 
     private fun ac(text: String): String? = engine.query(Query(text)).autoCorrection
 
@@ -32,7 +30,7 @@ class ItalianExamplesTest {
 
     private fun show(label: String, text: String) {
         val r = it.query(text)
-        println("$label: valid=${r.validity} ac=${r.autoCorrection} corr=${r.corrections.take(3)} bar=${bar(text)}")
+        println("$label: valid=${r.validity} ac=${r.autoCorrection} bar=${bar(text)}")
     }
 
     @Test
@@ -59,28 +57,30 @@ class ItalianExamplesTest {
 
     @Test
     fun example1Accents() {
-        // "perche" is a dictionary word kept with class 0 (05b §10.4 step 5): valid, cost 166 > AC_VALID_RARE
+        // "perche" is a dictionary word kept with class 0 (05b §10.4 step 5): valid, but not valid for the decision
         val p = it.query("perche")
         assertTrue(p.validity.valid)
+        assertTrue(p.validity.classZero)
         assertEquals(0, it.lexicon.exactClass("perche"))
-        assertTrue(p.validity.cost > it.params.acValidRare)
-        val pc = p.corr("perché")
+        val pc = p.entry("perché")
         assertEquals(2, pc.ed)
-        assertTrue(pc.lm < it.params.acValidTarget)
-        assertEquals(pc.lm + 1, it.acScore(pc, 6))
-        println("lm(perché)=${pc.lm}")
-        assertEquals("perché", ac("perche"))
+        assertEquals(121, pc.lm)
+        assertEquals(123, pc.score)
+        assertEquals("perché", p.autoCorrection?.display)
+        assertEquals("4o", p.decisionStep)
         assertEquals("città", ac("citta"))
+        assertEquals(152, it.query("citta").entry("città").lm)
         assertEquals("però", ac("pero"))
+        assertEquals(154, it.query("pero").entry("però").lm)
         // "piu" is no key (merged into "più")
         assertFalse(it.lexicon.exact("piu"))
-        val piu = it.query("piu").corr("più")
+        val piu = it.query("piu").entry("più")
         assertEquals(2, piu.ed)
-        assertEquals(piu.lm + 3, it.acScore(piu, 3))
+        assertEquals(125, piu.lm)
         assertEquals("più", ac("piu"))
         // wrong accent: ACCENT_SWAP makes è for é cost ED_DIACRITIC
         assertFalse(it.lexicon.exact("perchè"))
-        assertEquals(2, it.query("perchè").corr("perché").ed)
+        assertEquals(2, it.query("perchè").entry("perché").ed)
         assertEquals("perché", ac("perchè"))
         show("perche", "perche")
         show("citta", "citta")
@@ -93,28 +93,27 @@ class ItalianExamplesTest {
             assertTrue(r.validity.valid, text)
             assertNull(ac(text), text)
         }
-        assertTrue("è" in bar("Questa e").take(3), bar("Questa e").toString())
-        assertTrue("Sì" in bar("Si").take(3), bar("Si").toString())
-        for ((typed, accented) in listOf("la" to "là", "li" to "lì", "da" to "dà", "ne" to "né", "papa" to "papà")) {
+        // "è" is not offered after a typed "e": one accent unit for one letter (§8.3, open point 21)
+        assertTrue("è" !in bar("Questa e"), bar("Questa e").toString())
+        assertEquals("Sì", bar("Si").first())
+        for ((typed, accented) in listOf("la" to "là", "li" to "lì", "da" to "dà", "se" to "sé", "ne" to "né", "papa" to "papà")) {
             assertNull(ac(typed), typed)
             assertTrue(accented in bar(typed), "$typed: ${bar(typed)}")
         }
-        // "sé" is a correction candidate (ED 2), but eleven completions of "se" are cheaper, so the bar does not show it
-        // (spec/QUESTIONS.md)
-        assertNull(ac("se"))
-        assertEquals(2, it.query("se").corr("sé").ed)
+        assertEquals("là", bar("la")[1])
+        assertEquals("lì", bar("li")[1])
+        assertEquals("papà", bar("papa").first())
     }
 
     @Test
     fun example3OneLetterRemainder() {
+        // open point 21 (1:1): the candidate "è" has one unit for one letter and is removed by the filter of §8.3
         val r = it.query("c'e")
         assertFalse(r.validity.valid)
-        val e = r.corr("c'è")
-        assertEquals(2, e.ed)
-        println("lm(è | c')=${e.lm} score=${it.acScore(e, 1)}")
-        assertEquals("c'è", ac("c'e"))
-        assertEquals("dov'è", ac("dov'e"))
-        assertEquals("C'è", ac("C'e"))
+        assertTrue(r.ranked.none { c -> c.display == "c'è" }, r.ranked.toString())
+        assertNull(ac("c'e"))
+        assertNull(ac("dov'e"))
+        assertNull(ac("C'e"))
         // typed correctly: valid, nothing to correct
         assertTrue(it.query("c'è").validity.valid)
         assertNull(ac("c'è"))
@@ -124,18 +123,29 @@ class ItalianExamplesTest {
     fun example4MissingApostrophe() {
         assertFalse(it.lexicon.exact("lacqua"))
         val r = it.query("lacqua")
-        val l = r.corr("l'acqua")
+        val l = r.entry("l'acqua")
         assertEquals(0, l.ed)
-        println("lm(l'acqua)=${l.lm}")
-        assertEquals("l'acqua", ac("lacqua"))
+        assertEquals(161, l.lm) // 05 §17.10 gives 168 (informative)
+        assertEquals("l'acqua", r.autoCorrection?.display)
+        assertEquals("4o", r.decisionStep)
         assertEquals("L'acqua", ac("Lacqua"))
         assertEquals("L'ACQUA", ac("LACQUA"))
-        assertEquals("c'è", ac("cè"))
         assertEquals("dell'anno", ac("dellanno"))
         assertFalse(it.lexicon.exact("daccordo"))
         assertEquals("d'accordo", ac("daccordo"))
-        assertEquals("un'altra", ac("unaltra"))
+        val ua = it.query("unaltra")
+        assertEquals("un'altra", ua.autoCorrection?.display)
+        // the two-word "un altra" changes no letter either but ranks far behind
+        assertEquals(437, ua.entry("un altra").score)
         assertEquals("anch'io", ac("anchio"))
+        // "cè" is a class-0 form; "c'è" is the first suggestion. 05 §17.10 example 4 expects no autocorrection because
+        // "ce" scores 155 there; by §5 a typed accented letter for a plain one is a substitution (ED_SUBSTITUTE 160),
+        // so "ce" scores 313 and is far from "c'è" (spec/QUESTIONS.md, 0.7.1)
+        val ce = it.query("cè")
+        assertTrue(ce.validity.classZero)
+        assertEquals("c'è", ce.bar().first().display)
+        assertEquals(160, ce.entry("ce").ed)
+        assertEquals("c'è", ce.autoCorrection?.display)
     }
 
     @Test
@@ -190,7 +200,8 @@ class ItalianExamplesTest {
         assertEquals("è", engine.query(Query("Non ")).suggestions.first().text)
         val r = it.query("un po")
         assertFalse(r.validity.valid)
-        assertEquals(0, r.corr("po'").ed)
+        assertEquals(0, r.entry("po'").ed)
+        assertEquals(93, r.entry("po'").lm)
         assertEquals("po'", ac("un po"))
     }
 
@@ -199,9 +210,9 @@ class ItalianExamplesTest {
         assertEquals(listOf("Italia"), it.lexicon.forms("italia").map { f -> f.text })
         val r = it.query("Vivo in italia")
         assertFalse(r.validity.valid)
-        val c = r.corr("Italia")
+        val c = r.entry("Italia")
         assertEquals(44, c.ed)
-        assertEquals(c.lm + 36, it.acScore(c, 6))
+        assertEquals(123, c.lm)
         assertEquals("Italia", ac("Vivo in italia"))
     }
 
@@ -210,17 +221,24 @@ class ItalianExamplesTest {
         for ((typed, accented) in listOf("Vado la" to "là", "papa" to "papà", "li" to "lì", "se" to "sé")) {
             val r = it.query(typed)
             assertTrue(r.validity.valid, typed)
-            assertTrue(r.validity.cost <= it.params.acValidRare, typed)
             assertNull(ac(typed), typed)
             assertTrue(it.isKnown(typed.substringAfterLast(' ')), typed)
-            assertEquals(2, r.corr(accented).ed)
+            assertEquals(2, r.entry(accented).ed)
+            assertTrue(accented in r.barTexts(), "$typed: ${r.barTexts()}")
         }
     }
 
     @Test
     fun example11MissingSpace() {
         assertFalse(it.lexicon.exact("perfavore"))
-        assertEquals("per favore", ac("perfavore"))
+        val pf = it.query("perfavore")
+        assertEquals("per favore", pf.autoCorrection?.display)
+        assertEquals(149, pf.autoCorrection!!.lm)
+        assertEquals(194, it.acScore(pf.autoCorrection!!, "perfavore"))
+        val ua = it.query("unaltro")
+        assertEquals("un altro", ua.autoCorrection?.display)
+        assertEquals(160, ua.autoCorrection!!.lm)
+        assertEquals(217, it.acScore(ua.autoCorrection!!, "unaltro"))
         val b = bar("unaltro")
         assertTrue("un altro" in b.take(3), b.toString())
         assertTrue("un'altro" !in b, b.toString())
@@ -235,7 +253,8 @@ class ItalianExamplesTest {
         }
         assertFalse(it.query("é").validity.valid)
         assertNull(ac("é"))
-        assertEquals("è", bar("é").first())
+        // open point 21: "è" is not offered (one unit for one letter, §8.3)
+        assertTrue("è" !in bar("é"), bar("é").toString())
     }
 
     @Test

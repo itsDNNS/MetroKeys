@@ -1,5 +1,6 @@
 package app.metrokeys.settings
 
+import android.app.NotificationManager
 import android.content.Context
 import android.graphics.Typeface
 import android.media.AudioAttributes
@@ -10,6 +11,14 @@ import android.provider.OpenableColumns
 import android.util.Log
 import android.widget.Toast
 import app.metrokeys.R
+import app.metrokeys.keyboard.Feedback
+import app.metrokeys.keyboard.GeneratedSoundFiles
+import app.metrokeys.keyboard.Playback
+import app.metrokeys.keyboard.SoundConditions
+import app.metrokeys.keyboard.SoundKind
+import app.metrokeys.keyboard.SoundPlan
+import app.metrokeys.keyboard.SoundSlot
+import app.metrokeys.keyboard.SoundSource
 import app.metrokeys.keyboard.UserAssets
 import java.io.File
 import java.io.IOException
@@ -161,21 +170,21 @@ class AssetImporter(private val context: Context) {
 }
 
 /**
- * Sound previews of the settings app: a slot's file on long press (07 §9.9) and the letter-key sample when the
- * volume slider is released (07 §9.8).
+ * Sound previews of the settings app: a slot's file on long press (07 §9.9) and the letter sound of the current source
+ * when the volume slider is released (07 §9.8 item 3), with the rules and the level relation of 03 §1.4.
  */
 class SoundPreview(private val context: Context) {
     private var player: MediaPlayer? = null
     private val audio = context.getSystemService(AudioManager::class.java)
 
-    fun playFile(file: File, percent: Int) {
+    private fun play(file: File, gain: Float, media: Boolean) {
         if (!file.isFile) return
         release()
-        val gain = (percent / 100f).let { it * it }
         try {
             val p = MediaPlayer()
             p.setAudioAttributes(
-                AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                AudioAttributes.Builder()
+                    .setUsage(if (media) AudioAttributes.USAGE_MEDIA else AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build(),
             )
             p.setDataSource(file.path)
@@ -193,15 +202,30 @@ class SoundPreview(private val context: Context) {
         }
     }
 
-    /** The letter-key sound at [percent]: the user's file when the source is custom and it exists, else Android's. */
-    fun playSample(percent: Int, custom: Boolean, letterFile: File) {
-        if (percent <= 0 || audio?.ringerMode != AudioManager.RINGER_MODE_NORMAL) return
-        if (custom && letterFile.isFile) {
-            playFile(letterFile, percent)
-            return
+    /** The user's file of [slot] at [percent], with the slot's gain (long press on a slot, 07 §9.9 item 5). */
+    fun playFile(slot: SoundSlot, file: File, percent: Int) {
+        if (percent <= 0) return
+        play(file, SoundPlan.gain(SoundKind.of(slot), percent).toFloat(), media = false)
+    }
+
+    /**
+     * The letter sound of [source] at [percent] (07 §9.8 item 3): generated, the user's letter file or Android's
+     * standard click, following the ringer-mode and do-not-disturb rules of the keys.
+     */
+    fun playSample(percent: Int, source: SoundSource, silentMode: Boolean, userFile: (SoundSlot) -> File) {
+        val conditions = SoundConditions(
+            soundsOn = true, volumePercent = percent, silentMode = silentMode,
+            ringerNormal = audio?.ringerMode == AudioManager.RINGER_MODE_NORMAL,
+            doNotDisturb = Feedback.soundDndActive(context.getSystemService(NotificationManager::class.java)),
+        )
+        val files = if (source == SoundSource.CUSTOM) SoundSlot.entries.filter { userFile(it).isFile }.toSet() else emptySet()
+        when (val p = SoundPlan.plan(SoundKind.LETTER, source, files, conditions) ?: return) {
+            is Playback.Platform -> audio?.playSoundEffect(Feedback.effectOf(p.effect), p.volume)
+            is Playback.Sample -> {
+                val f = p.userSlot?.let(userFile) ?: p.generated?.let { GeneratedSoundFiles.ensure(context)[it] } ?: return
+                play(f, p.gain, p.media)
+            }
         }
-        val gain = (percent / 100f).let { it * it }
-        audio.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD, if (percent >= 100) -1f else 0.5f * gain)
     }
 
     fun release() {

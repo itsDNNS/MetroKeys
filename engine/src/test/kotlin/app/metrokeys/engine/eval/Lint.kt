@@ -97,19 +97,59 @@ internal class Lint(
             val kt = list.keyIndex(e.key)
             if (kt < 0) continue
             val ct = bestClass(kt)
-            val units = { cand: String -> EditDistance.units(e.key, cand, accentSwap = params.accentSwap) }
-            for (m in list.fuzzy(e.key, 1, 400, units)) {
-                if (m.distance != 1) continue
-                val u = toKey(m.form.text)
+            for (ku in keysWithinOneUnit(e.key)) {
+                val u = list.keyString(ku)
                 if (u == e.key) continue
-                val ku = list.keyIndex(u)
-                if (ku < 0 || !(list.isUnattested(ku) || u in lex.names)) continue
+                if (EditDistance.units(e.key, u, accentSwap = params.accentSwap, diacriticUnits = params.edDiacritic != 0) != 1) continue
+                if (!(list.isUnattested(ku) || u in lex.names)) continue
                 val cu = bestClass(ku)
-                if (cu > ct) rows.add(Inv(cu - ct, "${m.form.text} $cu > ${e.forms.first()} $ct (rank ${e.rank}, ${flags(u)})"))
+                val text = list.formText(ku, 0)
+                if (cu > ct) rows.add(Inv(cu - ct, "$text $cu > ${e.forms.first()} $ct (rank ${e.rank}, ${flags(u)})"))
             }
         }
         rows.sortWith(compareBy<Inv>({ -it.diff }, { it.text }))
         return Result("L4", rows.size, emptyMap(), emptyMap(), rows.map { "+${it.diff} ${it.text}" })
+    }
+
+    /**
+     * Keys within one unit edit (insert, delete, substitute, adjacent swap) of [key] by a walk over the key tree with
+     * optimal-string-alignment rows; an accent difference counts as an edit where `ED_DIACRITIC` is not 0 (05 §5
+     * UNITS, 0.7.1), else letters are compared accent-folded.
+     */
+    private fun keysWithinOneUnit(key: String): List<Int> {
+        val fold = params.edDiacritic == 0
+        fun f(c: Char) = if (fold) EditDistance.fold(c) else c
+        val w = CharArray(key.length) { f(key[it]) }
+        val n = w.size
+        val out = ArrayList<Int>()
+        val rows = Array(64 + 2) { IntArray(n + 1) }
+        for (j in 0..n) rows[0][j] = j
+        fun walk(node: Int, depth: Int) {
+            if (depth >= 64) return
+            val prev = rows[depth]
+            val prevPrev = if (depth > 0) rows[depth - 1] else null
+            val prevChar = if (depth > 0) f(list.charOf(node)) else '\u0000'
+            val row = rows[depth + 1]
+            val first = list.firstChild(node)
+            for (child in first until first + list.childCount(node)) {
+                val ch = f(list.charOf(child))
+                row[0] = prev[0] + 1
+                var rowMin = row[0]
+                for (j in 1..n) {
+                    val tj = w[j - 1]
+                    var v = minOf(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + if (tj == ch) 0 else 1)
+                    if (prevPrev != null && j > 1 && ch == w[j - 2] && prevChar == tj && ch != tj) v = minOf(v, prevPrev[j - 2] + 1)
+                    row[j] = v
+                    if (v < rowMin) rowMin = v
+                }
+                if (row[n] <= 1 && list.keyAt(child) >= 0) out.add(list.keyAt(child))
+                var prevMin = Int.MAX_VALUE
+                for (v in prev) if (v < prevMin) prevMin = v
+                if (rowMin <= 1 || prevMin + 1 <= 1) walk(child, depth + 1)
+            }
+        }
+        walk(list.root, 0)
+        return out
     }
 
     /** L5: unattested keys with class ≥ LINT_CLASS_MIN, with pS and pW. */

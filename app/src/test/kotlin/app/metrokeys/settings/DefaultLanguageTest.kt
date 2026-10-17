@@ -35,12 +35,12 @@ class DefaultLanguageTest {
         val system = { asked++; device }
         assertEquals(listOf("fr-FR"), Prefs.languages(p, system))
         assertEquals(setOf("fr-FR"), p.getStringSet(Prefs.LANGUAGES, null))
-        assertEquals(1, p.writes)
+        assertEquals(1, p.languageWrites)
         // the device language changes: the stored value stays, nothing is written again
         device = locales("de-DE")
         assertEquals(listOf("fr-FR"), Prefs.languages(p, system))
         assertEquals(listOf("fr-FR"), KeyboardSettings.read(p, system).languages)
-        assertEquals(1, p.writes)
+        assertEquals(1, p.languageWrites)
         assertEquals(1, asked)
     }
 
@@ -51,23 +51,23 @@ class DefaultLanguageTest {
         assertEquals(listOf("en-US"), KeyboardSettings.read(p) { locales("en-GB") }.languages)
         // the settings app later sees the stored value, also under another device language
         assertEquals(listOf("en-US"), Prefs.languages(p) { locales("es-ES") })
-        assertEquals(1, p.writes)
+        assertEquals(1, p.languageWrites)
     }
 
     @Test
     fun existingInstallationsKeepTheirValue() {
         val p = FakePrefs()
         p.edit().putStringSet(Prefs.LANGUAGES, setOf("de-DE", "es-ES")).apply()
-        p.writes = 0
+        p.languageWrites = 0
         assertEquals(listOf("de-DE", "es-ES"), Prefs.languages(p) { locales("fr-FR") })
-        assertEquals(0, p.writes)
+        assertEquals(0, p.languageWrites)
         // a stored set of only unknown tags is not rewritten; it reads as the device default
         val q = FakePrefs()
         q.edit().putStringSet(Prefs.LANGUAGES, setOf("xx-XX")).apply()
-        q.writes = 0
+        q.languageWrites = 0
         assertEquals(listOf("it-IT"), Prefs.languages(q) { locales("it-IT") })
         assertEquals(setOf("xx-XX"), q.getStringSet(Prefs.LANGUAGES, null))
-        assertEquals(0, q.writes)
+        assertEquals(0, q.languageWrites)
     }
 
     @Test
@@ -82,6 +82,9 @@ class DefaultLanguageTest {
 class FakePrefs : SharedPreferences {
     private val data = HashMap<String, Any?>()
     var writes = 0
+
+    /** Writes that changed `languages` (the sound-source migration of 07 §9.9 writes on the first read as well). */
+    var languageWrites = 0
 
     override fun getAll(): Map<String, *> = HashMap(data)
     override fun getString(key: String, defValue: String?) = data[key] as String? ?: defValue
@@ -110,6 +113,7 @@ class FakePrefs : SharedPreferences {
             if (clear) data.clear()
             for ((k, v) in changes) if (v == null) data.remove(k) else data[k] = v
             writes++
+            if (Prefs.LANGUAGES in changes) languageWrites++
             return true
         }
         override fun apply() {

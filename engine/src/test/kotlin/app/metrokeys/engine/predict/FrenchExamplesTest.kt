@@ -4,6 +4,7 @@ import app.metrokeys.engine.EngineSettings
 import app.metrokeys.engine.PredictionEngine
 import app.metrokeys.engine.Query
 import app.metrokeys.engine.TestDictionaries
+import app.metrokeys.engine.entry
 import app.metrokeys.engine.query
 import app.metrokeys.engine.touch.TapSequence
 import kotlin.test.Test
@@ -14,15 +15,12 @@ import kotlin.test.assertTrue
 
 /**
  * French worked examples of spec 05 §17.11 and the fr rows of the conformance checklist (§18) with the built
- * dictionary (no learned data, no taps, French AZERTY fallback grid). The outcomes are asserted as the spec words
- * them; the lm values and scores come from the build and are printed (05 §17.11: to be computed by the implementation).
+ * dictionary (no learned data, no taps, French AZERTY fallback grid; 0.7.1 rules). The outcomes are asserted as the spec
+ * words them; the lm values and scores come from the build (informative, 05 §17.11).
  */
 class FrenchExamplesTest {
     private val fr = TestDictionaries.french()
     private val engine = TestDictionaries.single(TestDictionaries.french())
-
-    private fun LanguageSuggestions.corr(display: String): Candidate =
-        corrections.firstOrNull { c -> c.display == display } ?: error("no correction $display in $corrections")
 
     private fun ac(text: String): String? = engine.query(Query(text)).autoCorrection
 
@@ -32,7 +30,7 @@ class FrenchExamplesTest {
 
     private fun show(label: String, text: String) {
         val r = fr.query(text)
-        println("$label: valid=${r.validity} ac=${r.autoCorrection} corr=${r.corrections.take(3)} bar=${bar(text)}")
+        println("$label: valid=${r.validity} ac=${r.autoCorrection} bar=${bar(text)}")
     }
 
     @Test
@@ -72,26 +70,27 @@ class FrenchExamplesTest {
 
     @Test
     fun example1MissingAccents() {
-        // "tres" is kept with class 0 (05b §11.4 step 2): valid, cost 168 > AC_VALID_RARE 163
+        // "tres" is kept with class 0 (05b §11.4 step 2): valid, but not valid for the decision (§10.1 step 4)
         val t = fr.query("tres")
         assertTrue(t.validity.valid)
+        assertTrue(t.validity.classZero)
         assertEquals(0, fr.lexicon.exactClass("tres"))
-        assertTrue(t.validity.cost > fr.params.acValidRare)
-        val tc = t.corr("très")
+        val tc = t.entry("très")
         assertEquals(14, tc.ed)
-        assertTrue(tc.lm < fr.params.acValidTarget)
-        assertEquals(tc.lm + 17, fr.acScore(tc, 4))
-        println("lm(très)=${tc.lm}")
-        assertEquals("très", ac("tres"))
+        assertEquals(136, tc.lm)
+        assertEquals(150, tc.score)
+        assertEquals("très", t.autoCorrection?.display)
         assertEquals("très", ac("C'est tres"))
-        // "deja" is no key, ED 28
+        // "deja" is no key, two accent slips, ED 28
         assertFalse(fr.lexicon.exact("deja"))
-        val d = fr.query("deja").corr("déjà")
+        val d = fr.query("deja").entry("déjà")
         assertEquals(28, d.ed)
-        println("lm(déjà)=${d.lm} score=${fr.acScore(d, 4)}")
+        assertEquals(144, d.lm)
         assertEquals("déjà", ac("deja"))
         assertEquals("Déjà", ac("Deja"))
-        assertEquals(14, fr.query("garcon").corr("garçon").ed)
+        val g = fr.query("garcon").entry("garçon")
+        assertEquals(14, g.ed)
+        assertEquals(170, g.lm)
         assertEquals("garçon", ac("garcon"))
         show("tres", "tres")
     }
@@ -99,9 +98,10 @@ class FrenchExamplesTest {
     @Test
     fun example2WrongAccent() {
         assertEquals(0, fr.lexicon.exactClass("trés"))
-        assertEquals(14, fr.query("trés").corr("très").ed)
+        assertEquals(14, fr.query("trés").entry("très").ed)
         assertEquals("très", ac("trés"))
         assertEquals("après", ac("aprés"))
+        assertEquals(132, fr.query("aprés").entry("après").lm)
         // without ACCENT_SWAP the same-key substitution costs ED_SUBSTITUTE
         val noSwap = fr.params.copy(accentSwap = false)
         assertEquals(125, EditDistance(noSwap, fr.touch).weighted("é", "è", TapSequence.none(1)))
@@ -113,10 +113,10 @@ class FrenchExamplesTest {
     fun example3BothSpellingsValid() {
         assertNull(ac("Je vais a"))
         assertTrue(fr.query("Je vais a").validity.valid)
-        assertEquals(14, fr.query("Je vais a").corr("à").ed)
-        assertTrue("à" in bar("Je vais a").take(3), bar("Je vais a").toString())
+        // open point 21: "à" is not offered after a typed "a" (one accent unit for one letter, §8.3)
+        assertTrue("à" !in bar("Je vais a"), bar("Je vais a").toString())
         assertNull(ac("Tu vas ou"))
-        assertTrue("où" in bar("Tu vas ou").take(3), bar("Tu vas ou").toString())
+        assertEquals("où", bar("Tu vas ou").first())
         for (typed in listOf("la", "sur", "du")) assertNull(ac(typed), typed)
         show("Je vais a", "Je vais a")
         show("Tu vas ou", "Tu vas ou")
@@ -125,9 +125,9 @@ class FrenchExamplesTest {
     @Test
     fun example4MissingApostrophe() {
         for (typed in listOf("jai", "cest", "quil", "lhomme", "dabord")) assertFalse(fr.query(typed).validity.valid, typed)
-        val j = fr.query("jai").corr("j'ai")
+        val j = fr.query("jai").entry("j'ai")
         assertEquals(0, j.ed)
-        println("lm(j'ai)=${j.lm}")
+        assertEquals(CandidateSource.ELISION, j.source)
         assertEquals("j'ai", ac("jai"))
         assertEquals("J'ai", ac("Jai"))
         assertEquals("c'est", ac("cest"))
@@ -141,13 +141,13 @@ class FrenchExamplesTest {
     @Test
     fun example5OneLetterRemainder() {
         assertFalse(fr.query("jusqua").validity.valid)
-        val j = fr.query("jusqua").corr("jusqu'à")
+        val j = fr.query("jusqua").entry("jusqu'à")
         assertEquals(14, j.ed)
-        println("lm(jusqu'à)=${j.lm} score=${fr.acScore(j, 6)}")
         assertEquals("jusqu'à", ac("jusqua"))
-        // the accent-lost pair (jusqu', a) is not in the pair table: "jusqu'a" is invalid and corrected
+        // the accent-lost pair (jusqu', a) is not in the pair table: "jusqu'a" is invalid; its candidate "à" has one unit
+        // for one letter and is removed by the filter of §8.3, so nothing is corrected (open point 21, 1:1)
         assertFalse(fr.query("jusqu'a").validity.valid)
-        assertEquals("jusqu'à", ac("jusqu'a"))
+        assertNull(ac("jusqu'a"))
         assertTrue(fr.query("jusqu'à").validity.valid)
         assertNull(ac("jusqu'à"))
     }
@@ -156,7 +156,7 @@ class FrenchExamplesTest {
     fun example6ValidWordElidedOrNot() {
         assertTrue(fr.query("quelle").validity.valid)
         assertNull(ac("quelle"))
-        assertTrue("qu'elle" in bar("quelle").take(3), bar("quelle").toString())
+        assertEquals("qu'elle", bar("quelle").first())
         assertTrue(fr.query("dans").validity.valid)
         assertNull(ac("dans"))
         assertFalse("d'ans" in bar("dans"), bar("dans").toString())
@@ -183,15 +183,14 @@ class FrenchExamplesTest {
     fun example8Ligature() {
         assertFalse(fr.query("coeur").validity.valid)
         assertTrue(fr.lexicon.exact("cœur"))
-        val c = fr.query("coeur").corr("cœur")
+        val c = fr.query("coeur").entry("cœur")
         assertEquals(14, c.ed)
-        assertEquals(c.lm + 14, fr.acScore(c, 5))
         assertEquals("cœur", ac("coeur"))
         assertEquals("cœur", ac("Mon coeur"))
         for ((typed, want) in listOf("soeur" to "sœur", "oeil" to "œil", "oeuvre" to "œuvre", "noeud" to "nœud", "Oeuvre" to "Œuvre")) {
             assertEquals(want, ac(typed), typed)
         }
-        // a prefix with o/a for œ/æ completes the ligature word (05 §8.4 item 4)
+        // a prefix with "oe" completes the ligature word through the transliterated spelling (05 §8.1c)
         assertTrue("cœur" in bar("coeu"), bar("coeu").toString())
         assertTrue("sœur" in bar("soe"), bar("soe").toString())
     }
@@ -214,19 +213,13 @@ class FrenchExamplesTest {
         val b = bar("Il ouvre la fenetr")
         assertEquals("fenêtre", b.first(), b.toString())
         val r = fr.query("Il ouvre la fenetr")
-        val f = r.ranked.first()
+        val f = r.bar().first()
         assertEquals("fenêtre", f.display)
         assertFalse(f.isCorrection)
-        // the correction "fenêtre" (insert e + ê, 125 + 14) is the cheapest correction as well
-        assertEquals("fenêtre", r.corrections.first().display)
-        assertEquals(139, r.corrections.first().ed)
-        // measured: its score (lm + 5 · 139 / 6) lies within AC_MARGIN 32 of the runner-up "tenter", so §10.1 step 7
-        // leaves the word as typed (spec/QUESTIONS.md); the rules are unchanged
-        val s1 = fr.acScore(r.corrections[0], 6)
-        val s2 = fr.acScore(r.corrections[1], 6)
-        println("fenetr: ${r.corrections.take(3)} scores $s1 / $s2")
-        if (kotlin.math.abs(s1 - s2) > fr.params.acMargin) assertEquals("fenêtre", ac("Il ouvre la fenetr"))
-        else assertNull(ac("Il ouvre la fenetr"))
+        assertEquals(134, f.lm)
+        assertEquals(158, f.score)
+        // no autocorrection: the best correction is far
+        assertNull(r.autoCorrection)
     }
 
     @Test
@@ -264,7 +257,7 @@ class FrenchExamplesTest {
     @Test
     fun example13HyphenCompoundsAndApostropheWords() {
         assertFalse(fr.query("estce").validity.valid)
-        assertEquals(0, fr.query("estce").corr("est-ce").ed)
+        assertEquals(0, fr.query("estce").entry("est-ce").ed)
         assertEquals("est-ce", ac("estce"))
         assertEquals("Est-ce", ac("Estce"))
         assertEquals("peut-être", ac("peutetre"))
@@ -291,16 +284,17 @@ class FrenchExamplesTest {
         assertTrue(fr.lexicon.exact("France"))
         val r = fr.query("Il vit en france")
         assertFalse(r.validity.valid)
-        assertEquals(44, r.corr("France").ed)
+        assertEquals(44, r.entry("France").ed)
         assertEquals("France", ac("Il vit en france"))
     }
 
     @Test
     fun example15MissingSpace() {
         assertTrue(fr.lexicon.keyIndex("quelquechose") < 0)
-        assertEquals("quelque chose", ac("quelquechose"))
-        // "etje" is dropped as a missing-space artefact (05b §11.6 step 6) and the split "et je" is offered; the
-        // autocorrection goes to "être" (ED 139 against ED_SPACE 156; spec/QUESTIONS.md)
+        val q = fr.query("quelquechose")
+        assertEquals("quelque chose", q.autoCorrection?.display)
+        assertEquals(174, fr.acScore(q.autoCorrection!!, "quelquechose"))
+        // "etje" is dropped as a missing-space artefact (05b §11.6 step 6) and the split "et je" is offered
         assertTrue(fr.lexicon.keyIndex("etje") < 0)
         assertFalse(fr.query("etje").validity.valid)
         assertTrue("et je" in bar("etje"), bar("etje").toString())
@@ -317,8 +311,8 @@ class FrenchExamplesTest {
         assertNull(ac("a-t"))
         assertFalse(TestDictionaries.single(TestDictionaries.french()).isKnown("t"))
         assertNull(ac("á"))
-        assertEquals("à", bar("á").first(), bar("á").toString())
-        assertEquals(14, fr.query("á").corr("à").ed)
+        // open point 21: "à" is not offered for "á" (one unit for one letter, §8.3)
+        assertTrue("à" !in bar("á"), bar("á").toString())
     }
 
     @Test
@@ -335,7 +329,7 @@ class FrenchExamplesTest {
         assertTrue(frw.getValue("fr-FR") > 0.95, frw.toString())
         assertEquals("c'est", p.query(Query("cest")).autoCorrection)
         val enOnly = TestDictionaries.english().query("cest")
-        assertTrue(enOnly.corrections.none { c -> c.display == "c'est" })
+        assertTrue(enOnly.ranked.none { c -> c.display == "c'est" })
     }
 
     @Test

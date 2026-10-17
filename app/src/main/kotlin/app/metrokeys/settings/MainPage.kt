@@ -78,6 +78,7 @@ fun PrefToggle(
     enabled: Boolean = true,
     note: String? = null,
     shown: Boolean? = null,
+    dimmed: Boolean = false,
     onChange: ((Boolean) -> Unit)? = null,
 ) {
     val store = LocalStore.current
@@ -86,6 +87,7 @@ fun PrefToggle(
         header = header, checked = shown ?: (enabled && stored),
         onChange = { v -> if (onChange != null) onChange(v) else store.set(key, v) },
         enabled = enabled, note = note, onLabel = stringResource(R.string.on), offLabel = stringResource(R.string.off),
+        dimmed = dimmed,
     )
 }
 

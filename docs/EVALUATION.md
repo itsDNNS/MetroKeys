@@ -96,20 +96,27 @@ order):
 1. **Header**: `EVAL_VERSION`, salts, profiles, the SHA-256 of every evaluated data file, test set, lexicon and
    provenance export, the engine build id (SHA-256 of the compiled engine classes), a hash of the parameter tables
    (05 §1), the run date (not part of the hash) and the report hash.
-2. **Gates** G1–G7 per profile and language on the test half, with value, n, limit, baseline value, difference and
-   PASS/FAIL. All gates are **report-only** in this release (05c §7.1).
+2. **Gates** G1–G9 per profile and language on the test half, with value, n, limit, baseline value, difference and
+   PASS/FAIL. All gates are **report-only** in this release (05c §7.1); G8/G9 (0.7.1: E2/E2a wrong corrections,
+   accepted replacements) are report-only by definition.
 3. **Ratchet**: every metric with n ≥ 200 of the test half compared with the baseline named in
    `evaluation/baseline/RATCHET` (tolerance 0.5 points for n ≥ 1000, 1.0 below), and new L1/L2 entries. Report-only.
 4. **Results** per profile and language and half: one row per set and variant with n, fixed (AC recall), wrong,
-   kept, precision, top-1, top-3 for error sets, the false-correction rate for F sets (F7 also the offer rate of the
-   accented word), the collision bucket (typed text valid in the evaluated list, not counted) and the differences to
+   kept, precision, top-1, top-3 and offer (the expected word anywhere in the bar) for error sets, the false-correction
+   rate for F sets (F7 also the offer rate of the accented word and, from 0.7.1, the accepted replacements: the
+   accented word replaced by its more frequent spelling, 05c F7), the flagged bucket (expected word is a do-not-suggest
+   form, 05b §2.16; not counted), the collision bucket (typed text valid in the evaluated list, not counted), the
+   buckets F2z and F5z (F2 and F5 items whose key the list stores with class 0: corrected by design, report only, not
+   in G6 or the ratchet; F5z from 0.7.1: abbreviations that are real-word typos, "zi", "fem") and the differences to
    every committed baseline. "All errors" is the mean recall over E1–E8 (equal weight per type), "all false positives"
    the mean false-correction rate over F1–F7. The JSON also has every metric by band and by length band.
 5. **Lint** L1–L5 with counts, differences to the baselines and the first 50 entries of each list.
 6. **Worst 50** per profile and language: severity = outcome weight × max(1, zipf of the base word); each line gives
    set, variant, typed and expected text, the autocorrection, the first five bar entries with kind, `lm`, `ed` and
    score, the typed word's validity (rule of 05 §7, unattested flag), the decision step of 05 §10.1 and the
-   provenance flags of the typed key and of each entry.
+   provenance flags of the typed key and of each entry; from 0.7.1 also each entry's source (key slip, spelling,
+   completion, learned, split, elision) and the autocorrection score of 05 §10.1, and the decision step codes 1–8 of
+   P3 (e.g. `4o`, `7o`, `7r` omission reading applied, `7s`). Flagged items and accepted replacements are not worst cases.
 7. **Dev/test gap** (flagged above 2 points in favour of dev: possible overfitting) and the **freshness run** (salt B
    next to salt A, flagged above 2 points).
 
@@ -155,13 +162,80 @@ the rule the ratchet passes; against 0.6.9 it lists 452 instead of 441 worse met
 en-US E3/E4 cells that moved a few tenths across the tolerance; E2 "kept" rises because wrong corrections become kept
 words).
 
+## Baseline 0.7.1
+
+The 0.7.1 candidate pipeline (05 §8: key-slip search and spelling source 05d, merge and cut of §8.4/§9, policy P3 of
+§10.1) and the 0.7.1 lists (derived data, do-not-suggest flags; first with the German abbreviation exemption of the
+0.7.1 draft, see the review fixes below) were evaluated with
+`:engine:evalFull` on the unchanged EVAL_VERSION 1 test sets; report `evaluation/reports/0.7.1/` (differences to
+0.6.9 and 0.7.0), baseline `evaluation/baseline/0.7.1.json` (05c §7.2 re-baseline, reason "0.7.1 pipeline"), and
+`evaluation/baseline/RATCHET` now names 0.7.1. The ratchet of 0.7.1 against 0.7.0 lists 427 of 3 223 metrics worse
+by more than the tolerance (report-only), 345 of them E1 and E4 recall, kept, top-1 and precision cells: P3 corrects
+a substitution or swap only when it is clearly ahead (margin and guards of 05 §10.1), so more of these typos are kept
+and offered instead; no new L1/L2 entries. Test half, salt A, N, rates in percent; each cell 0.7.0 → 0.7.1; E2 as
+top-3 / wrong corrections (05c E2 by offer, top-3 and wrong from 0.7.1).
+
+| Profile | Language | All errors (recall) | All false positives | E1 N recall / precision | E2 N top-3 / wrong | E5 N recall | F2 N / F4 N / F5 N false corrections | L2 (2–3 letters) | L3 coverage 20 000 |
+|---|---|---|---|---|---|---|---|---|---|
+| single | de-DE | 60.9 → 77.1 | 3.4 → 0.1 | 79.9 / 99.6 → 73.3 / 98.8 | 42.5 / 19.9 → 68.4 / 2.1 | 84.8 → 87.9 | 0.3 / 9.7 / 2.8 → 0.0 / 0.0 / 0.7 | 23 → 23 | 100.00 → 100.00 |
+| single | en-US | 85.2 → 88.1 | 3.7 → 1.2 | 89.7 / 97.9 → 83.9 / 97.1 | 77.0 / 22.0 → 81.0 / 5.5 | – | 0.0 / 0.0 / 18.4 → 0.0 / 0.0 / 5.9 | 0 → 0 | 99.78 → 99.78 |
+| single | es-ES | 60.2 → 78.7 | 1.5 → 0.0 | 82.9 / 99.6 → 77.3 / 98.6 | 63.2 / 20.4 → 76.1 / 4.4 | 95.4 → 97.7 | 0.7 / 5.3 / 2.6 → 0.0 / 0.0 / 0.0 | 5 → 5 | 99.98 → 99.98 |
+| single | fr-FR | 63.4 → 79.5 | 2.5 → 0.3 | 74.6 / 98.7 → 72.9 / 98.2 | 81.7 / 10.7 → 83.3 / 2.2 | 75.0 → 90.2 | 0.0 / 4.8 / 3.0 → 0.0 / 0.0 / 0.0 | 2 → 2 | 100.00 → 100.00 |
+| single | it-IT | 65.7 → 83.8 | 11.5 → 0.0 | 84.8 / 99.4 → 80.3 / 98.5 | 68.3 / 20.3 → 77.4 / 2.9 | 100.0 → 100.0 | 0.7 / 5.9 / 5.9 → 0.0 / 0.0 / 0.0 | 2 → 2 | 100.00 → 100.00 |
+| single | pt-BR | 64.1 → 84.3 | 0.4 → 0.3 | 89.0 / 99.4 → 81.8 / 98.9 | 73.2 / 19.0 → 77.7 / 4.4 | 96.6 → 100.0 | 0.0 / 2.6 / 0.0 → 0.0 / 1.5 / 0.0 | 8 → 8 | 100.00 → 100.00 |
+| de+en | de-DE | 59.8 → 75.7 | 3.4 → 0.1 | 79.5 / 99.6 → 73.1 / 98.8 | 43.1 / 19.7 → 66.5 / 1.9 | 84.8 → 87.9 | 0.3 / 9.2 / 2.8 → 0.0 / 0.0 / 0.7 | | |
+| de+en | en-US (typed with German selected) | 42.3 → 43.2 | 0.2 → 0.2 | 9.3 / 33.3 → 7.8 / 44.0 | 69.7 / 14.5 → 71.6 / 10.7 | – | | | |
+
+(The 0.7.0 values of this table come from the 0.7.0 report as recomputed by the 0.7.1 evaluation code, so E2 top-3 and
+"all errors" differ slightly from the table above, which used AC recall for E2.) AC recall / wrong corrections over
+E1–E4, E2a and E9 (N + S): de 47.5 / 6.2 → 67.7 / 1.2, en 81.3 / 6.3 → 81.3 / 2.8, es 51.3 / 6.9 → 72.3 / 1.4, fr
+50.8 / 5.3 → 73.8 / 1.3, it 53.3 / 7.4 → 77.3 / 1.3, pt 56.7 / 7.0 → 78.7 / 1.5. F7 (accent-less spelling of a rare
+accented word) counts the replacement by the more frequent accented spelling as accepted: de 16.0 %, fr 11.1 %, it
+57.2 % of the F7 items, false corrections de 8.0 → 0.0, fr 8.0 → 1.6, it 57.2 → 0.0. Flagged bucket (test half): de
+12, en 1, es 2, fr 24, it 5, pt 0 items. Gates failing (report-only): de G2 and G4, en G6 (F5 5.9) and G8, es G2 and
+G8, pt G2, G6 (F4 1.5) and G8.
+
+**0.7.1 review fixes.** The baseline and report were recomputed after the review of 0.7.1 (owner decision): the
+abbreviation exemption of the real-word typo rule is withdrawn (32 German keys class 0 again, with the abbreviation
+bit of 05b §1.1), the transliterated runs of 05 §8.1c hand over only completions longer than the typed word, and F5
+items stored with class 0 are reported as F5z. Against the 0.7.1 baseline before the fixes the ratchet passes (3 271
+metrics compared, none worse, no new lint entries). Changes (test half): German F5 N 141 → 136 items (false
+corrections 0.7 % unchanged), F5z de 5 items of which 3 corrected (60 %; dev 9 items, 55.6 %), fr dev 1 item; German
+E4 N wrong corrections 0.2 → 0.0 % (precision 99.8 → 100.0); German E1–E4/E2a/E9 AC recall and wrong corrections
+unchanged (67.7 / 1.2), all other languages unchanged. The ratchet against 0.7.0 lists 429 worse metrics (427 before).
+
+**Unknown words are always corrected (0.7.1 review, owner decision).** 05 §10.1 step 7 (runner-up within `AC_MARGIN`)
+now applies only to typed words that are valid for the decision, and the omission guard of step 7a is skipped when
+the best correction of such a word is itself the typed word with one letter inserted. Report and baseline 0.7.1 were
+recomputed (reason "unknown words are always corrected"). AC recall / wrong corrections over E1–E4, E2a and E9 (test
+half, N + S), before → after: de 67.7 / 1.2 → 80.5 / 4.9 (de+en 67.5 / 1.2 → 80.1 / 4.9), en 81.3 / 2.8 → 85.7 / 5.5,
+es 72.3 / 1.4 → 82.7 / 5.0, fr 73.8 / 1.3 → 87.4 / 5.6, it 77.3 / 1.3 → 86.2 / 4.1, pt 78.7 / 1.5 → 88.2 / 5.1. False
+corrections of the F sets are unchanged except en F5 N 5.9 → 7.2 % ("Af", "Calif": abbreviations the English list
+does not know), de F5z 3 → 4 of 5 items ("iber") and, with German selected, the English F1 items 3 → 5 ("shown" →
+"schon", "sad" → "das"). Against the previous 0.7.1 baseline the ratchet lists 808 of 3 271 metrics worse (report-only;
+wrong and precision cells of E1–E4 and E8, and E1/E4 top-1), no new lint entries. Gates now failing in addition
+(report-only, accepted by the owner): G5 (precision E1–E4) in every language, G8 (E2 wrong rate) also in de, fr and it,
+G8 for E2a in de, es and it.
+
+**Omission reading (0.7.1 review, owner decision).** For a typed word that is not valid for the decision, the
+omission guard of 05 §10.1 step 7a now applies the omission reading (the first correction in AC-score order that is
+the typed word with one letter inserted, within `AC_OMISSION_MARGIN` and `AC_LIMIT`; decision step `7r`) instead of
+none ("Kanst" → "Kannst"). Report and baseline 0.7.1 were recomputed (reason "omission guard applies the omission
+reading"). AC recall / wrong corrections over E1–E4, E2a and E9 (test half, N + S), before → after: de 80.5 / 4.9 →
+81.9 / 5.4 (de+en 80.1 / 4.9 → 81.5 / 5.5), en 85.7 / 5.5 → 87.4 / 6.0, es 82.7 / 5.0 → 83.5 / 5.4, fr 87.4 / 5.6 →
+88.2 / 6.0, it 86.2 / 4.1 → 87.7 / 4.9, pt 88.2 / 5.1 → 89.3 / 5.8. False corrections of every F set unchanged.
+Against the previous 0.7.1 baseline the ratchet lists 166 of 3 271 metrics worse (report-only; wrong and
+precision cells of E1–E4 and E8, and E4 top-1), no new lint entries. Gate newly failing (report-only): pt G8 for E2a (0.0 → 5.6 %).
+
 ## Baselines and reports
 
 | File | Content |
 |---|---|
 | `evaluation/baseline/0.6.9.json` | first baseline: the 0.6.9 word lists, before any 0.7.0 data change (05c §7.2; recomputed with the amended collision rule) |
 | `evaluation/baseline/0.7.0.json` | second baseline: the first 0.7.0 build (05c §7.2) |
-| `evaluation/baseline/RATCHET` | the baseline the ratchet compares with (0.7.0 from this release) |
+| `evaluation/baseline/0.7.1.json` | third baseline: the 0.7.1 pipeline and lists (05c §7.2 re-baseline) |
+| `evaluation/baseline/RATCHET` | the baseline the ratchet compares with (0.7.1 from this release) |
 | `evaluation/reports/0.6.9/report.{json,md}` | the full-tier report of the 0.6.9 lists |
 | `evaluation/reports/0.7.0/report.{json,md}` | the full-tier report of the 0.7.0 lists (differences to 0.6.9) |
+| `evaluation/reports/0.7.1/report.{json,md}` | the full-tier report of 0.7.1 (differences to 0.6.9 and 0.7.0) |
 | `evaluation/testsets/LICENSE.md` | sources and attribution of the test data (05c §2.4) |

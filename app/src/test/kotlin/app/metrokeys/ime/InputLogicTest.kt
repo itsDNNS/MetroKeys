@@ -89,6 +89,28 @@ class InputLogicTest {
     }
 
     @Test
+    fun anAbbreviationTypedWithItsPeriodStays() {
+        // 04 §3.2 item 9 (0.7.1): "zi" and "fem" are real-word typos (class 0) whose keys carry the abbreviation bit;
+        // with a space they are corrected, with a period they stay
+        type("Ich gehe zi ")
+        assertEquals("Ich gehe zu |", editor.toString())
+        type("mit fem ")
+        assertEquals("Ich gehe zu mit dem |", editor.toString())
+        type("das Zi.")
+        assertEquals("Ich gehe zu mit dem das Zi.|", editor.toString())
+        type(" und fem.")
+        assertEquals("Ich gehe zu mit dem das Zi. und fem.|", editor.toString())
+        assertEquals(listOf("zu", "dem"), corrected)
+    }
+
+    @Test
+    fun aPeriodStillCorrectsAWordThatIsNoAbbreviation() {
+        type("Das ist das hsus.")
+        assertEquals("Das ist das Haus.|", editor.toString())
+        assertEquals(listOf("Haus"), corrected)
+    }
+
+    @Test
     fun undoByEditingNeedsOneUndoAlsoForAnUnknownWord() {
         // 05 §10.4, 04 §3.5 (0.6.8, as in the reference): one rejection is enough for every word
         type("Hsllo ")

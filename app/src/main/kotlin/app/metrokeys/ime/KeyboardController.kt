@@ -256,7 +256,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         val old = settings
         settings = s
         logic.settings = s
-        feedback.configure(s.keySounds, s.keySoundVolume, s.vibration, s.customSounds)
+        feedback.configure(s.keySounds, s.keySoundVolume, s.vibration, s.soundSource, s.keySoundsSilentMode, s.customAssetsStamp)
         if (!s.clipboardHistory && old.clipboardHistory) {
             clipHistory.clearAll()
             saveClips()
@@ -400,6 +400,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         // the permission may have been granted or revoked since (05 §13)
         contacts.update(settings.contactsWordSource)
         view?.onShown()
+        feedback.prepare()
         // the strip follows the editor's current selection (04 §10 "Input start, restart and re-shown keyboard")
         logic.reshown()
         updateAutoShift()
@@ -460,7 +461,8 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
 
     override fun onAutoCorrected(correction: String) {
         view?.onAutoCorrected(correction)
-        feedback.play(SoundKind.CANDIDATE)
+        // the pick sound at the moment of the replacement, after the trigger key's own sound (03 §1.4, 04 §3.3)
+        feedback.play(SoundEvents.AUTOCORRECTION)
         view?.announce(str(R.string.a11y_corrected, correction))
     }
 
@@ -487,20 +489,26 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     fun shiftDown() {
         val now = SystemClock.uptimeMillis()
         shiftBeforeTouch = ShiftSnapshot(shift, shiftManual, justUnlocked, lastShiftDown)
-        val double = now - lastShiftDown < 500
+        val double = now - lastShiftDown < ShiftRules.DOUBLE_TAP_WINDOW_MS
         lastShiftDown = now
         val old = shift
-        shift = when (shift) {
-            Shift.OFF -> if (double) (if (justUnlocked) Shift.OFF else Shift.CAPS_LOCK) else Shift.ONE_SHOT
-            Shift.ONE_SHOT -> if (double) Shift.CAPS_LOCK else Shift.OFF
-            Shift.CAPS_LOCK -> {
-                justUnlocked = true
-                Shift.OFF
-            }
-        }
+        shift = ShiftRules.tap(shift, double, justUnlocked)
+        if (old == Shift.CAPS_LOCK) justUnlocked = true
         if (shift != Shift.OFF) justUnlocked = false
         shiftManual = shift == Shift.ONE_SHOT
         if (old != shift) announceShift()
+        view?.invalidate()
+    }
+
+    /** Shift held until its hold timer fires (03 §4 item 2a): caps lock; from state 1 with a second function sound. */
+    fun shiftHold() {
+        val (next, sound) = ShiftRules.hold(shift, justUnlocked)
+        if (sound) feedback.key(SoundKind.FUNCTION)
+        if (next == shift) return
+        shift = next
+        shiftManual = false
+        justUnlocked = false
+        announceShift()
         view?.invalidate()
     }
 
@@ -541,26 +549,19 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
 
     // ================================================================ keys
 
-    /** Touch-down feedback and the keys that act on touch-down (03 §1.2, §4, §7.1, §8.2). */
+    /** A key-sound event (03 §1.4): touch-down or a repeated action; the class by the key's look. */
+    fun keySound(key: Key) {
+        Perf.section("mk:feedback") { feedback.key(SoundKind.forKey(key, page)) }
+    }
+
+    /** The keys that act on touch-down (03 §1.2, §4, §7.1, §8.2). */
     fun keyDown(key: Key) {
-        Perf.section("mk:feedback") {
-            feedback.play(soundFor(key))
-            feedback.vibrate()
-        }
         when (key.role) {
             KeyRole.PAGE, KeyRole.EMOJI -> key.target?.let { switchToPage(it) }
             KeyRole.SHIFT -> shiftDown()
             KeyRole.EMOJI_CATEGORY -> key.category?.let { selectEmojiCategory(it) }
             else -> {}
         }
-    }
-
-    fun soundFor(key: Key): SoundKind = when (key.role) {
-        KeyRole.CHAR -> if (key.appearance == app.metrokeys.keyboard.layout.Appearance.NORMAL) SoundKind.LETTER else SoundKind.FUNCTION
-        KeyRole.SPACE -> SoundKind.SPACE
-        KeyRole.BACKSPACE -> SoundKind.DELETE
-        KeyRole.ENTER -> SoundKind.RETURN
-        else -> SoundKind.FUNCTION
     }
 
     fun switchToPage(target: String) {
@@ -678,10 +679,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     }
 
     /** Click of a tap on a sticky picker (03 §3.4 item 6). */
-    fun pickerTapFeedback() {
-        feedback.play(SoundKind.LETTER)
-        feedback.vibrate()
-    }
+    fun pickerTapFeedback() = feedback.key(SoundKind.LETTER)
 
     fun pickerOpened(items: List<String>) {
         feedback.play(SoundKind.PICKER)
@@ -813,6 +811,8 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
             val texts = r.texts(shiftState)
             scheduler.main(0) {
                 liveSwipe.finished(id, texts.isNotEmpty())
+                // nothing or no word recognised: the add-to-dictionary sound as "not recognised" (06 §5.5)
+                SoundEvents.swipeResult(texts, r.recognized)?.let { feedback.play(it) }
                 Perf.section("mk:applySwipe") { logic.applySwipe(r, texts) }
             }
         }
@@ -835,8 +835,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
     // ================================================================ strip
 
     fun pick(content: StripContent, index: Int) {
-        val item = content.items.getOrNull(index) ?: return
-        feedback.play(if (item.addWord) SoundKind.DICTIONARY else SoundKind.CANDIDATE)
+        SoundEvents.pick(content, index)?.let { feedback.play(it) }
         logic.pick(content, index)
     }
 
@@ -872,7 +871,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         (settings.navTap.contains("clipboard") || settings.navHold.contains("clipboard"))
 
     fun paste() {
-        feedback.play(SoundKind.PASTE)
+        feedback.play(SoundEvents.PASTE)
         logic.paste { editor.performPaste() }
     }
 
@@ -909,8 +908,8 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
         val before = chipPastedStamp
         // set first, so the strip refresh caused by the insertion already sees the chip gone
         chipPastedStamp = cur.stamp
-        val ok = if (c.image != null) insertImage(c.image) else {
-            feedback.play(SoundKind.PASTE)
+        val ok = if (c.image != null) insertImage(c.image, pasteSound = true) else {
+            feedback.play(SoundEvents.PASTE)
             logic.insertClip(c.text!!)
             true
         }
@@ -1009,7 +1008,7 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
      * Inserts a stored image with commitContent (03 §10.4) if the editor declares a matching MIME type; otherwise a
      * short toast. Returns true if the editor took it.
      */
-    fun insertImage(e: ClipEntry): Boolean {
+    fun insertImage(e: ClipEntry, pasteSound: Boolean = false): Boolean {
         val name = e.image ?: return false
         val mime = e.mime ?: ClipImages.mimeFor(name)
         val declared = service.currentInputEditorInfo?.contentMimeTypes ?: emptyArray()
@@ -1019,7 +1018,8 @@ class KeyboardController(private val service: MetroKeysService) : InputLogic.Lis
             return false
         }
         val content = InputContentInfo(clipImages.uriFor(name), ClipDescription("image", arrayOf(mime)))
-        feedback.play(SoundKind.PASTE)
+        // the paste sound only for the recently-copied chip; the clipboard panel has its own feedback (03 §1.4)
+        if (pasteSound) feedback.play(SoundEvents.PASTE)
         val ok = logic.insertContent { ic.commitContent(content, InputConnection.INPUT_CONTENT_GRANT_READ_URI_PERMISSION, null) }
         if (!ok) showMessage(str(R.string.clip_image_unsupported), long = false)
         return ok
